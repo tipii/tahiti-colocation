@@ -1,0 +1,38 @@
+{
+  "name": "@coloc/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts --format esm --dts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'no linter configured'",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1009.0",
+    "@aws-sdk/s3-request-presigner": "^3.1009.0",
+    "@better-auth/expo": "^1.5.5",
+    "@coloc/shared": "workspace:*",
+    "@hono/node-server": "^1",
+    "better-auth": "^1",
+    "dotenv": "^16",
+    "drizzle-orm": "^0.41",
+    "hono": "^4",
+    "pg": "^8",
+    "sharp": "^0.34.5",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8",
+    "drizzle-kit": "^0.31",
+    "tsup": "^8",
+    "tsx": "^4",
+    "typescript": "^5.7"
+  }
+}

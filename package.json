@@ -1,0 +1,20 @@
+{
+  "name": "coloc",
+  "private": true,
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:push": "turbo run db:push --filter=@coloc/api",
+    "db:generate": "turbo run db:generate --filter=@coloc/api",
+    "db:studio": "turbo run db:studio --filter=@coloc/api"
+  },
+  "devDependencies": {
+    "turbo": "^2",
+    "typescript": "^5.7",
+    "prettier": "^3",
+    "@ianvs/prettier-plugin-sort-imports": "^4"
+  }
+}
