@@ -27,9 +27,11 @@ COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/api/package.json ./
+COPY --from=build /app/apps/api/src/db ./src/db
+COPY --from=build /app/apps/api/drizzle.config.ts ./
 
 ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx drizzle-kit push && node dist/index.js"]
