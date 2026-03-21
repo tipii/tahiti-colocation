@@ -12,15 +12,12 @@ RUN pnpm install --frozen-lockfile
 # Build
 FROM base AS build
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/ ./
 COPY . .
 
 ARG API_URL=http://api:3001
 ENV API_URL=$API_URL
 
-RUN pnpm --filter @coloc/shared build
 RUN pnpm --filter @coloc/web build
 
 # Production
