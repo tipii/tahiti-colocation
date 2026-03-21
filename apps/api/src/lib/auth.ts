@@ -11,7 +11,7 @@ export const auth = betterAuth({
     provider: 'pg',
     schema,
   }),
-  trustedOrigins: ['http://localhost:3000', 'mobile://', 'exp://'],
+  trustedOrigins: ['http://localhost:3000', 'https://dev.theop.dev', 'mobile://', 'exp://'],
   plugins: [expo()],
   emailAndPassword: {
     enabled: true,

@@ -43,7 +43,7 @@ export default function SignupPage() {
   }
 
   const handleFacebookSignup = () => {
-    authClient.signIn.social({ provider: 'facebook', callbackURL: 'http://localhost:3000/' })
+    authClient.signIn.social({ provider: 'facebook', callbackURL: '/' })
   }
 
   if (isPending || session) return null

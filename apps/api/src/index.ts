@@ -16,14 +16,14 @@ app.use('*', logger())
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:8081', 'https://api-dev.theop.dev'],
+    origin: ['http://localhost:3000', 'http://localhost:8081', 'https://dev.theop.dev', 'https://api-dev.theop.dev'],
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
   }),
 )
 
-app.on(['GET', 'POST'], '/api/auth/**', (c) => auth.handler(c.req.raw))
+app.all('/api/auth/*', (c) => auth.handler(c.req.raw))
 
 app.route('/api/health', healthRouter)
 app.route('/api/images', imagesRouter)
