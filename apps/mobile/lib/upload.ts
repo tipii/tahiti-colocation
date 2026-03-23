@@ -1,8 +1,11 @@
 import * as ImagePicker from 'expo-image-picker'
-import { apiFetch } from './api'
+
+import { authClient } from './auth'
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 interface UploadResult {
-  imageId: string
+  id: string
   originalUrl: string
   mediumUrl: string
   thumbnailUrl: string
@@ -43,32 +46,27 @@ export async function uploadImage(
 ): Promise<UploadResult> {
   const fileName = asset.uri.split('/').pop() ?? 'photo.jpg'
   const contentType = asset.mimeType ?? getMimeType(asset.uri)
+  const cookies = authClient.getCookie()
 
-  // Step 1: Get presigned URL
-  const presign = await apiFetch<{
-    uploadUrl: string
-    imageId: string
-    key: string
-  }>('/api/images/presign', {
+  // Upload through API (avoids direct R2 fetch which has IPv6 issues in Expo Go)
+  const formData = new FormData()
+  formData.append('file', {
+    uri: asset.uri,
+    name: fileName,
+    type: contentType,
+  } as any)
+  formData.append('entityType', entityType)
+  formData.append('entityId', entityId)
+
+  const res = await fetch(`${API_URL}/api/images/upload`, {
     method: 'POST',
-    body: JSON.stringify({ entityType, entityId, contentType, fileName }),
+    body: formData,
+    headers: {
+      ...(cookies ? { Cookie: cookies } : {}),
+    },
+    credentials: 'omit',
   })
 
-  // Step 2: Upload directly to R2
-  const response = await fetch(asset.uri)
-  const blob = await response.blob()
-
-  await fetch(presign.uploadUrl, {
-    method: 'PUT',
-    body: blob,
-    headers: { 'Content-Type': contentType },
-  })
-
-  // Step 3: Confirm and process
-  const confirmed = await apiFetch<UploadResult>(
-    `/api/images/${presign.imageId}/confirm`,
-    { method: 'POST' },
-  )
-
-  return confirmed
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+  return res.json() as Promise<UploadResult>
 }

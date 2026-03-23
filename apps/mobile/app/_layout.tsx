@@ -1,5 +1,6 @@
 import '../globals.css'
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
 import { Stack, useRouter, useSegments } from 'expo-router'
@@ -17,6 +18,8 @@ export const unstable_settings = {
 }
 
 SplashScreen.preventAutoHideAsync()
+
+const queryClient = new QueryClient()
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -37,7 +40,11 @@ export default function RootLayout() {
     return null
   }
 
-  return <RootLayoutNav />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RootLayoutNav />
+    </QueryClientProvider>
+  )
 }
 
 function RootLayoutNav() {
@@ -63,6 +70,8 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="listing/[id]" options={{ headerShown: true, title: '' }} />
+        <Stack.Screen name="listing/edit/[id]" options={{ headerShown: true, title: 'Modifier' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
