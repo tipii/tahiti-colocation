@@ -56,7 +56,7 @@ imagesRouter.post('/presign', async (c) => {
       .from(listings)
       .where(eq(listings.id, entityId))
       .limit(1)
-    if (!listing || listing.providerId !== user.id) {
+    if (!listing || listing.authorId !== user.id) {
       return c.json({ error: 'Forbidden' }, 403)
     }
   } else if (entityType === 'avatar' && entityId !== user.id) {
@@ -84,6 +84,95 @@ imagesRouter.post('/presign', async (c) => {
   return c.json({ uploadUrl, imageId: image!.id, key })
 })
 
+// POST /api/images/upload — direct upload (file goes through API to R2)
+imagesRouter.post('/upload', async (c) => {
+  const user = c.get('user')
+  const formData = await c.req.formData()
+  const file = formData.get('file') as File
+  const entityType = formData.get('entityType') as string
+  const entityId = formData.get('entityId') as string
+
+  if (!file || !entityType || !entityId) {
+    return c.json({ error: 'Missing file, entityType, or entityId' }, 400)
+  }
+
+  if (!['listing', 'avatar'].includes(entityType)) {
+    return c.json({ error: 'Invalid entityType' }, 400)
+  }
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return c.json({ error: 'Invalid content type' }, 400)
+  }
+
+  // Verify ownership
+  if (entityType === 'listing') {
+    const [listing] = await db
+      .select()
+      .from(listings)
+      .where(eq(listings.id, entityId))
+      .limit(1)
+    if (!listing || listing.authorId !== user.id) {
+      return c.json({ error: 'Forbidden' }, 403)
+    }
+  } else if (entityType === 'avatar' && entityId !== user.id) {
+    return c.json({ error: 'Forbidden' }, 403)
+  }
+
+  const imageId = crypto.randomUUID()
+  const key = `uploads/${entityType}/${entityId}/${imageId}/${file.name}`
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  // Upload to R2
+  await putObject(key, buffer, file.type)
+
+  // Create DB record
+  const [image] = await db
+    .insert(images)
+    .values({
+      id: imageId,
+      entityType,
+      entityId,
+      originalKey: key,
+      mimeType: file.type,
+      status: 'pending',
+      uploadedBy: user.id,
+    })
+    .returning()
+
+  // Process — only medium + thumbnail, skip original to save storage
+  const variants = await processImage(buffer)
+  const basePath = `images/${entityType}/${entityId}/${imageId}`
+  const mediumKey = `${basePath}/medium.webp`
+  const thumbnailKey = `${basePath}/thumb.webp`
+
+  await Promise.all([
+    putObject(mediumKey, variants.medium.buffer, 'image/webp'),
+    putObject(thumbnailKey, variants.thumbnail.buffer, 'image/webp'),
+  ])
+
+  await deleteObject(key)
+
+  const [updated] = await db
+    .update(images)
+    .set({
+      originalKey: mediumKey,
+      mediumKey,
+      thumbnailKey,
+      originalWidth: variants.medium.width,
+      originalHeight: variants.medium.height,
+      sizeBytes: variants.medium.size,
+      status: 'ready',
+    })
+    .where(eq(images.id, imageId))
+    .returning()
+
+  return c.json({
+    ...updated,
+    mediumUrl: getPublicUrl(mediumKey),
+    thumbnailUrl: getPublicUrl(thumbnailKey),
+  })
+})
+
 // POST /api/images/:imageId/confirm — process uploaded image
 imagesRouter.post('/:imageId/confirm', async (c) => {
   const user = c.get('user')
@@ -106,34 +195,29 @@ imagesRouter.post('/:imageId/confirm', async (c) => {
   // Download original from R2
   const inputBuffer = await getObjectBuffer(image.originalKey)
 
-  // Process with Sharp
+  // Process — only medium + thumbnail
   const variants = await processImage(inputBuffer)
 
-  // Upload variants
   const basePath = `images/${image.entityType}/${image.entityId}/${imageId}`
-  const originalKey = `${basePath}/original.webp`
   const mediumKey = `${basePath}/medium.webp`
   const thumbnailKey = `${basePath}/thumb.webp`
 
   await Promise.all([
-    putObject(originalKey, variants.original.buffer, 'image/webp'),
     putObject(mediumKey, variants.medium.buffer, 'image/webp'),
     putObject(thumbnailKey, variants.thumbnail.buffer, 'image/webp'),
   ])
 
-  // Delete the raw upload
   await deleteObject(image.originalKey)
 
-  // Update DB record
   const [updated] = await db
     .update(images)
     .set({
-      originalKey,
+      originalKey: mediumKey,
       mediumKey,
       thumbnailKey,
-      originalWidth: variants.original.width,
-      originalHeight: variants.original.height,
-      sizeBytes: variants.original.size,
+      originalWidth: variants.medium.width,
+      originalHeight: variants.medium.height,
+      sizeBytes: variants.medium.size,
       status: 'ready',
     })
     .where(eq(images.id, imageId))
@@ -141,7 +225,6 @@ imagesRouter.post('/:imageId/confirm', async (c) => {
 
   return c.json({
     ...updated,
-    originalUrl: getPublicUrl(originalKey),
     mediumUrl: getPublicUrl(mediumKey),
     thumbnailUrl: getPublicUrl(thumbnailKey),
   })

@@ -1,5 +1,13 @@
-export type { User, CreateUser, Listing, CreateListing } from './schemas'
-export type { UserRole } from './constants'
+export type {
+  User,
+  CreateUser,
+  Image,
+  Listing,
+  CreateListing,
+  UpdateListing,
+  ListingFilters,
+} from './schemas'
+export type { UserRole, Island, DurationType, RoomType, ListingStatus } from './constants'
 
 export interface ApiResponse<T> {
   data: T
@@ -15,3 +23,9 @@ export interface ApiError {
 }
 
 export type ApiResult<T> = ApiResponse<T> | ApiError
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  meta: { page: number; limit: number; total: number; totalPages: number }
+  error: null
+}

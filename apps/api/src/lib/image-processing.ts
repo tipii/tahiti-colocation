@@ -8,7 +8,6 @@ interface ProcessedVariant {
 }
 
 interface ProcessedImage {
-  original: ProcessedVariant
   medium: ProcessedVariant
   thumbnail: ProcessedVariant
 }
@@ -35,11 +34,10 @@ async function processVariant(
 }
 
 export async function processImage(input: Buffer): Promise<ProcessedImage> {
-  const [original, medium, thumbnail] = await Promise.all([
-    processVariant(input, 2000, 2000, 90),
-    processVariant(input, 800, 600, 85),
+  const [medium, thumbnail] = await Promise.all([
+    processVariant(input, 1200, 900, 85),
     processVariant(input, 200, 200, 80, 'cover'),
   ])
 
-  return { original, medium, thumbnail }
+  return { medium, thumbnail }
 }

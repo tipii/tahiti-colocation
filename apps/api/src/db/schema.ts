@@ -1,5 +1,11 @@
 import { relations } from 'drizzle-orm'
 import { index, integer, jsonb, pgTable, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
+import type { ISLANDS, DURATION_TYPES, ROOM_TYPES, LISTING_STATUSES } from '@coloc/contract'
+
+type Island = (typeof ISLANDS)[number]
+type DurationType = (typeof DURATION_TYPES)[number]
+type RoomType = (typeof ROOM_TYPES)[number]
+type ListingStatus = (typeof LISTING_STATUSES)[number]
 
 // ── Better Auth tables (generated) ──────────────────────────────────────────
 
@@ -81,6 +87,7 @@ export const verification = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  listings: many(listings),
 }))
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -99,17 +106,60 @@ export const accountRelations = relations(account, ({ one }) => ({
 
 // ── Application tables ──────────────────────────────────────────────────────
 
-export const listings = pgTable('listings', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  title: varchar('title', { length: 255 }).notNull(),
-  description: text('description').notNull(),
-  price: integer('price').notNull(),
-  location: varchar('location', { length: 255 }).notNull(),
-  providerId: text('provider_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const listings = pgTable(
+  'listings',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    title: varchar('title', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    description: text('description').notNull(),
+    price: integer('price').notNull(),
+    status: varchar('status', { length: 20 }).$type<ListingStatus>().default('draft').notNull(),
+    views: integer('views').default(0).notNull(),
+    // Duration
+    durationType: varchar('duration_type', { length: 20 }).$type<DurationType>().notNull(),
+    availableFrom: timestamp('available_from').notNull(),
+    availableTo: timestamp('available_to'),
+    // Location
+    island: varchar('island', { length: 50 }).$type<Island>().notNull(),
+    commune: varchar('commune', { length: 100 }).notNull(),
+    latitude: text('latitude'),
+    longitude: text('longitude'),
+    // Amenities
+    roomType: varchar('room_type', { length: 20 }).$type<RoomType>().notNull(),
+    numberOfPeople: integer('number_of_people').notNull(),
+    privateBathroom: boolean('private_bathroom').default(false).notNull(),
+    privateToilets: boolean('private_toilets').default(false).notNull(),
+    pool: boolean('pool').default(false).notNull(),
+    parking: boolean('parking').default(false).notNull(),
+    airConditioning: boolean('air_conditioning').default(false).notNull(),
+    petsAccepted: boolean('pets_accepted').default(false).notNull(),
+    // Contact
+    showPhone: boolean('show_phone').default(false).notNull(),
+    contactEmail: varchar('contact_email', { length: 255 }),
+    // Meta
+    authorId: text('author_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('listings_author_idx').on(table.authorId),
+    index('listings_status_idx').on(table.status),
+    index('listings_island_idx').on(table.island),
+  ],
+)
+
+export const listingRelations = relations(listings, ({ one }) => ({
+  author: one(user, {
+    fields: [listings.authorId],
+    references: [user.id],
+  }),
+}))
 
 export const images = pgTable(
   'images',
