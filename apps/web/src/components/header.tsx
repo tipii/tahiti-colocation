@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { authClient } from '@/lib/auth-client'
+import { Button } from '@/components/ui/button'
 
 export function Header() {
   const { data: session, isPending } = authClient.useSession()
@@ -17,30 +18,36 @@ export function Header() {
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-4">
-      <Link href="/" className="text-xl font-bold">
-        Coloc
-      </Link>
+      <div className="flex items-center gap-6">
+        <Link href="/" className="text-xl font-bold">
+          Coloc
+        </Link>
+        {!isPending && session && (
+          <nav className="flex items-center gap-4">
+            <Link href="/listings/mine" className="text-sm text-muted-foreground hover:text-foreground">
+              Mes annonces
+            </Link>
+            <Link href="/listings/new" className="text-sm text-muted-foreground hover:text-foreground">
+              Publier
+            </Link>
+          </nav>
+        )}
+      </div>
       {!isPending && (
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-3">
           {session ? (
             <>
-              <span className="text-sm text-gray-600">{session.user.name}</span>
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-gray-500 hover:text-gray-800"
-              >
+              <span className="text-sm text-muted-foreground">{session.user.name}</span>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
                 Se deconnecter
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm hover:text-gray-800">
+              <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
                 Se connecter
               </Link>
-              <Link
-                href="/signup"
-                className="rounded-md bg-foreground px-4 py-2 text-sm text-background"
-              >
+              <Link href="/signup" className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">
                 S'inscrire
               </Link>
             </>

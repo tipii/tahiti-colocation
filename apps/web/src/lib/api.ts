@@ -1,18 +1,24 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+export async function uploadImage(entityType: string, entityId: string, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('entityType', entityType)
+  formData.append('entityId', entityId)
 
-export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+  const res = await fetch('/api/images/upload', {
+    method: 'POST',
+    body: formData,
     credentials: 'include',
   })
 
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+  return res.json()
+}
 
-  return res.json() as Promise<T>
+export async function deleteImage(imageId: string) {
+  const res = await fetch(`/api/images/${imageId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`Delete failed: ${res.status}`)
+  return res.json()
 }

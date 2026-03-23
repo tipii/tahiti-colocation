@@ -10,11 +10,26 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@base-ui/react": "^1.3.0",
+    "@coloc/api": "workspace:*",
+    "@coloc/contract": "workspace:*",
+    "@coloc/shared": "workspace:*",
+    "@orpc/client": "^1.13.9",
+    "@orpc/tanstack-query": "^1.13.9",
+    "@orpc/zod": "^1.13.9",
+    "@tanstack/react-form": "^1.28.5",
+    "@tanstack/react-query": "^5.94.5",
+    "@tanstack/react-query-devtools": "^5.95.2",
+    "@tanstack/zod-form-adapter": "^0.42.1",
+    "better-auth": "^1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.0.1",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "@coloc/shared": "workspace:*",
-    "better-auth": "^1"
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
