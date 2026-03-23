@@ -1,0 +1,19 @@
+{
+  "name": "@coloc/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@orpc/contract": "^1.13.9",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7"
+  }
+}

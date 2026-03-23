@@ -1,0 +1,102 @@
+import { z } from 'zod'
+
+export const ISLANDS = [
+  'Tahiti', 'Moorea', 'Huahine', 'Raiatea', 'Tahaa',
+  'Bora Bora', 'Rangiroa', 'Fakarava', 'Nuku Hiva', 'Hiva Oa', 'Other',
+] as const
+
+export const DURATION_TYPES = ['court_terme', 'moyen_terme', 'long_terme'] as const
+export const ROOM_TYPES = ['single', 'couple', 'both'] as const
+export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
+
+export const imageSchema = z.object({
+  id: z.string(),
+  originalUrl: z.string().nullable(),
+  mediumUrl: z.string().nullable(),
+  thumbnailUrl: z.string().nullable(),
+  sortOrder: z.number().int(),
+})
+
+export const authorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  avatar: z.string().nullable(),
+})
+
+export const listingSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1),
+  slug: z.string(),
+  description: z.string(),
+  price: z.number().int().positive(),
+  status: z.enum(LISTING_STATUSES),
+  views: z.number().int(),
+  durationType: z.enum(DURATION_TYPES),
+  availableFrom: z.coerce.date(),
+  availableTo: z.coerce.date().nullable(),
+  island: z.enum(ISLANDS),
+  commune: z.string(),
+  latitude: z.string().nullable(),
+  longitude: z.string().nullable(),
+  roomType: z.enum(ROOM_TYPES),
+  numberOfPeople: z.number().int().positive(),
+  privateBathroom: z.boolean(),
+  privateToilets: z.boolean(),
+  pool: z.boolean(),
+  parking: z.boolean(),
+  airConditioning: z.boolean(),
+  petsAccepted: z.boolean(),
+  showPhone: z.boolean(),
+  contactEmail: z.string().nullable(),
+  authorId: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  images: z.array(imageSchema).optional(),
+  author: authorSchema.nullable().optional(),
+})
+
+export const createListingSchema = z.object({
+  title: z.string().min(1).max(255),
+  description: z.string().min(1),
+  price: z.number().int().positive(),
+  durationType: z.enum(DURATION_TYPES),
+  availableFrom: z.coerce.date(),
+  availableTo: z.coerce.date().nullable().optional(),
+  island: z.enum(ISLANDS),
+  commune: z.string().min(1).max(100),
+  latitude: z.string().nullable().optional(),
+  longitude: z.string().nullable().optional(),
+  roomType: z.enum(ROOM_TYPES),
+  numberOfPeople: z.number().int().positive(),
+  privateBathroom: z.boolean().optional().default(false),
+  privateToilets: z.boolean().optional().default(false),
+  pool: z.boolean().optional().default(false),
+  parking: z.boolean().optional().default(false),
+  airConditioning: z.boolean().optional().default(false),
+  petsAccepted: z.boolean().optional().default(false),
+  showPhone: z.boolean().optional().default(false),
+  contactEmail: z.string().nullable().optional(),
+  status: z.enum(LISTING_STATUSES).optional().default('draft'),
+})
+
+export const updateListingSchema = createListingSchema.partial()
+
+export const listingFiltersSchema = z.object({
+  island: z.enum(ISLANDS).optional(),
+  durationType: z.enum(DURATION_TYPES).optional(),
+  roomType: z.enum(ROOM_TYPES).optional(),
+  minPrice: z.coerce.number().int().optional(),
+  maxPrice: z.coerce.number().int().optional(),
+  page: z.coerce.number().int().positive().optional().default(1),
+  limit: z.coerce.number().int().positive().max(50).optional().default(20),
+})
+
+export const paginatedListingsSchema = z.object({
+  data: z.array(listingSchema),
+  meta: z.object({
+    page: z.number().int(),
+    limit: z.number().int(),
+    total: z.number().int(),
+    totalPages: z.number().int(),
+  }),
+})
