@@ -8,7 +8,7 @@ const db = drizzle(process.env.DATABASE_URL!, { schema })
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function pick<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
+  return arr[Math.floor(Math.random() * arr.length)]!
 }
 
 function rand(min: number, max: number) {
@@ -43,16 +43,16 @@ const COMMUNES: Record<string, string[]> = {
 }
 
 const USERS = [
-  { name: 'Hinano Tetuanui', email: 'hinano@coloc.pf', role: 'provider' },
-  { name: 'Maui Teriitahi', email: 'maui@coloc.pf', role: 'provider' },
-  { name: 'Vaiana Pomare', email: 'vaiana@coloc.pf', role: 'provider' },
-  { name: 'Teva Raapoto', email: 'teva@coloc.pf', role: 'provider' },
-  { name: 'Moea Teheiura', email: 'moea@coloc.pf', role: 'provider' },
-  { name: 'Heirani Taaora', email: 'heirani@coloc.pf', role: 'provider' },
-  { name: 'Teiki Faatau', email: 'teiki@coloc.pf', role: 'seeker' },
-  { name: 'Moeata Tuihani', email: 'moeata@coloc.pf', role: 'seeker' },
-  { name: 'Raiarii Puhetini', email: 'raiarii@coloc.pf', role: 'seeker' },
-  { name: 'Heipua Temarii', email: 'heipua@coloc.pf', role: 'seeker' },
+  { name: 'Hinano Tetuanui', email: 'hinano@coloc.pf' },
+  { name: 'Maui Teriitahi', email: 'maui@coloc.pf' },
+  { name: 'Vaiana Pomare', email: 'vaiana@coloc.pf' },
+  { name: 'Teva Raapoto', email: 'teva@coloc.pf' },
+  { name: 'Moea Teheiura', email: 'moea@coloc.pf' },
+  { name: 'Heirani Taaora', email: 'heirani@coloc.pf' },
+  { name: 'Teiki Faatau', email: 'teiki@coloc.pf' },
+  { name: 'Moeata Tuihani', email: 'moeata@coloc.pf' },
+  { name: 'Raiarii Puhetini', email: 'raiarii@coloc.pf' },
+  { name: 'Heipua Temarii', email: 'heipua@coloc.pf' },
 ]
 
 const PASSWORD = 'coloc2026'
@@ -129,7 +129,7 @@ async function seed() {
       name: u.name,
       email: u.email,
       emailVerified: true,
-      role: u.role,
+      role: 'user',
       createdAt: new Date(),
       updatedAt: new Date(),
     })
@@ -149,13 +149,13 @@ async function seed() {
     console.log(`  👤 ${u.name}`)
   }
 
-  // Create listings
-  const providerIds = userIds.slice(0, 6) // first 6 are providers
+  // Create listings (any user can create)
+  const providerIds = userIds.slice(0, 6) // first 6 users create listings
   let listingCount = 0
 
   for (let i = 0; i < 30; i++) {
     const island = pick(ISLANDS)
-    const commune = pick(COMMUNES[island])
+    const commune = pick(COMMUNES[island]!)
     const titleTemplate = pick(TITLES)
     const title = titleTemplate.replace('{commune}', commune)
     const listingSlug = `${slug(title)}-${rand(100, 999)}`
@@ -194,7 +194,7 @@ async function seed() {
   console.log(`  🏠 ${listingCount} listings created`)
 
   // Create some favorites
-  const seekerIds = userIds.slice(6) // last 4 are seekers
+  const seekerIds = userIds.slice(6) // last 4 users get favorites
   const allListings = await db.select({ id: schema.listings.id }).from(schema.listings)
   let favCount = 0
 
@@ -246,8 +246,8 @@ async function seed() {
         const delay = j * rand(300, 3600) * 1000
         await db.insert(schema.messages).values({
           conversationId: convId,
-          senderId: messages[j].senderId,
-          content: messages[j].content,
+          senderId: messages[j]!.senderId,
+          content: messages[j]!.content,
           createdAt: new Date(Date.now() - (numMsgs - j) * 3600000 + delay),
         })
         msgCount++

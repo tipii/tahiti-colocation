@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-import { DURATION_TYPES, ISLANDS, LISTING_STATUSES, ROOM_TYPES, USER_ROLES } from './constants'
+import { DURATION_TYPES, ISLANDS, LISTING_STATUSES, ROOM_TYPES } from './constants'
 
 export const userSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   name: z.string().min(1),
-  role: z.enum(USER_ROLES),
+  role: z.string(),
   avatar: z.string().url().nullable(),
   bio: z.string().nullable(),
   createdAt: z.coerce.date(),
@@ -15,7 +15,6 @@ export const userSchema = z.object({
 export const createUserSchema = userSchema.pick({
   email: true,
   name: true,
-  role: true,
 })
 
 export const imageSchema = z.object({

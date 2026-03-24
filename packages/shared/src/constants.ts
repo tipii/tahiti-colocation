@@ -1,4 +1,4 @@
-export const USER_ROLES = ['seeker', 'provider'] as const
+export const USER_ROLES = ['user', 'admin'] as const
 export type UserRole = (typeof USER_ROLES)[number]
 
 export const ISLANDS = [

@@ -6,29 +6,22 @@ Run `pnpm --filter @coloc/api db:seed` to populate the database.
 
 All users share the same password: `coloc2026`
 
-### Providers (can create listings)
-
-| Name | Email | Role |
-|------|-------|------|
-| Hinano Tetuanui | hinano@coloc.pf | provider |
-| Maui Teriitahi | maui@coloc.pf | provider |
-| Vaiana Pomare | vaiana@coloc.pf | provider |
-| Teva Raapoto | teva@coloc.pf | provider |
-| Moea Teheiura | moea@coloc.pf | provider |
-| Heirani Taaora | heirani@coloc.pf | provider |
-
-### Seekers (browse + message)
-
-| Name | Email | Role |
-|------|-------|------|
-| Teiki Faatau | teiki@coloc.pf | seeker |
-| Moeata Tuihani | moeata@coloc.pf | seeker |
-| Raiarii Puhetini | raiarii@coloc.pf | seeker |
-| Heipua Temarii | heipua@coloc.pf | seeker |
+| Name | Email |
+|------|-------|
+| Hinano Tetuanui | hinano@coloc.pf |
+| Maui Teriitahi | maui@coloc.pf |
+| Vaiana Pomare | vaiana@coloc.pf |
+| Teva Raapoto | teva@coloc.pf |
+| Moea Teheiura | moea@coloc.pf |
+| Heirani Taaora | heirani@coloc.pf |
+| Teiki Faatau | teiki@coloc.pf |
+| Moeata Tuihani | moeata@coloc.pf |
+| Raiarii Puhetini | raiarii@coloc.pf |
+| Heipua Temarii | heipua@coloc.pf |
 
 ## What gets created
 
-- 10 users (6 providers + 4 seekers)
+- 10 users (all with role `user`)
 - 30 published listings across Tahiti, Moorea, Bora Bora, etc.
 - ~20 favorites
 - ~8 conversations with sample messages
