@@ -24,23 +24,39 @@ export default function HomeScreen() {
   const listings = data?.data ?? []
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="px-6 pt-16 pb-4">
-        <Text className="text-3xl font-bold">Coloc</Text>
+    <View className="flex-1 bg-background">
+      <View className="px-6 pt-16 pb-2">
+        <Text className="text-3xl font-bold text-foreground">Coloc Tahiti</Text>
         {session && (
-          <Text className="mt-1 text-base text-gray-500">Bonjour, {session.user.name}</Text>
+          <Text className="mt-1 text-base text-muted-foreground">
+            Ia ora na, {session.user.name} 🌺
+          </Text>
         )}
+        <Text className="mt-3 text-lg text-secondary font-medium italic">
+          Trouve ta coloc au paradis
+        </Text>
       </View>
 
-      <View className="gap-2 px-6 pb-4">
+      <View className="gap-2 px-6 py-3">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
-            <Pressable className={`rounded-full px-3 py-1.5 ${!selectedIsland ? 'bg-black' : 'bg-gray-100'}`} onPress={() => setSelectedIsland(null)}>
-              <Text className={`text-sm ${!selectedIsland ? 'text-white' : 'text-gray-700'}`}>Toutes les iles</Text>
+            <Pressable
+              className={`rounded-pill px-4 py-2 ${!selectedIsland ? 'bg-primary' : 'bg-muted'}`}
+              onPress={() => setSelectedIsland(null)}
+            >
+              <Text className={`text-sm font-medium ${!selectedIsland ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                Toutes les iles
+              </Text>
             </Pressable>
             {ISLANDS.filter((i) => i !== 'Other').map((island) => (
-              <Pressable key={island} className={`rounded-full px-3 py-1.5 ${selectedIsland === island ? 'bg-black' : 'bg-gray-100'}`} onPress={() => setSelectedIsland(selectedIsland === island ? null : island)}>
-                <Text className={`text-sm ${selectedIsland === island ? 'text-white' : 'text-gray-700'}`}>{island}</Text>
+              <Pressable
+                key={island}
+                className={`rounded-pill px-4 py-2 ${selectedIsland === island ? 'bg-primary' : 'bg-muted'}`}
+                onPress={() => setSelectedIsland(selectedIsland === island ? null : island)}
+              >
+                <Text className={`text-sm font-medium ${selectedIsland === island ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                  {island}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -48,8 +64,14 @@ export default function HomeScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             {DURATION_TYPES.map((dt) => (
-              <Pressable key={dt} className={`rounded-full px-3 py-1.5 ${selectedDuration === dt ? 'bg-black' : 'bg-gray-100'}`} onPress={() => setSelectedDuration(selectedDuration === dt ? null : dt)}>
-                <Text className={`text-sm ${selectedDuration === dt ? 'text-white' : 'text-gray-700'}`}>{DURATION_LABELS[dt]}</Text>
+              <Pressable
+                key={dt}
+                className={`rounded-pill px-4 py-2 ${selectedDuration === dt ? 'bg-secondary' : 'bg-muted'}`}
+                onPress={() => setSelectedDuration(selectedDuration === dt ? null : dt)}
+              >
+                <Text className={`text-sm font-medium ${selectedDuration === dt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>
+                  {DURATION_LABELS[dt]}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -57,15 +79,27 @@ export default function HomeScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator size="large" /></View>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#FF6B35" />
+        </View>
       ) : (
         <FlatList
           data={listings}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <View className="px-6 pb-3"><ListingCard listing={item as any} /></View>}
+          renderItem={({ item }) => (
+            <View className="px-6 pb-4">
+              <ListingCard listing={item as any} />
+            </View>
+          )}
           onRefresh={() => refetch()}
           refreshing={isRefetching}
-          ListEmptyComponent={<View className="items-center px-6 pt-20"><Text className="text-center text-base text-gray-400">Aucune annonce pour le moment</Text></View>}
+          ListEmptyComponent={
+            <View className="items-center px-6 pt-20">
+              <Text className="text-center text-lg text-muted-foreground">
+                Aucune annonce pour le moment 🏝️
+              </Text>
+            </View>
+          }
         />
       )}
     </View>

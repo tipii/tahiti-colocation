@@ -1,5 +1,6 @@
 import { Image, Pressable, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Feather } from '@expo/vector-icons'
 import type { Listing } from '@coloc/shared/types'
 import { DURATION_LABELS } from '@coloc/shared/constants'
 import type { DurationType } from '@coloc/shared/constants'
@@ -15,33 +16,38 @@ export function ListingCard({ listing }: ListingCardProps) {
 
   return (
     <Pressable
-      className="overflow-hidden rounded-xl border border-gray-200"
+      className="overflow-hidden rounded-card bg-card shadow-sm"
       onPress={() => router.push(`/listing/${listing.slug}` as any)}
     >
       {firstImage?.mediumUrl ? (
         <Image
           source={{ uri: firstImage.mediumUrl }}
-          className="h-40 w-full"
+          className="h-44 w-full"
           resizeMode="cover"
         />
       ) : (
-        <View className="h-40 w-full bg-gray-100" />
+        <View className="h-44 w-full bg-muted" />
       )}
       <View className="p-4">
-        <View className="flex-row items-center justify-between">
-          <Text className="flex-1 text-base font-semibold" numberOfLines={1}>
-            {listing.title}
+        <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
+          {listing.title}
+        </Text>
+        <View className="mt-1.5 flex-row items-center gap-1">
+          <Feather name="map-pin" size={14} color="#0D9488" />
+          <Text className="text-sm text-muted-foreground">
+            {listing.commune}, {listing.island}
           </Text>
-          <View className="ml-2 rounded-full bg-gray-100 px-2 py-0.5">
-            <Text className="text-xs text-gray-600">{durationLabel}</Text>
+        </View>
+        <View className="mt-2.5 flex-row items-center justify-between">
+          <View className="rounded-pill bg-accent px-3 py-1">
+            <Text className="text-sm font-bold text-primary">
+              {listing.price.toLocaleString('fr-FR')} XPF
+            </Text>
+          </View>
+          <View className="rounded-pill bg-muted px-2.5 py-1">
+            <Text className="text-xs text-muted-foreground">{durationLabel}</Text>
           </View>
         </View>
-        <Text className="mt-1 text-sm text-gray-500">
-          {listing.commune}, {listing.island}
-        </Text>
-        <Text className="mt-2 text-lg font-bold">
-          {listing.price.toLocaleString('fr-FR')} XPF/mois
-        </Text>
       </View>
     </Pressable>
   )

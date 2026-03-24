@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import Link from 'next/link'
+import { MapPin } from 'lucide-react'
 import type { Listing } from '@coloc/shared/types'
 import { DURATION_LABELS } from '@coloc/shared/constants'
 import type { DurationType } from '@coloc/shared/constants'
@@ -13,7 +13,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
 
   return (
     <Link href={`/listings/${listing.slug}`}>
-      <Card className="overflow-hidden transition-shadow hover:shadow-md">
+      <Card className="overflow-hidden rounded-2xl border-border/50 transition-shadow hover:shadow-lg">
         <div className="relative aspect-[4/3] bg-muted">
           {firstImage?.mediumUrl && (
             <img
@@ -24,18 +24,19 @@ export function ListingCard({ listing }: { listing: Listing }) {
           )}
         </div>
         <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="line-clamp-1 text-sm font-semibold">{listing.title}</h3>
-            <Badge variant="secondary" className="shrink-0 text-xs">
+          <h3 className="line-clamp-1 font-semibold text-foreground">{listing.title}</h3>
+          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 text-secondary" />
+            {listing.commune}, {listing.island}
+          </p>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="rounded-full bg-accent px-3 py-1 text-sm font-bold text-primary">
+              {listing.price.toLocaleString('fr-FR')} XPF
+            </span>
+            <Badge variant="secondary" className="text-xs">
               {durationLabel}
             </Badge>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {listing.commune}, {listing.island}
-          </p>
-          <p className="mt-2 text-base font-bold">
-            {listing.price.toLocaleString('fr-FR')} XPF/mois
-          </p>
         </CardContent>
       </Card>
     </Link>

@@ -65,13 +65,29 @@ function RootLayoutNav() {
     }
   }, [session, isPending, segments])
 
+  const warmTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: '#FFF8F0',
+      card: '#FFFFFF',
+      text: '#2D2A26',
+      border: '#E8DDD3',
+      primary: '#FF6B35',
+    },
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={warmTheme}>
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="listing/[id]" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="listing/edit/[id]" options={{ headerShown: true, title: 'Modifier' }} />
+        <Stack.Screen name="listing/[id]" options={{ headerShown: true, title: '', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="listing/edit/[id]" options={{ headerShown: true, title: 'Modifier', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="profile/listings" options={{ headerShown: true, title: 'Mes annonces', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="profile/favorites" options={{ headerShown: true, title: 'Favoris', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="profile/edit" options={{ headerShown: true, title: 'Modifier le profil', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="profile/settings" options={{ headerShown: true, title: 'Parametres', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

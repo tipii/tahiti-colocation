@@ -39,6 +39,21 @@ export async function pickImage(): Promise<ImagePicker.ImagePickerAsset | null> 
   return result.assets[0]
 }
 
+export async function pickImages(limit = 10): Promise<ImagePicker.ImagePickerAsset[]> {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+  if (status !== 'granted') return []
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    quality: 0.9,
+    allowsMultipleSelection: true,
+    selectionLimit: limit,
+  })
+
+  if (result.canceled) return []
+  return result.assets
+}
+
 export async function uploadImage(
   entityType: 'listing' | 'avatar',
   entityId: string,
@@ -67,6 +82,9 @@ export async function uploadImage(
     credentials: 'omit',
   })
 
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`Upload failed: ${res.status} ${body}`)
+  }
   return res.json() as Promise<UploadResult>
 }

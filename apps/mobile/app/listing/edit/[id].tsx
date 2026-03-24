@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useForm } from '@tanstack/react-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, Island, RoomType } from '@coloc/shared/constants'
@@ -8,74 +9,76 @@ import type { Image as ImageType } from '@coloc/shared/types'
 
 import { orpc, client } from '@/lib/orpc'
 import { apiFetch } from '@/lib/api'
-import { pickImage, uploadImage } from '@/lib/upload'
+import { DateField } from '@/components/DateField'
+import { ImagePickerGrid } from '@/components/ImagePickerGrid'
 
 function SectionTitle({ children }: { children: string }) {
-  return <Text className="mt-6 mb-2 text-sm font-semibold text-gray-400 uppercase">{children}</Text>
-}
-
-function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  return <View className="flex-row items-center justify-between py-2"><Text className="text-base">{label}</Text><Switch value={value} onValueChange={onChange} /></View>
+  return <Text className="mt-6 mb-2 text-sm font-semibold text-muted-foreground uppercase">{children}</Text>
 }
 
 export default function EditListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const queryClient = useQueryClient()
-
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [price, setPrice] = useState('')
-  const [durationType, setDurationType] = useState<DurationType>('long_terme')
-  const [availableFrom, setAvailableFrom] = useState('')
-  const [availableTo, setAvailableTo] = useState('')
-  const [island, setIsland] = useState<Island>('Tahiti')
-  const [commune, setCommune] = useState('')
-  const [roomType, setRoomType] = useState<RoomType>('single')
-  const [numberOfPeople, setNumberOfPeople] = useState('1')
-  const [privateBathroom, setPrivateBathroom] = useState(false)
-  const [privateToilets, setPrivateToilets] = useState(false)
-  const [pool, setPool] = useState(false)
-  const [parking, setParking] = useState(false)
-  const [airConditioning, setAirConditioning] = useState(false)
-  const [petsAccepted, setPetsAccepted] = useState(false)
-  const [showPhone, setShowPhone] = useState(false)
-  const [contactEmail, setContactEmail] = useState('')
-  const [status, setStatus] = useState<string>('draft')
   const [existingImages, setExistingImages] = useState<ImageType[]>([])
   const [initialized, setInitialized] = useState(false)
+
+  const form = useForm({
+    defaultValues: {
+      title: '',
+      description: '',
+      price: '',
+      durationType: 'long_terme' as DurationType,
+      availableFrom: '',
+      availableTo: '',
+      island: 'Tahiti' as Island,
+      commune: '',
+      roomType: 'single' as RoomType,
+      numberOfPeople: '1',
+      privateBathroom: false,
+      privateToilets: false,
+      pool: false,
+      parking: false,
+      airConditioning: false,
+      petsAccepted: false,
+      showPhone: false,
+      contactEmail: '',
+      status: 'draft' as string,
+    },
+  })
 
   const { isLoading } = useQuery({
     ...orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
     enabled: !!id,
-    select: (l) => {
+    select: (l: any) => {
       if (!initialized) {
-        setTitle(l.title); setDescription(l.description); setPrice(String(l.price))
-        setDurationType(l.durationType as DurationType)
-        setAvailableFrom(new Date(l.availableFrom).toISOString().split('T')[0])
-        setAvailableTo(l.availableTo ? new Date(l.availableTo).toISOString().split('T')[0] : '')
-        setIsland(l.island as Island); setCommune(l.commune)
-        setRoomType(l.roomType as RoomType); setNumberOfPeople(String(l.numberOfPeople))
-        setPrivateBathroom(l.privateBathroom); setPrivateToilets(l.privateToilets)
-        setPool(l.pool); setParking(l.parking); setAirConditioning(l.airConditioning)
-        setPetsAccepted(l.petsAccepted); setShowPhone(l.showPhone)
-        setContactEmail(l.contactEmail ?? ''); setStatus(l.status)
-        setExistingImages(l.images ?? []); setInitialized(true)
+        form.setFieldValue('title', l.title)
+        form.setFieldValue('description', l.description)
+        form.setFieldValue('price', String(l.price))
+        form.setFieldValue('durationType', l.durationType)
+        form.setFieldValue('availableFrom', new Date(l.availableFrom).toISOString().split('T')[0])
+        form.setFieldValue('availableTo', l.availableTo ? new Date(l.availableTo).toISOString().split('T')[0] : '')
+        form.setFieldValue('island', l.island)
+        form.setFieldValue('commune', l.commune)
+        form.setFieldValue('roomType', l.roomType)
+        form.setFieldValue('numberOfPeople', String(l.numberOfPeople))
+        form.setFieldValue('privateBathroom', l.privateBathroom)
+        form.setFieldValue('privateToilets', l.privateToilets)
+        form.setFieldValue('pool', l.pool)
+        form.setFieldValue('parking', l.parking)
+        form.setFieldValue('airConditioning', l.airConditioning)
+        form.setFieldValue('petsAccepted', l.petsAccepted)
+        form.setFieldValue('showPhone', l.showPhone)
+        form.setFieldValue('contactEmail', l.contactEmail ?? '')
+        form.setFieldValue('status', l.status)
+        setExistingImages(l.images ?? [])
+        setInitialized(true)
       }
       return l
     },
   })
 
-  const handleAddPhoto = async () => {
-    const asset = await pickImage()
-    if (!asset) return
-    try {
-      const result = await uploadImage('listing', id!, asset)
-      setExistingImages((prev) => [...prev, { id: result.id, originalUrl: result.mediumUrl, mediumUrl: result.mediumUrl, thumbnailUrl: result.thumbnailUrl, sortOrder: prev.length }])
-    } catch { Alert.alert('Erreur', "Impossible d'ajouter la photo") }
-  }
-
-  const handleDeleteImage = async (imageId: string) => {
+  const handleRemoveImage = async (imageId: string) => {
     try {
       await apiFetch(`/api/images/${imageId}`, { method: 'DELETE' })
       setExistingImages((prev) => prev.filter((img) => img.id !== imageId))
@@ -88,13 +91,20 @@ export default function EditListingScreen() {
   }
 
   const saveMutation = useMutation({
-    mutationFn: () => client.listing.update({
-      id: id!, title, description, price: Number(price), durationType,
-      availableFrom: new Date(availableFrom), availableTo: availableTo ? new Date(availableTo) : null,
-      island, commune, roomType, numberOfPeople: Number(numberOfPeople),
-      privateBathroom, privateToilets, pool, parking, airConditioning, petsAccepted,
-      showPhone, contactEmail: contactEmail || null,
-    }),
+    mutationFn: () => {
+      const v = form.state.values
+      return client.listing.update({
+        id: id!, title: v.title, description: v.description, price: Number(v.price),
+        durationType: v.durationType, availableFrom: new Date(v.availableFrom),
+        availableTo: v.availableTo ? new Date(v.availableTo) : null,
+        island: v.island, commune: v.commune, roomType: v.roomType,
+        numberOfPeople: Number(v.numberOfPeople),
+        privateBathroom: v.privateBathroom, privateToilets: v.privateToilets,
+        pool: v.pool, parking: v.parking, airConditioning: v.airConditioning,
+        petsAccepted: v.petsAccepted, showPhone: v.showPhone,
+        contactEmail: v.contactEmail || null,
+      })
+    },
     onSuccess: () => { Alert.alert('Succes', 'Annonce mise a jour'); invalidate() },
     onError: () => Alert.alert('Erreur', 'Impossible de mettre a jour'),
   })
@@ -105,65 +115,60 @@ export default function EditListingScreen() {
     onError: () => Alert.alert('Erreur', 'Impossible de publier'),
   })
 
-  if (isLoading) return <View className="flex-1 items-center justify-center bg-white"><ActivityIndicator size="large" /></View>
+  if (isLoading) return <View className="flex-1 items-center justify-center bg-background"><ActivityIndicator size="large" color="#FF6B35" /></View>
 
   const isPending = saveMutation.isPending || publishMutation.isPending
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-white" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
         <View className="px-6 pb-8">
+          {/* Photos */}
           <SectionTitle>Photos</SectionTitle>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-3">
-              {existingImages.map((img) => (
-                <Pressable key={img.id} onPress={() => handleDeleteImage(img.id)}>
-                  <Image source={{ uri: img.thumbnailUrl ?? img.mediumUrl ?? '' }} className="h-24 w-24 rounded-lg" />
-                  <View className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-red-500"><Text className="text-xs font-bold text-white">x</Text></View>
-                </Pressable>
-              ))}
-              <Pressable className="h-24 w-24 items-center justify-center rounded-lg border-2 border-dashed border-gray-300" onPress={handleAddPhoto}><Text className="text-2xl text-gray-400">+</Text></Pressable>
-            </View>
-          </ScrollView>
+          <ImagePickerGrid
+            images={existingImages.map((img) => ({ id: img.id, uri: img.thumbnailUrl ?? img.mediumUrl ?? '' }))}
+            onAdd={(img) => setExistingImages((prev) => [...prev, { id: img.id, originalUrl: img.uri, mediumUrl: img.uri, thumbnailUrl: img.uri, sortOrder: prev.length }])}
+            onRemove={handleRemoveImage}
+            entityType="listing"
+            entityId={id}
+          />
 
           <SectionTitle>Informations generales</SectionTitle>
-          <TextInput className="rounded-lg border border-gray-300 px-3 py-2.5 text-base" placeholder="Titre" value={title} onChangeText={setTitle} />
-          <TextInput className="mt-3 rounded-lg border border-gray-300 px-3 py-2.5 text-base" placeholder="Description" multiline style={{ minHeight: 100 }} textAlignVertical="top" value={description} onChangeText={setDescription} />
-          <View className="mt-3 flex-row items-center gap-2">
-            <TextInput className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-base" placeholder="Prix" keyboardType="numeric" value={price} onChangeText={setPrice} />
-            <Text className="text-base text-gray-500">XPF/mois</Text>
-          </View>
+          <form.Field name="title">{(f) => <TextInput className="rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Titre" placeholderTextColor="#8B7E74" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
+          <form.Field name="description">{(f) => <TextInput className="mt-3 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Description" placeholderTextColor="#8B7E74" multiline style={{ minHeight: 100 }} textAlignVertical="top" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
+          <form.Field name="price">{(f) => <View className="mt-3 flex-row items-center gap-2"><TextInput className="flex-1 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Prix" placeholderTextColor="#8B7E74" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} /><Text className="text-base text-muted-foreground">XPF/mois</Text></View>}</form.Field>
 
           <SectionTitle>Duree</SectionTitle>
-          <View className="flex-row gap-2">{DURATION_TYPES.map((dt) => <Pressable key={dt} className={`flex-1 items-center rounded-lg py-2.5 ${durationType === dt ? 'bg-black' : 'bg-gray-100'}`} onPress={() => setDurationType(dt)}><Text className={`text-sm font-medium ${durationType === dt ? 'text-white' : 'text-gray-700'}`}>{DURATION_LABELS[dt]}</Text></Pressable>)}</View>
-          <TextInput className="mt-3 rounded-lg border border-gray-300 px-3 py-2.5 text-base" placeholder="Disponible a partir du (AAAA-MM-JJ)" value={availableFrom} onChangeText={setAvailableFrom} />
-          <TextInput className="mt-3 rounded-lg border border-gray-300 px-3 py-2.5 text-base" placeholder="Jusqu'au (optionnel)" value={availableTo} onChangeText={setAvailableTo} />
+          <form.Field name="durationType">{(f) => <View className="flex-row gap-2">{DURATION_TYPES.map((dt) => <Pressable key={dt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === dt ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(dt)}><Text className={`text-sm font-medium ${f.state.value === dt ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{DURATION_LABELS[dt]}</Text></Pressable>)}</View>}</form.Field>
+          <form.Field name="availableFrom">{(f) => <DateField label="Disponible a partir du" value={f.state.value} onChange={f.handleChange} />}</form.Field>
+          <form.Field name="availableTo">{(f) => <DateField label="Jusqu'au (optionnel)" value={f.state.value} onChange={f.handleChange} placeholder="Pas de date de fin" />}</form.Field>
 
           <SectionTitle>Localisation</SectionTitle>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}><View className="flex-row gap-2">{ISLANDS.map((i) => <Pressable key={i} className={`rounded-full px-3 py-1.5 ${island === i ? 'bg-black' : 'bg-gray-100'}`} onPress={() => setIsland(i)}><Text className={`text-sm ${island === i ? 'text-white' : 'text-gray-700'}`}>{i}</Text></Pressable>)}</View></ScrollView>
-          <TextInput className="mt-3 rounded-lg border border-gray-300 px-3 py-2.5 text-base" placeholder="Commune" value={commune} onChangeText={setCommune} />
+          <form.Field name="island">{(f) => <ScrollView horizontal showsHorizontalScrollIndicator={false}><View className="flex-row gap-2">{ISLANDS.map((i) => <Pressable key={i} className={`rounded-pill px-4 py-2 ${f.state.value === i ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(i)}><Text className={`text-sm ${f.state.value === i ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{i}</Text></Pressable>)}</View></ScrollView>}</form.Field>
+          <form.Field name="commune">{(f) => <TextInput className="mt-3 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Commune" placeholderTextColor="#8B7E74" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
 
           <SectionTitle>Logement</SectionTitle>
-          <View className="flex-row gap-2">{ROOM_TYPES.map((rt) => <Pressable key={rt} className={`flex-1 items-center rounded-lg py-2.5 ${roomType === rt ? 'bg-black' : 'bg-gray-100'}`} onPress={() => setRoomType(rt)}><Text className={`text-sm font-medium ${roomType === rt ? 'text-white' : 'text-gray-700'}`}>{ROOM_TYPE_LABELS[rt]}</Text></Pressable>)}</View>
-          <View className="mt-3 flex-row items-center gap-2"><Text className="text-base">Nombre de personnes:</Text><TextInput className="w-16 rounded-lg border border-gray-300 px-3 py-2 text-center text-base" keyboardType="numeric" value={numberOfPeople} onChangeText={setNumberOfPeople} /></View>
+          <form.Field name="roomType">{(f) => <View className="flex-row gap-2">{ROOM_TYPES.map((rt) => <Pressable key={rt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === rt ? 'bg-secondary' : 'bg-muted'}`} onPress={() => f.handleChange(rt)}><Text className={`text-sm font-medium ${f.state.value === rt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>{ROOM_TYPE_LABELS[rt]}</Text></Pressable>)}</View>}</form.Field>
+          <form.Field name="numberOfPeople">{(f) => <View className="mt-3 flex-row items-center gap-2"><Text className="text-base text-foreground">Nombre de personnes:</Text><TextInput className="w-16 rounded-input border border-border bg-card px-3 py-2 text-center text-base text-foreground" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} /></View>}</form.Field>
 
           <SectionTitle>Equipements</SectionTitle>
-          <ToggleRow label="Salle de bain privee" value={privateBathroom} onChange={setPrivateBathroom} />
-          <ToggleRow label="Toilettes privees" value={privateToilets} onChange={setPrivateToilets} />
-          <ToggleRow label="Piscine" value={pool} onChange={setPool} />
-          <ToggleRow label="Parking" value={parking} onChange={setParking} />
-          <ToggleRow label="Climatisation" value={airConditioning} onChange={setAirConditioning} />
-          <ToggleRow label="Animaux acceptes" value={petsAccepted} onChange={setPetsAccepted} />
+          {([['privateBathroom', 'Salle de bain privee'], ['privateToilets', 'Toilettes privees'], ['pool', 'Piscine'], ['parking', 'Parking'], ['airConditioning', 'Climatisation'], ['petsAccepted', 'Animaux acceptes']] as const).map(([name, label]) => (
+            <form.Field key={name} name={name}>{(f) => <View className="flex-row items-center justify-between py-2"><Text className="text-base text-foreground">{label}</Text><Switch value={f.state.value} onValueChange={f.handleChange} trackColor={{ true: '#FF6B35' }} /></View>}</form.Field>
+          ))}
 
           <SectionTitle>Contact</SectionTitle>
-          <ToggleRow label="Afficher mon telephone" value={showPhone} onChange={setShowPhone} />
-          <TextInput className="mt-1 rounded-lg border border-gray-300 px-3 py-2.5 text-base" placeholder="Email de contact (optionnel)" keyboardType="email-address" autoCapitalize="none" value={contactEmail} onChangeText={setContactEmail} />
+          <form.Field name="showPhone">{(f) => <View className="flex-row items-center justify-between py-2"><Text className="text-base text-foreground">Afficher mon telephone</Text><Switch value={f.state.value} onValueChange={f.handleChange} trackColor={{ true: '#FF6B35' }} /></View>}</form.Field>
+          <form.Field name="contactEmail">{(f) => <TextInput className="mt-1 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Email de contact (optionnel)" placeholderTextColor="#8B7E74" keyboardType="email-address" autoCapitalize="none" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
 
           <View className="mt-8 gap-3 pb-8">
-            <Pressable className="items-center rounded-lg bg-black py-3.5" onPress={() => saveMutation.mutate()} disabled={isPending}>
-              {isPending ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-semibold text-white">Enregistrer</Text>}
+            <Pressable className="items-center rounded-button bg-primary py-3.5" onPress={() => saveMutation.mutate()} disabled={isPending}>
+              {isPending ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-semibold text-primary-foreground">Enregistrer</Text>}
             </Pressable>
-            {status === 'draft' && <Pressable className="items-center rounded-lg border border-gray-300 py-3.5" onPress={() => publishMutation.mutate()} disabled={isPending}><Text className="text-base font-medium text-gray-600">Publier</Text></Pressable>}
+            {form.state.values.status === 'draft' && (
+              <Pressable className="items-center rounded-button border border-border py-3.5" onPress={() => publishMutation.mutate()} disabled={isPending}>
+                <Text className="text-base font-medium text-muted-foreground">Publier</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </ScrollView>

@@ -1,0 +1,13 @@
+{
+  "name": "@coloc/ui",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./tokens": {
+      "types": "./tokens.ts",
+      "import": "./tokens.ts",
+      "require": "./tokens.js",
+      "default": "./tokens.ts"
+    }
+  }
+}

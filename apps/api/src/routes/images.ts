@@ -13,7 +13,7 @@ import {
 } from '../lib/r2'
 import { processImage } from '../lib/image-processing'
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/x-adobe-dng', 'image/dng']
 
 type AuthUser = { id: string; name: string; email: string }
 
@@ -93,7 +93,7 @@ imagesRouter.post('/upload', async (c) => {
   const entityId = formData.get('entityId') as string
 
   if (!file || !entityType || !entityId) {
-    return c.json({ error: 'Missing file, entityType, or entityId' }, 400)
+    return c.json({ error: `Missing file, entityType, or entityId. Got: file=${!!file}, entityType=${entityType}, entityId=${entityId}` }, 400)
   }
 
   if (!['listing', 'avatar'].includes(entityType)) {
@@ -101,7 +101,7 @@ imagesRouter.post('/upload', async (c) => {
   }
 
   if (!ALLOWED_TYPES.includes(file.type)) {
-    return c.json({ error: 'Invalid content type' }, 400)
+    return c.json({ error: `Invalid content type: ${file.type}` }, 400)
   }
 
   // Verify ownership

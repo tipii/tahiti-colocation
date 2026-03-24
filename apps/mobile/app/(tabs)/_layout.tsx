@@ -1,16 +1,16 @@
-import { SymbolView } from 'expo-symbols'
 import { Tabs } from 'expo-router'
-
-import Colors from '@/constants/Colors'
-import { useColorScheme } from '@/components/useColorScheme'
+import { Feather } from '@expo/vector-icons'
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme()
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
+        tabBarActiveTintColor: '#FF6B35',
+        tabBarInactiveTintColor: '#8B7E74',
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E8DDD3',
+        },
         headerShown: false,
       }}
     >
@@ -18,39 +18,28 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Accueil',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'house.fill', android: 'home', web: 'home' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Recherche',
+          tabBarIcon: ({ color, size }) => <Feather name="search" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="create"
         options={{
           title: 'Publier',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'plus.circle.fill', android: 'add_circle', web: 'add_circle' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="plus-circle" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="profile"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: 'person.fill', android: 'person', web: 'person' }}
-              tintColor={color}
-              size={24}
-            />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size} />,
         }}
       />
     </Tabs>

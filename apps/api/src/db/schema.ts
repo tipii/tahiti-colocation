@@ -193,3 +193,21 @@ export const imageRelations = relations(images, ({ one }) => ({
     references: [user.id],
   }),
 }))
+
+export const favorites = pgTable(
+  'favorites',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    listingId: text('listing_id')
+      .notNull()
+      .references(() => listings.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('favorites_user_idx').on(table.userId),
+    index('favorites_listing_idx').on(table.listingId),
+  ],
+)

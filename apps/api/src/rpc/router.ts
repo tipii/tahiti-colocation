@@ -1,6 +1,7 @@
 import { pub } from './base'
 import * as listing from './listing'
 import * as image from './image'
+import * as favorite from './favorite'
 
 export const router = pub.router({
   listing: {
@@ -17,5 +18,10 @@ export const router = pub.router({
     list: image.list,
     delete: image.remove,
     reorder: image.reorder,
+  },
+  favorite: {
+    list: favorite.list,
+    toggle: favorite.toggle,
+    check: favorite.check,
   },
 })
