@@ -42,6 +42,7 @@ export default function ProfileScreen() {
       )}
 
       <View className="mt-8 gap-2">
+        <MenuItem icon="message-circle" label="Messages" onPress={() => router.push('/profile/messages' as any)} />
         <MenuItem icon="list" label="Mes annonces" onPress={() => router.push('/profile/listings' as any)} />
         <MenuItem icon="heart" label="Favoris" onPress={() => router.push('/profile/favorites' as any)} />
         <MenuItem icon="edit-2" label="Modifier le profil" onPress={() => router.push('/profile/edit' as any)} />

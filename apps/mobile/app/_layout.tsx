@@ -84,10 +84,12 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="listing/[id]" options={{ headerShown: true, title: '', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="listing/edit/[id]" options={{ headerShown: true, title: 'Modifier', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="profile/messages" options={{ headerShown: true, title: 'Messages', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/listings" options={{ headerShown: true, title: 'Mes annonces', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/favorites" options={{ headerShown: true, title: 'Favoris', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/edit" options={{ headerShown: true, title: 'Modifier le profil', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/settings" options={{ headerShown: true, title: 'Parametres', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: 'Conversation', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

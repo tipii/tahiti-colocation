@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
@@ -25,7 +25,8 @@ export default function ListingDetailScreen() {
   const { width } = useWindowDimensions()
   const { data: session } = authClient.useSession()
   const queryClient = useQueryClient()
-  const [imageIndex, setImageIndex] = useState(0)
+  const [galleryOpen, setGalleryOpen] = useState(false)
+  const [galleryIndex, setGalleryIndex] = useState(0)
 
   const { data: listing, isLoading } = useQuery(
     orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
@@ -58,35 +59,89 @@ export default function ListingDetailScreen() {
 
   return (
     <ScrollView className="flex-1 bg-background">
-      {/* Image Carousel */}
-      {images.length > 0 ? (
-        <View>
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={(e) => setImageIndex(Math.round(e.nativeEvent.contentOffset.x / width))}>
-            {images.map((img) => <Image key={img.id} source={{ uri: img.mediumUrl ?? '' }} style={{ width, height: 320 }} resizeMode="cover" />)}
+      {/* Image Gallery */}
+      {/* Fullscreen Gallery Modal */}
+      <Modal visible={galleryOpen} animationType="fade" statusBarTranslucent>
+        <View className="flex-1 bg-black">
+          <StatusBar barStyle="light-content" />
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: galleryIndex * width, y: 0 }}
+            onMomentumScrollEnd={(e) => setGalleryIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+          >
+            {images.map((img) => (
+              <View key={img.id} className="flex-1 items-center justify-center" style={{ width }}>
+                <Image source={{ uri: img.mediumUrl ?? '' }} style={{ width, flex: 1 }} resizeMode="contain" />
+              </View>
+            ))}
           </ScrollView>
-          {/* Price badge + favorite */}
-          <View className="absolute left-4 top-4 rounded-pill bg-primary px-4 py-1.5">
-            <Text className="text-sm font-bold text-primary-foreground">
-              {listing.price.toLocaleString('fr-FR')} XPF / mois
-            </Text>
-          </View>
-          {session && !isOwner && (
-            <Pressable className="absolute right-4 top-4 h-10 w-10 items-center justify-center rounded-full bg-white/80" onPress={() => toggleFav.mutate()}>
-              <Feather name="heart" size={20} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
-            </Pressable>
-          )}
-          {/* Dots */}
+          <Pressable className="absolute right-4 top-14 h-10 w-10 items-center justify-center rounded-full bg-white/20" onPress={() => setGalleryOpen(false)}>
+            <Feather name="x" size={22} color="#fff" />
+          </Pressable>
           {images.length > 1 && (
-            <View className="absolute bottom-3 w-full flex-row justify-center gap-1.5">
-              {images.map((_, i) => <View key={i} className={`h-2 w-2 rounded-full ${i === imageIndex ? 'bg-white' : 'bg-white/50'}`} />)}
+            <View className="absolute bottom-10 w-full items-center">
+              <Text className="text-sm font-medium text-white">{galleryIndex + 1} / {images.length}</Text>
             </View>
           )}
         </View>
-      ) : (
-        <View className="h-56 items-center justify-center bg-muted">
-          <Text className="text-4xl">🏝️</Text>
-        </View>
-      )}
+      </Modal>
+
+      <View className="px-4 pt-2">
+        {images.length > 0 ? (
+          <Pressable className="overflow-hidden rounded-2xl" onPress={() => { setGalleryIndex(0); setGalleryOpen(true) }}>
+            {images.length === 1 ? (
+              <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 320 }} resizeMode="cover" />
+            ) : images.length === 2 ? (
+              <View className="flex-row" style={{ height: 280 }}>
+                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} resizeMode="cover" />
+                <View style={{ width: 2 }} />
+                <Image source={{ uri: images[1].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} resizeMode="cover" />
+              </View>
+            ) : (
+              <View style={{ height: 280 }}>
+                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 185 }} resizeMode="cover" />
+                <View className="flex-row" style={{ height: 93, marginTop: 2 }}>
+                  {images.slice(1, 4).map((img, i) => (
+                    <View key={img.id} style={{ flex: 1, marginLeft: i > 0 ? 2 : 0 }}>
+                      <Image source={{ uri: img.mediumUrl ?? '' }} style={{ flex: 1 }} resizeMode="cover" />
+                      {i === 2 && images.length > 4 && (
+                        <View className="absolute inset-0 items-center justify-center bg-black/40">
+                          <Text className="text-lg font-bold text-white">+{images.length - 4}</Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Overlays */}
+            <View className="absolute left-3 top-3 rounded-pill bg-primary px-3.5 py-1.5">
+              <Text className="text-sm font-bold text-primary-foreground">
+                {listing.price.toLocaleString('fr-FR')} XPF / mois
+              </Text>
+            </View>
+            {session && !isOwner && (
+              <Pressable className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80" onPress={() => toggleFav.mutate()}>
+                <Feather name="heart" size={20} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
+              </Pressable>
+            )}
+            {images.length > 1 && (
+              <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1">
+                <Feather name="image" size={12} color="#fff" />
+                <Text className="text-xs font-medium text-white">{images.length}</Text>
+              </View>
+            )}
+          </Pressable>
+        ) : (
+          <View className="h-48 items-center justify-center rounded-2xl bg-muted">
+            <Feather name="image" size={48} color="#E8DDD3" />
+            <Text className="mt-2 text-sm text-muted-foreground">Pas de photos</Text>
+          </View>
+        )}
+      </View>
 
       <View className="px-6 py-5 gap-6">
         {/* Header */}
@@ -172,6 +227,20 @@ export default function ListingDetailScreen() {
             )}
           </View>
         </View>
+
+        {/* Contact Action */}
+        {session && !isOwner && (
+          <Pressable
+            className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
+            onPress={async () => {
+              const conv = await client.chat.getOrCreate({ listingId: listing.id })
+              router.push(`/chat/${conv.id}` as any)
+            }}
+          >
+            <Feather name="message-circle" size={18} color="#fff" />
+            <Text className="text-base font-semibold text-secondary-foreground">Contacter</Text>
+          </Pressable>
+        )}
 
         {/* Owner Actions */}
         {isOwner && (
