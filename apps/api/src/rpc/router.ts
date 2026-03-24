@@ -2,6 +2,7 @@ import { pub } from './base'
 import * as listing from './listing'
 import * as image from './image'
 import * as favorite from './favorite'
+import * as chat from './chat'
 
 export const router = pub.router({
   listing: {
@@ -23,5 +24,12 @@ export const router = pub.router({
     list: favorite.list,
     toggle: favorite.toggle,
     check: favorite.check,
+  },
+  chat: {
+    getOrCreate: chat.getOrCreate,
+    list: chat.list,
+    messages: chat.getMessages,
+    send: chat.send,
+    unreadCount: chat.unreadCount,
   },
 })

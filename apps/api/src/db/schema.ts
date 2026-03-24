@@ -211,3 +211,46 @@ export const favorites = pgTable(
     index('favorites_listing_idx').on(table.listingId),
   ],
 )
+
+export const conversations = pgTable(
+  'conversations',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    listingId: text('listing_id')
+      .notNull()
+      .references(() => listings.id, { onDelete: 'cascade' }),
+    seekerId: text('seeker_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    providerId: text('provider_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('conversations_seeker_idx').on(table.seekerId),
+    index('conversations_provider_idx').on(table.providerId),
+    index('conversations_last_msg_idx').on(table.lastMessageAt),
+  ],
+)
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    senderId: text('sender_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    readAt: timestamp('read_at'),
+  },
+  (table) => [
+    index('messages_conversation_idx').on(table.conversationId),
+    index('messages_created_idx').on(table.createdAt),
+  ],
+)
