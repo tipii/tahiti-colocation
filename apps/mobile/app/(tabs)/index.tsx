@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS } from '@coloc/shared/constants'
 
@@ -9,6 +10,7 @@ import { ListingCard } from '@/components/ListingCard'
 
 export default function HomeScreen() {
   const { data: session } = authClient.useSession()
+  const insets = useSafeAreaInsets()
   const [selectedIsland, setSelectedIsland] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
 
@@ -25,7 +27,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="px-6 pt-16 pb-2">
+      <View className="px-6 pb-2" style={{ paddingTop: insets.top + 8 }}>
         <Text className="text-3xl font-bold text-foreground">Coloc Tahiti</Text>
         {session && (
           <Text className="mt-1 text-base text-muted-foreground">
@@ -43,6 +45,9 @@ export default function HomeScreen() {
             <Pressable
               className={`rounded-pill px-4 py-2 ${!selectedIsland ? 'bg-primary' : 'bg-muted'}`}
               onPress={() => setSelectedIsland(null)}
+              accessibilityLabel="Toutes les îles"
+              accessibilityRole="button"
+              accessibilityState={{ selected: !selectedIsland }}
             >
               <Text className={`text-sm font-medium ${!selectedIsland ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
                 Toutes les iles

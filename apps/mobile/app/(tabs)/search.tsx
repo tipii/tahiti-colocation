@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
@@ -9,6 +10,7 @@ import { orpc } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 
 export default function SearchScreen() {
+  const insets = useSafeAreaInsets()
   const [island, setIsland] = useState<string | null>(null)
   const [durationType, setDurationType] = useState<string | null>(null)
   const [roomType, setRoomType] = useState<string | null>(null)
@@ -33,10 +35,10 @@ export default function SearchScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="px-6 pt-16 pb-3">
+      <View className="px-6 pb-3" style={{ paddingTop: insets.top + 8 }}>
         <View className="flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-foreground">Recherche</Text>
-          <Pressable onPress={() => setFiltersOpen(!filtersOpen)}>
+          <Pressable onPress={() => setFiltersOpen(!filtersOpen)} accessibilityLabel={filtersOpen ? 'Masquer les filtres' : 'Afficher les filtres'} accessibilityRole="button">
             <Feather name={filtersOpen ? 'chevron-up' : 'sliders'} size={22} color="#FF6B35" />
           </Pressable>
         </View>

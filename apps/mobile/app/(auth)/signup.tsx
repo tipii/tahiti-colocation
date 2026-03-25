@@ -51,7 +51,7 @@ export default function SignupScreen() {
       <ScrollView contentContainerClassName="grow justify-center px-6 py-12" keyboardShouldPersistTaps="handled">
         <Text className="text-center text-3xl font-bold text-primary">Coloc Tahiti</Text>
         <Text className="mt-1 text-center text-base text-secondary italic">
-          Island living, shared together 🌴
+          La coloc au paradis 🌴
         </Text>
         <Text className="mt-6 text-center text-xl font-semibold text-foreground">Creer un compte</Text>
 

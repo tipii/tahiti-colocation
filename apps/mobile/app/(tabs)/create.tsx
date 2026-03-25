@@ -13,6 +13,7 @@ import {
   Image,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
@@ -30,6 +31,7 @@ function SectionTitle({ children }: { children: string }) {
 export default function CreateListingScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
   const [photos, setPhotos] = useState<{ id: string; uri: string }[]>([])
 
   const form = useForm({
@@ -99,19 +101,25 @@ export default function CreateListingScreen() {
     onError: () => Alert.alert('Erreur', "Impossible de creer l'annonce"),
   })
 
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+
   const handleSubmit = (publish: boolean) => {
     const v = form.state.values
-    if (!v.title || !v.description || !v.price || !v.commune || !v.availableFrom) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires')
-      return
-    }
+    const errors: string[] = []
+    if (!v.title) errors.push('Titre')
+    if (!v.description) errors.push('Description')
+    if (!v.price) errors.push('Prix')
+    if (!v.commune) errors.push('Commune')
+    if (!v.availableFrom) errors.push('Date de disponibilité')
+    setValidationErrors(errors)
+    if (errors.length > 0) return
     submitMutation.mutate(publish)
   }
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <View className="px-6 pt-16 pb-8">
+        <View className="px-6 pb-8" style={{ paddingTop: insets.top + 8 }}>
           <Text className="text-3xl font-bold text-foreground">Nouvelle annonce</Text>
 
           {/* Photos */}
@@ -239,12 +247,32 @@ export default function CreateListingScreen() {
             {(f) => <TextInput className="mt-1 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Email de contact (optionnel)" placeholderTextColor="#8B7E74" keyboardType="email-address" autoCapitalize="none" value={f.state.value} onChangeText={f.handleChange} />}
           </form.Field>
 
+          {/* Validation errors */}
+          {validationErrors.length > 0 && (
+            <View className="mt-6 rounded-card bg-destructive/10 p-4">
+              <Text className="text-sm font-semibold text-destructive">Champs obligatoires manquants :</Text>
+              <Text className="mt-1 text-sm text-destructive">{validationErrors.join(', ')}</Text>
+            </View>
+          )}
+
           {/* Submit */}
           <View className="mt-8 gap-3 pb-8">
-            <Pressable className="items-center rounded-button bg-primary py-3.5" onPress={() => handleSubmit(true)} disabled={submitMutation.isPending}>
+            <Pressable
+              className={`items-center rounded-button bg-primary py-3.5 ${submitMutation.isPending ? 'opacity-50' : ''}`}
+              onPress={() => handleSubmit(true)}
+              disabled={submitMutation.isPending}
+              accessibilityLabel="Publier l'annonce"
+              accessibilityRole="button"
+            >
               {submitMutation.isPending ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-semibold text-primary-foreground">Publier</Text>}
             </Pressable>
-            <Pressable className="items-center rounded-button border border-border py-3.5" onPress={() => handleSubmit(false)} disabled={submitMutation.isPending}>
+            <Pressable
+              className={`items-center rounded-button border border-border py-3.5 ${submitMutation.isPending ? 'opacity-50' : ''}`}
+              onPress={() => handleSubmit(false)}
+              disabled={submitMutation.isPending}
+              accessibilityLabel="Enregistrer comme brouillon"
+              accessibilityRole="button"
+            >
               <Text className="text-base font-medium text-muted-foreground">Enregistrer en brouillon</Text>
             </Pressable>
           </View>

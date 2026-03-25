@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Alert, Image as RNImage, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native'
+import { Image } from 'expo-image'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
@@ -11,12 +12,12 @@ import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
 
 const AMENITY_CONFIG: { key: string; icon: string; label: string }[] = [
-  { key: 'privateBathroom', icon: 'droplet', label: 'Salle de bain\nprivee' },
-  { key: 'privateToilets', icon: 'box', label: 'Toilettes\nprivees' },
+  { key: 'privateBathroom', icon: 'droplet', label: 'Salle de bain\nprivée' },
+  { key: 'privateToilets', icon: 'box', label: 'Toilettes\nprivées' },
   { key: 'pool', icon: 'sunset', label: 'Piscine' },
   { key: 'parking', icon: 'truck', label: 'Parking' },
   { key: 'airConditioning', icon: 'wind', label: 'Climatisation' },
-  { key: 'petsAccepted', icon: 'heart', label: 'Animaux\nacceptes' },
+  { key: 'petsAccepted', icon: 'heart', label: 'Animaux\nacceptés' },
 ]
 
 export default function ListingDetailScreen() {
@@ -28,7 +29,7 @@ export default function ListingDetailScreen() {
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
 
-  const { data: listing, isLoading } = useQuery(
+  const { data: listing, isLoading, error, refetch } = useQuery(
     orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
   )
 
@@ -50,7 +51,32 @@ export default function ListingDetailScreen() {
   })
 
   if (isLoading) return <View className="flex-1 items-center justify-center bg-background"><ActivityIndicator size="large" color="#FF6B35" /></View>
-  if (!listing) return <View className="flex-1 items-center justify-center bg-background"><Text className="text-muted-foreground">Annonce introuvable</Text></View>
+
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background px-6">
+        <Feather name="wifi-off" size={48} color="#E8DDD3" />
+        <Text className="mt-4 text-center text-lg font-semibold text-foreground">Impossible de charger l'annonce</Text>
+        <Text className="mt-1 text-center text-sm text-muted-foreground">Vérifiez votre connexion et réessayez</Text>
+        <Pressable className="mt-6 rounded-button bg-primary px-6 py-3" accessibilityLabel="Réessayer" onPress={() => refetch()}>
+          <Text className="text-base font-semibold text-primary-foreground">Réessayer</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
+  if (!listing) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background px-6">
+        <Feather name="search" size={48} color="#E8DDD3" />
+        <Text className="mt-4 text-center text-lg font-semibold text-foreground">Annonce introuvable</Text>
+        <Text className="mt-1 text-center text-sm text-muted-foreground">Cette annonce a peut-être été supprimée</Text>
+        <Pressable className="mt-6 rounded-button bg-primary px-6 py-3" accessibilityLabel="Retour" onPress={() => router.back()}>
+          <Text className="text-base font-semibold text-primary-foreground">Retour</Text>
+        </Pressable>
+      </View>
+    )
+  }
 
   const isOwner = session?.user?.id === listing.authorId
   const isFavorited = favData?.favorited ?? false
@@ -59,9 +85,8 @@ export default function ListingDetailScreen() {
 
   return (
     <ScrollView className="flex-1 bg-background">
-      {/* Image Gallery */}
       {/* Fullscreen Gallery Modal */}
-      <Modal visible={galleryOpen} animationType="fade" statusBarTranslucent>
+      <Modal visible={galleryOpen} animationType="fade" statusBarTranslucent onRequestClose={() => setGalleryOpen(false)}>
         <View className="flex-1 bg-black">
           <StatusBar barStyle="light-content" />
           <ScrollView
@@ -73,11 +98,11 @@ export default function ListingDetailScreen() {
           >
             {images.map((img) => (
               <View key={img.id} className="flex-1 items-center justify-center" style={{ width }}>
-                <Image source={{ uri: img.mediumUrl ?? '' }} style={{ width, flex: 1 }} resizeMode="contain" />
+                <RNImage source={{ uri: img.mediumUrl ?? '' }} style={{ width, flex: 1 }} resizeMode="contain" accessibilityLabel={`Photo ${images.indexOf(img) + 1} sur ${images.length}`} />
               </View>
             ))}
           </ScrollView>
-          <Pressable className="absolute right-4 top-14 h-10 w-10 items-center justify-center rounded-full bg-white/20" onPress={() => setGalleryOpen(false)}>
+          <Pressable className="absolute right-4 top-14 h-10 w-10 items-center justify-center rounded-full bg-white/20" accessibilityLabel="Fermer la galerie" onPress={() => setGalleryOpen(false)}>
             <Feather name="x" size={22} color="#fff" />
           </Pressable>
           {images.length > 1 && (
@@ -90,22 +115,22 @@ export default function ListingDetailScreen() {
 
       <View className="px-4 pt-2">
         {images.length > 0 ? (
-          <Pressable className="overflow-hidden rounded-2xl" onPress={() => { setGalleryIndex(0); setGalleryOpen(true) }}>
+          <Pressable className="overflow-hidden rounded-2xl" accessibilityLabel="Voir les photos en plein écran" onPress={() => { setGalleryIndex(0); setGalleryOpen(true) }}>
             {images.length === 1 ? (
-              <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 320 }} resizeMode="cover" />
+              <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 320 }} contentFit="cover" transition={200} accessibilityLabel={`Photo de ${listing.title}`} />
             ) : images.length === 2 ? (
               <View className="flex-row" style={{ height: 280 }}>
-                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} resizeMode="cover" />
+                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 1 de ${listing.title}`} />
                 <View style={{ width: 2 }} />
-                <Image source={{ uri: images[1].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} resizeMode="cover" />
+                <Image source={{ uri: images[1].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 2 de ${listing.title}`} />
               </View>
             ) : (
               <View style={{ height: 280 }}>
-                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 185 }} resizeMode="cover" />
+                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 185 }} contentFit="cover" transition={200} accessibilityLabel={`Photo principale de ${listing.title}`} />
                 <View className="flex-row" style={{ height: 93, marginTop: 2 }}>
                   {images.slice(1, 4).map((img, i) => (
                     <View key={img.id} style={{ flex: 1, marginLeft: i > 0 ? 2 : 0 }}>
-                      <Image source={{ uri: img.mediumUrl ?? '' }} style={{ flex: 1 }} resizeMode="cover" />
+                      <Image source={{ uri: img.mediumUrl ?? '' }} style={{ flex: 1 }} contentFit="cover" transition={200} />
                       {i === 2 && images.length > 4 && (
                         <View className="absolute inset-0 items-center justify-center bg-black/40">
                           <Text className="text-lg font-bold text-white">+{images.length - 4}</Text>
@@ -117,19 +142,23 @@ export default function ListingDetailScreen() {
               </View>
             )}
 
-            {/* Overlays */}
-            <View className="absolute left-3 top-3 rounded-pill bg-primary px-3.5 py-1.5">
+            <View className="absolute left-3 top-3 rounded-pill bg-primary px-3.5 py-1.5" accessibilityElementsHidden>
               <Text className="text-sm font-bold text-primary-foreground">
                 {listing.price.toLocaleString('fr-FR')} XPF / mois
               </Text>
             </View>
             {session && !isOwner && (
-              <Pressable className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80" onPress={() => toggleFav.mutate()}>
+              <Pressable
+                className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
+                accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                accessibilityRole="button"
+                onPress={(e) => { e.stopPropagation(); toggleFav.mutate() }}
+              >
                 <Feather name="heart" size={20} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
               </Pressable>
             )}
             {images.length > 1 && (
-              <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1">
+              <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1" accessibilityElementsHidden>
                 <Feather name="image" size={12} color="#fff" />
                 <Text className="text-xs font-medium text-white">{images.length}</Text>
               </View>
@@ -144,7 +173,6 @@ export default function ListingDetailScreen() {
       </View>
 
       <View className="px-6 py-5 gap-6">
-        {/* Header */}
         <View>
           <View className="flex-row items-center gap-2">
             <View className="rounded-pill bg-accent px-3 py-1">
@@ -165,8 +193,7 @@ export default function ListingDetailScreen() {
           </View>
         </View>
 
-        {/* Quick Info */}
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-3" accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, ${listing.numberOfPeople} personnes, disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
           <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
             <Feather name="home" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
@@ -187,26 +214,25 @@ export default function ListingDetailScreen() {
           </View>
         </View>
 
-        {/* Amenities Grid */}
-        <View>
-          <Text className="text-sm font-semibold text-muted-foreground uppercase">Equipements</Text>
-          <View className="mt-3 flex-row flex-wrap gap-3">
-            {activeAmenities.map(({ key, icon, label }) => (
-              <View key={key} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: (width - 60) / 3 }}>
-                <Feather name={icon as any} size={24} color="#FF6B35" />
-                <Text className="mt-1.5 text-xs text-center text-muted-foreground">{label}</Text>
-              </View>
-            ))}
+        {activeAmenities.length > 0 && (
+          <View>
+            <Text className="text-sm font-semibold text-muted-foreground uppercase">Équipements</Text>
+            <View className="mt-3 flex-row flex-wrap gap-3">
+              {activeAmenities.map(({ key, icon, label }) => (
+                <View key={key} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: (width - 60) / 3 }}>
+                  <Feather name={icon as any} size={24} color="#FF6B35" />
+                  <Text className="mt-1.5 text-xs text-center text-muted-foreground">{label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
-        {/* Description */}
         <View>
-          <Text className="text-sm font-semibold text-muted-foreground uppercase">A propos</Text>
+          <Text className="text-sm font-semibold text-muted-foreground uppercase">À propos</Text>
           <Text className="mt-2 text-base leading-6 text-foreground">{listing.description}</Text>
         </View>
 
-        {/* Contact Card */}
         <View className="rounded-card bg-card p-4 shadow-sm">
           <Text className="text-sm font-semibold text-muted-foreground uppercase">Contact</Text>
           <View className="mt-3 flex-row items-center gap-3">
@@ -228,10 +254,11 @@ export default function ListingDetailScreen() {
           </View>
         </View>
 
-        {/* Contact Action */}
         {session && !isOwner && (
           <Pressable
             className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
+            accessibilityLabel="Contacter le propriétaire"
+            accessibilityRole="button"
             onPress={async () => {
               const conv = await client.chat.getOrCreate({ listingId: listing.id })
               router.push(`/chat/${conv.id}` as any)
@@ -242,20 +269,21 @@ export default function ListingDetailScreen() {
           </Pressable>
         )}
 
-        {/* Owner Actions */}
         {isOwner && (
           <View className="gap-3 pb-8">
-            <Pressable className="items-center rounded-button bg-primary py-3.5" onPress={() => router.push(`/listing/edit/${listing.id}` as any)}>
+            <Pressable className="items-center rounded-button bg-primary py-3.5" accessibilityLabel="Modifier l'annonce" onPress={() => router.push(`/listing/edit/${listing.id}` as any)}>
               <Text className="text-base font-semibold text-primary-foreground">Modifier</Text>
             </Pressable>
             <Pressable
-              className="items-center rounded-button border border-destructive py-3.5"
+              className={`items-center rounded-button border border-destructive py-3.5 ${deleteM.isPending ? 'opacity-50' : ''}`}
+              accessibilityLabel="Supprimer l'annonce"
+              disabled={deleteM.isPending}
               onPress={() => Alert.alert('Supprimer', 'Voulez-vous vraiment supprimer cette annonce ?', [
                 { text: 'Annuler', style: 'cancel' },
                 { text: 'Supprimer', style: 'destructive', onPress: () => deleteM.mutate() },
               ])}
             >
-              <Text className="text-base font-semibold text-destructive">Supprimer</Text>
+              {deleteM.isPending ? <ActivityIndicator color="#EF4444" /> : <Text className="text-base font-semibold text-destructive">Supprimer</Text>}
             </Pressable>
           </View>
         )}

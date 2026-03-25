@@ -1,12 +1,13 @@
 import { Pressable, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { authClient } from '@/lib/auth'
 
 function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
   return (
-    <Pressable className="flex-row items-center justify-between rounded-card bg-card px-4 py-3.5" onPress={onPress}>
+    <Pressable className="flex-row items-center justify-between rounded-card bg-card px-4 py-3.5" onPress={onPress} accessibilityLabel={label} accessibilityRole="button">
       <View className="flex-row items-center gap-3">
         <Feather name={icon as any} size={20} color="#0D9488" />
         <Text className="text-base text-foreground">{label}</Text>
@@ -19,6 +20,7 @@ function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPre
 export default function ProfileScreen() {
   const { data: session } = authClient.useSession()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   const handleLogout = async () => {
     await authClient.signOut()
@@ -26,7 +28,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background px-6 pt-16">
+    <View className="flex-1 bg-background px-6" style={{ paddingTop: insets.top + 8 }}>
       {session && (
         <View className="flex-row items-center gap-4">
           <View className="h-16 w-16 items-center justify-center rounded-full bg-accent">
@@ -49,8 +51,8 @@ export default function ProfileScreen() {
         <MenuItem icon="settings" label="Parametres" onPress={() => router.push('/profile/settings' as any)} />
       </View>
 
-      <Pressable className="mt-8 items-center rounded-button border border-destructive py-3" onPress={handleLogout}>
-        <Text className="text-base font-medium text-destructive">Se deconnecter</Text>
+      <Pressable className="mt-8 items-center rounded-button border border-destructive py-3" onPress={handleLogout} accessibilityLabel="Se déconnecter" accessibilityRole="button">
+        <Text className="text-base font-medium text-destructive">Se déconnecter</Text>
       </Pressable>
     </View>
   )

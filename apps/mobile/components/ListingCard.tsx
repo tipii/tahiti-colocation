@@ -1,4 +1,5 @@
-import { Image, Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
+import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
 import type { Listing } from '@coloc/shared/types'
@@ -6,7 +7,7 @@ import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
 const AMENITY_ICONS: [string, string, string][] = [
-  ['privateBathroom', 'droplet', 'SdB privee'],
+  ['privateBathroom', 'droplet', 'SdB privée'],
   ['pool', 'sunset', 'Piscine'],
   ['parking', 'truck', 'Parking'],
   ['airConditioning', 'wind', 'Clim'],
@@ -23,42 +24,42 @@ export function ListingCard({ listing }: { listing: Listing }) {
   return (
     <Pressable
       className="overflow-hidden rounded-card bg-card shadow-sm"
+      accessibilityRole="button"
+      accessibilityLabel={`${listing.title}, ${listing.commune}, ${listing.price.toLocaleString('fr-FR')} XPF par mois`}
       onPress={() => router.push(`/listing/${listing.slug}` as any)}
     >
-      {/* Image + overlays */}
       <View className="relative">
         {firstImage?.mediumUrl ? (
-          <Image source={{ uri: firstImage.mediumUrl }} className="h-48 w-full" resizeMode="cover" />
+          <Image
+            source={{ uri: firstImage.mediumUrl }}
+            className="h-48 w-full"
+            contentFit="cover"
+            transition={200}
+            accessibilityLabel={`Photo de ${listing.title}`}
+          />
         ) : (
           <View className="h-48 w-full items-center justify-center bg-muted">
             <Feather name="image" size={32} color="#E8DDD3" />
           </View>
         )}
-        {/* Price badge */}
-        <View className="absolute bottom-3 left-3 rounded-pill bg-primary px-3 py-1">
+        <View className="absolute bottom-3 left-3 rounded-pill bg-primary px-3 py-1" accessibilityElementsHidden>
           <Text className="text-sm font-bold text-primary-foreground">
             {listing.price.toLocaleString('fr-FR')} XPF/mois
           </Text>
         </View>
-        {/* Duration badge */}
-        <View className="absolute top-3 left-3 rounded-pill bg-white/90 px-2.5 py-1">
+        <View className="absolute top-3 left-3 rounded-pill bg-white/90 px-2.5 py-1" accessibilityElementsHidden>
           <Text className="text-xs font-medium text-foreground">{durationLabel}</Text>
         </View>
       </View>
 
-      {/* Content */}
       <View className="p-4">
         <Text className="text-base font-bold text-foreground" numberOfLines={1}>
           {listing.title}
         </Text>
-
-        {/* Location */}
         <View className="mt-1 flex-row items-center gap-1">
           <Feather name="map-pin" size={13} color="#0D9488" />
-          <Text className="text-sm text-muted-foreground">{listing.commune}, {listing.island}</Text>
+          <Text className="text-sm text-muted-foreground" numberOfLines={1}>{listing.commune}, {listing.island}</Text>
         </View>
-
-        {/* Room info */}
         <View className="mt-2 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
             <Feather name="home" size={13} color="#8B7E74" />
@@ -75,8 +76,6 @@ export function ListingCard({ listing }: { listing: Listing }) {
             </Text>
           </View>
         </View>
-
-        {/* Amenity badges */}
         {activeAmenities.length > 0 && (
           <View className="mt-2.5 flex-row flex-wrap gap-1.5">
             {activeAmenities.map(([key, icon, label]) => (
