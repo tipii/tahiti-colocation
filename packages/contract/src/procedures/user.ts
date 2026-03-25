@@ -1,6 +1,8 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
 
+export const USER_MODES = ['seeker', 'provider'] as const
+
 const profileSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -8,6 +10,7 @@ const profileSchema = z.object({
   image: z.string().nullable(),
   avatar: z.string().nullable(),
   bio: z.string().nullable(),
+  mode: z.enum(USER_MODES),
 })
 
 export const userContract = {
@@ -22,5 +25,8 @@ export const userContract = {
     .input(z.object({ avatarUrl: z.string() }))
     .output(profileSchema),
   removeAvatar: oc
+    .output(profileSchema),
+  setMode: oc
+    .input(z.object({ mode: z.enum(USER_MODES) }))
     .output(profileSchema),
 }

@@ -48,5 +48,6 @@ export const router = pub.router({
     update: userProc.update,
     updateAvatar: userProc.updateAvatar,
     removeAvatar: userProc.removeAvatar,
+    setMode: userProc.setMode,
   },
 })

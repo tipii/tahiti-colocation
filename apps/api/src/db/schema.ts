@@ -21,6 +21,7 @@ export const user = pgTable('user', {
     .$onUpdate(() => new Date())
     .notNull(),
   role: text('role').default('user'),
+  mode: text('mode').default('seeker'),
   bio: text('bio'),
   avatar: text('avatar'),
 })

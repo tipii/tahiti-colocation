@@ -12,6 +12,7 @@ function pickProfile(u: typeof user.$inferSelect) {
     image: u.image ?? null,
     avatar: u.avatar ?? null,
     bio: u.bio ?? null,
+    mode: (u.mode ?? 'seeker') as 'seeker' | 'provider',
   }
 }
 
@@ -37,5 +38,10 @@ export const updateAvatar = authed.user.updateAvatar.handler(async ({ input, con
 
 export const removeAvatar = authed.user.removeAvatar.handler(async ({ context }) => {
   const [updated] = await db.update(user).set({ avatar: null }).where(eq(user.id, context.user.id)).returning()
+  return pickProfile(updated!)
+})
+
+export const setMode = authed.user.setMode.handler(async ({ input, context }) => {
+  const [updated] = await db.update(user).set({ mode: input.mode }).where(eq(user.id, context.user.id)).returning()
   return pickProfile(updated!)
 })

@@ -1,7 +1,22 @@
 import { Tabs } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
+import { useQuery } from '@tanstack/react-query'
+
+import { authClient } from '@/lib/auth'
+import { client } from '@/lib/orpc'
 
 export default function TabLayout() {
+  const { data: session } = authClient.useSession()
+
+  const { data: profile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: () => client.user.me(),
+    enabled: !!session,
+  })
+
+  const mode = (profile as any)?.mode ?? 'seeker'
+  const isSeeker = mode === 'seeker'
+
   return (
     <Tabs
       screenOptions={{
@@ -26,6 +41,7 @@ export default function TabLayout() {
         options={{
           title: 'Recherche',
           tabBarIcon: ({ color, size }) => <Feather name="search" color={color} size={size} />,
+          href: isSeeker ? '/search' : null,
         }}
       />
       <Tabs.Screen
@@ -33,6 +49,7 @@ export default function TabLayout() {
         options={{
           title: 'Publier',
           tabBarIcon: ({ color, size }) => <Feather name="plus-circle" color={color} size={size} />,
+          href: !isSeeker ? '/create' : null,
         }}
       />
       <Tabs.Screen
