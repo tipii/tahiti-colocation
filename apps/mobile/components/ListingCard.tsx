@@ -1,12 +1,12 @@
 import { Pressable, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import { Feather } from '@expo/vector-icons'
 import type { Listing } from '@coloc/shared/types'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
-import { useFavorite } from '@/hooks/useFavorite'
+import { FavoriteButton } from '@/components/FavoriteButton'
 
 const AMENITY_ICONS: [string, string, string][] = [
   ['privateBathroom', 'droplet', 'SdB privée'],
@@ -22,8 +22,6 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const durationLabel = DURATION_LABELS[listing.durationType as DurationType]
   const roomLabel = ROOM_TYPE_LABELS[listing.roomType as RoomType]
   const activeAmenities = AMENITY_ICONS.filter(([key]) => (listing as any)[key])
-  const { isFavorited, toggle, isLoggedIn } = useFavorite(listing.id)
-
   return (
     <Pressable
       className="overflow-hidden rounded-card bg-card shadow-sm"
@@ -53,15 +51,9 @@ export function ListingCard({ listing }: { listing: Listing }) {
         <View className="absolute top-3 left-3 rounded-pill bg-white/90 px-2.5 py-1" accessibilityElementsHidden>
           <Text className="text-xs font-medium text-foreground">{durationLabel}</Text>
         </View>
-        {isLoggedIn && (
-          <Pressable
-            className="absolute top-3 right-3 h-8 w-8 items-center justify-center rounded-full bg-white/80"
-            onPress={(e) => { e.stopPropagation(); toggle() }}
-            accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          >
-            <MaterialCommunityIcons name={isFavorited ? 'heart' : 'heart-outline'} size={18} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
-          </Pressable>
-        )}
+        <View className="absolute top-3 right-3">
+          <FavoriteButton listingId={listing.id} size={18} className="h-8 w-8" />
+        </View>
       </View>
 
       <View className="p-4">

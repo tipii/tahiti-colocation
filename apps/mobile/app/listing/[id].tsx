@@ -7,11 +7,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import { Feather } from '@expo/vector-icons'
 
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
-import { useFavorite } from '@/hooks/useFavorite'
+import { FavoriteButton } from '@/components/FavoriteButton'
 
 const AMENITY_CONFIG: { key: string; icon: string; label: string }[] = [
   { key: 'privateBathroom', icon: 'droplet', label: 'Salle de bain\nprivée' },
@@ -41,7 +41,6 @@ export default function ListingDetailScreen() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: orpc.listing.key() }); router.back() },
   })
 
-  const { isFavorited, toggle: toggleFav, isLoggedIn } = useFavorite(id!)
 
   if (isLoading) return (
     <View className="flex-1 items-center justify-center bg-background">
@@ -153,15 +152,10 @@ export default function ListingDetailScreen() {
             >
               <Feather name="chevron-left" size={22} color="#FF6B35" />
             </Pressable>
-            {isLoggedIn && !isOwner && (
-              <Pressable
-                className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
-                accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                accessibilityRole="button"
-                onPress={(e) => { e.stopPropagation(); toggleFav() }}
-              >
-                <MaterialCommunityIcons name={isFavorited ? 'heart' : 'heart-outline'} size={22} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
-              </Pressable>
+            {!isOwner && (
+              <View className="absolute right-3 top-3">
+                <FavoriteButton listingId={listing.id} />
+              </View>
             )}
             {images.length > 1 && (
               <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1" accessibilityElementsHidden>
