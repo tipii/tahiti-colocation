@@ -1,5 +1,6 @@
 import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 
@@ -16,6 +17,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; textColor: s
 export default function CandidaturesScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
 
   const { data: candidatures = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['my-candidatures'],
@@ -31,12 +33,15 @@ export default function CandidaturesScreen() {
 
   return (
     <View className="flex-1 bg-background">
+      <View className="px-6 pb-2" style={{ paddingTop: insets.top + 8 }}>
+        <Text className="text-2xl font-bold text-foreground">Mes candidatures</Text>
+      </View>
       <FlatList
         data={candidatures}
         keyExtractor={(item) => item.id}
         onRefresh={() => refetch()}
         refreshing={isRefetching}
-        contentContainerStyle={{ padding: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item }) => {
           const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.pending

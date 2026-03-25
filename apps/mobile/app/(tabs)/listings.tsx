@@ -1,5 +1,6 @@
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 import { DURATION_LABELS } from '@coloc/shared/constants'
@@ -28,6 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function MyListingsScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
 
   const { data: listings = [], isLoading } = useQuery(orpc.listing.mine.queryOptions())
 
@@ -45,10 +47,13 @@ export default function MyListingsScreen() {
 
   return (
     <View className="flex-1 bg-background">
+      <View className="px-6 pb-2" style={{ paddingTop: insets.top + 8 }}>
+        <Text className="text-2xl font-bold text-foreground">Mes annonces</Text>
+      </View>
       <FlatList
         data={listings}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item }) => (
           <Pressable className="rounded-card bg-card p-4 shadow-sm" onPress={() => router.push(`/listing/${item.slug}` as any)}>

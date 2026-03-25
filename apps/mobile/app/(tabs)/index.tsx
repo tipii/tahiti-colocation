@@ -103,7 +103,7 @@ export default function HomeScreen() {
         refreshing={isRefetching}
         onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
         onEndReachedThreshold={0.5}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={isLoading ? <ListingSkeletonList /> : null}
         ListFooterComponent={
           isFetchingNextPage ? (
