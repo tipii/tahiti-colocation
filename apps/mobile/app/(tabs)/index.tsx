@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import * as Haptics from 'expo-haptics'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS } from '@coloc/shared/constants'
 
 import { authClient } from '@/lib/auth'
-import { orpc } from '@/lib/orpc'
+import { client } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
 
@@ -21,11 +21,17 @@ export default function HomeScreen() {
     ...(selectedDuration ? { durationType: selectedDuration as any } : {}),
   }
 
-  const { data, isLoading, refetch, isRefetching } = useQuery(
-    orpc.listing.list.queryOptions({ input }),
-  )
+  const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ['listings', 'home', input],
+    queryFn: ({ pageParam = 1 }) => client.listing.list({ ...input, page: pageParam, limit: 10 }),
+    getNextPageParam: (lastPage) => {
+      const { page, totalPages } = lastPage.meta
+      return page < totalPages ? page + 1 : undefined
+    },
+    initialPageParam: 1,
+  })
 
-  const listings = data?.data ?? []
+  const listings = data?.pages.flatMap((p) => p.data) ?? []
 
   return (
     <View className="flex-1 bg-background">
@@ -85,28 +91,39 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {isLoading ? (
-        <ListingSkeletonList />
-      ) : (
-        <FlatList
-          data={listings}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View className="px-6 pb-4">
-              <ListingCard listing={item as any} />
+      <FlatList
+        data={isLoading ? [] : listings}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View className="px-6 pb-4">
+            <ListingCard listing={item as any} />
+          </View>
+        )}
+        onRefresh={() => refetch()}
+        refreshing={isRefetching}
+        onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
+        onEndReachedThreshold={0.5}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        ListHeaderComponent={isLoading ? <ListingSkeletonList /> : null}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View className="items-center py-4"><ActivityIndicator color="#FF6B35" /></View>
+          ) : !isLoading && listings.length > 0 && !hasNextPage ? (
+            <View className="items-center py-6">
+              <Text className="text-sm text-muted-foreground">Vous avez tout vu 🌺</Text>
             </View>
-          )}
-          onRefresh={() => refetch()}
-          refreshing={isRefetching}
-          ListEmptyComponent={
+          ) : null
+        }
+        ListEmptyComponent={
+          !isLoading ? (
             <View className="items-center px-6 pt-20">
               <Text className="text-center text-lg text-muted-foreground">
                 Aucune annonce pour le moment 🏝️
               </Text>
             </View>
-          }
-        />
-      )}
+          ) : null
+        }
+      />
     </View>
   )
 }

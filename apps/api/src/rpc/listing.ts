@@ -1,4 +1,4 @@
-import { eq, and, asc, desc, gte, lte, sql, or } from 'drizzle-orm'
+import { eq, and, asc, desc, gte, lte, sql, or, ilike } from 'drizzle-orm'
 
 import { db } from '../db'
 import { images, listings, user } from '../db/schema'
@@ -75,11 +75,26 @@ export const list = pub.listing.list.handler(async ({ input }) => {
   const offset = (page - 1) * limit
 
   const conditions = [eq(listings.status, 'published')]
+  if (input.search) {
+    const term = `%${input.search}%`
+    conditions.push(or(ilike(listings.title, term), ilike(listings.commune, term), ilike(listings.description, term))!)
+  }
   if (input.island) conditions.push(eq(listings.island, input.island))
   if (input.durationType) conditions.push(eq(listings.durationType, input.durationType))
-  if (input.roomType) conditions.push(eq(listings.roomType, input.roomType))
+  if (input.roomType) {
+    // "both" matches any room type, so only filter for "single" or "couple"
+    if (input.roomType === 'single') {
+      conditions.push(or(eq(listings.roomType, 'single'), eq(listings.roomType, 'both'))!)
+    } else if (input.roomType === 'couple') {
+      conditions.push(or(eq(listings.roomType, 'couple'), eq(listings.roomType, 'both'))!)
+    }
+  }
   if (input.minPrice) conditions.push(gte(listings.price, input.minPrice))
   if (input.maxPrice) conditions.push(lte(listings.price, input.maxPrice))
+  if (input.pool) conditions.push(eq(listings.pool, true))
+  if (input.parking) conditions.push(eq(listings.parking, true))
+  if (input.airConditioning) conditions.push(eq(listings.airConditioning, true))
+  if (input.petsAccepted) conditions.push(eq(listings.petsAccepted, true))
 
   const where = and(...conditions)
 

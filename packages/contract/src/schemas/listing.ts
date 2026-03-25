@@ -82,11 +82,16 @@ export const createListingSchema = z.object({
 export const updateListingSchema = createListingSchema.partial()
 
 export const listingFiltersSchema = z.object({
+  search: z.string().optional(),
   island: z.enum(ISLANDS).optional(),
   durationType: z.enum(DURATION_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),
   maxPrice: z.coerce.number().int().optional(),
+  pool: z.boolean().optional(),
+  parking: z.boolean().optional(),
+  airConditioning: z.boolean().optional(),
+  petsAccepted: z.boolean().optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
 })
