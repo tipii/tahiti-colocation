@@ -25,11 +25,23 @@ async function enrichConversation(conv: typeof conversations.$inferSelect, userI
     .orderBy(desc(messages.createdAt))
     .limit(1)
 
+  const [unreadResult] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.conversationId, conv.id),
+        isNull(messages.readAt),
+        sql`${messages.senderId} != ${userId}`,
+      ),
+    )
+
   return {
     ...conv,
     listingTitle: listing?.title,
     otherUser: otherUser ?? undefined,
     lastMessage: lastMsg?.content ?? null,
+    unread: (unreadResult?.count ?? 0) > 0,
   }
 }
 

@@ -23,36 +23,45 @@ export default function MessagesScreen() {
         refreshing={isRefetching}
         contentContainerStyle={{ paddingVertical: 8 }}
         ItemSeparatorComponent={() => <View className="mx-6 h-px bg-border" />}
-        renderItem={({ item }) => (
-          <Pressable
-            className="flex-row items-center gap-3 px-6 py-4"
-            onPress={() => router.push(`/chat/${item.id}` as any)}
-          >
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-accent">
-              <Text className="text-lg font-bold text-primary">
-                {item.otherUser?.name?.charAt(0).toUpperCase() ?? '?'}
-              </Text>
-            </View>
-            <View className="flex-1">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
-                  {item.otherUser?.name ?? 'Utilisateur'}
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {new Date(item.lastMessageAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                </Text>
+        renderItem={({ item }) => {
+          const isUnread = item.unread === true
+          return (
+            <Pressable
+              className="flex-row items-center gap-3 px-6 py-4"
+              onPress={() => router.push(`/chat/${item.id}` as any)}
+              accessibilityLabel={`Conversation avec ${item.otherUser?.name ?? 'utilisateur'}${isUnread ? ', non lu' : ''}`}
+            >
+              <View className="relative">
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-accent">
+                  <Text className="text-lg font-bold text-primary">
+                    {item.otherUser?.name?.charAt(0).toUpperCase() ?? '?'}
+                  </Text>
+                </View>
+                {isUnread && (
+                  <View className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-primary" />
+                )}
               </View>
-              <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-                {item.listingTitle}
-              </Text>
-              {item.lastMessage && (
-                <Text className="mt-0.5 text-sm text-muted-foreground" numberOfLines={1}>
-                  {item.lastMessage}
+              <View className="flex-1">
+                <View className="flex-row items-center justify-between">
+                  <Text className={`text-base text-foreground ${isUnread ? 'font-bold' : 'font-semibold'}`} numberOfLines={1}>
+                    {item.otherUser?.name ?? 'Utilisateur'}
+                  </Text>
+                  <Text className={`text-xs ${isUnread ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+                    {new Date(item.lastMessageAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                  </Text>
+                </View>
+                <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+                  {item.listingTitle}
                 </Text>
-              )}
-            </View>
-          </Pressable>
-        )}
+                {item.lastMessage && (
+                  <Text className={`mt-0.5 text-sm ${isUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`} numberOfLines={1}>
+                    {item.lastMessage}
+                  </Text>
+                )}
+              </View>
+            </Pressable>
+          )
+        }}
         ListEmptyComponent={
           <View className="items-center pt-20">
             <Feather name="message-circle" size={48} color="#E8DDD3" />

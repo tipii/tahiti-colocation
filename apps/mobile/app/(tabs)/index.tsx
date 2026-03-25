@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
+import * as Haptics from 'expo-haptics'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS } from '@coloc/shared/constants'
 
 import { authClient } from '@/lib/auth'
@@ -45,7 +46,7 @@ export default function HomeScreen() {
           <View className="flex-row gap-2">
             <Pressable
               className={`rounded-pill px-4 py-2 ${!selectedIsland ? 'bg-primary' : 'bg-muted'}`}
-              onPress={() => setSelectedIsland(null)}
+              onPress={() => { Haptics.selectionAsync(); setSelectedIsland(null) }}
               accessibilityLabel="Toutes les îles"
               accessibilityRole="button"
               accessibilityState={{ selected: !selectedIsland }}
@@ -58,7 +59,7 @@ export default function HomeScreen() {
               <Pressable
                 key={island}
                 className={`rounded-pill px-4 py-2 ${selectedIsland === island ? 'bg-primary' : 'bg-muted'}`}
-                onPress={() => setSelectedIsland(selectedIsland === island ? null : island)}
+                onPress={() => { Haptics.selectionAsync(); setSelectedIsland(selectedIsland === island ? null : island) }}
               >
                 <Text className={`text-sm font-medium ${selectedIsland === island ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
                   {island}
@@ -73,7 +74,7 @@ export default function HomeScreen() {
               <Pressable
                 key={dt}
                 className={`rounded-pill px-4 py-2 ${selectedDuration === dt ? 'bg-secondary' : 'bg-muted'}`}
-                onPress={() => setSelectedDuration(selectedDuration === dt ? null : dt)}
+                onPress={() => { Haptics.selectionAsync(); setSelectedDuration(selectedDuration === dt ? null : dt) }}
               >
                 <Text className={`text-sm font-medium ${selectedDuration === dt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>
                   {DURATION_LABELS[dt]}

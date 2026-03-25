@@ -210,7 +210,7 @@ export default function ListingDetailScreen() {
           <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
             <Feather name="calendar" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
-              {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+              {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
             </Text>
           </View>
         </View>

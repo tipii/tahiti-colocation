@@ -14,6 +14,7 @@ export const conversationSchema = z.object({
     avatar: z.string().nullable(),
   }).optional(),
   lastMessage: z.string().nullable().optional(),
+  unread: z.boolean().optional(),
 })
 
 export const messageSchema = z.object({
