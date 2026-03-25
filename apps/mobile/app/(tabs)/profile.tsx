@@ -105,18 +105,9 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* Menu — changes based on mode */}
+      {/* Menu */}
       <View className="mt-6 gap-2">
-        {isSeeker ? (
-          <>
-            <MenuItem icon="send" label="Mes candidatures" onPress={() => router.push('/profile/messages' as any)} />
-            <MenuItem icon="heart" label="Favoris" onPress={() => router.push('/profile/favorites' as any)} />
-          </>
-        ) : (
-          <>
-            <MenuItem icon="list" label="Mes annonces" onPress={() => router.push('/profile/listings' as any)} />
-          </>
-        )}
+        <MenuItem icon="heart" label="Favoris" onPress={() => router.push('/profile/favorites' as any)} />
         {(unread?.count ?? 0) > 0 && (
           <MenuItem icon="message-circle" label="Messages" badge={unread?.count} onPress={() => router.push('/profile/messages' as any)} />
         )}

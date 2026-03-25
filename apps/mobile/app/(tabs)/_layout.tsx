@@ -45,6 +45,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="candidatures"
+        options={{
+          title: 'Candidatures',
+          tabBarIcon: ({ color, size }) => <Feather name="send" color={color} size={size} />,
+          href: isSeeker ? '/candidatures' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="listings"
+        options={{
+          title: 'Annonces',
+          tabBarIcon: ({ color, size }) => <Feather name="list" color={color} size={size} />,
+          href: !isSeeker ? '/listings' : null,
+        }}
+      />
+      <Tabs.Screen
         name="create"
         options={{
           title: 'Publier',
