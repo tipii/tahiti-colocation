@@ -3,6 +3,7 @@ import * as listing from './listing'
 import * as image from './image'
 import * as favorite from './favorite'
 import * as chat from './chat'
+import * as userProc from './user'
 
 export const router = pub.router({
   listing: {
@@ -31,5 +32,11 @@ export const router = pub.router({
     messages: chat.getMessages,
     send: chat.send,
     unreadCount: chat.unreadCount,
+  },
+  user: {
+    me: userProc.me,
+    update: userProc.update,
+    updateAvatar: userProc.updateAvatar,
+    removeAvatar: userProc.removeAvatar,
   },
 })

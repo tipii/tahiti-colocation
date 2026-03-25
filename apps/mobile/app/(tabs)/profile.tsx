@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Image } from 'expo-image'
 import { Feather } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
@@ -29,6 +30,11 @@ export default function ProfileScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
 
+  const { data: profile } = useQuery({
+    ...orpc.user.me.queryOptions(),
+    enabled: !!session,
+  })
+
   const { data: unread } = useQuery({
     ...orpc.chat.unreadCount.queryOptions(),
     enabled: !!session,
@@ -40,18 +46,27 @@ export default function ProfileScreen() {
     router.replace('/(auth)/login')
   }
 
+  const avatarUrl = (profile as any)?.avatar || (profile as any)?.image
+
   return (
     <View className="flex-1 bg-background px-6" style={{ paddingTop: insets.top + 8 }}>
       {session && (
         <View className="flex-row items-center gap-4">
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-accent">
-            <Text className="text-xl font-bold text-primary">
-              {session.user.name?.charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={{ width: 64, height: 64, borderRadius: 32 }} contentFit="cover" transition={200} />
+          ) : (
+            <View className="h-16 w-16 items-center justify-center rounded-full bg-accent">
+              <Text className="text-xl font-bold text-primary">
+                {session.user.name?.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View>
-            <Text className="text-xl font-semibold text-foreground">{session.user.name}</Text>
+            <Text className="text-xl font-semibold text-foreground">{(profile as any)?.name ?? session.user.name}</Text>
             <Text className="text-sm text-muted-foreground">{session.user.email}</Text>
+            {(profile as any)?.bio && (
+              <Text className="mt-0.5 text-sm text-muted-foreground" numberOfLines={1}>{(profile as any).bio}</Text>
+            )}
           </View>
         </View>
       )}
