@@ -36,6 +36,14 @@ export default function ListingDetailScreen() {
     orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
   )
 
+  // Fetch user's candidature for this listing
+  const { data: myCandidatures = [] } = useQuery({
+    queryKey: ['my-candidatures'],
+    queryFn: () => client.candidature.mine(),
+    enabled: !!session,
+  })
+  const myCandidature = myCandidatures.find((c: any) => c.listingId === id)
+
   const deleteM = useMutation({
     mutationFn: () => client.listing.delete({ id: listing!.id }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: orpc.listing.key() }); router.back() },
@@ -257,20 +265,49 @@ export default function ListingDetailScreen() {
           </View>
         </View>
 
-        {session && !isOwner && (
-          <Pressable
-            className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
-            accessibilityLabel="Contacter le propriétaire"
-            accessibilityRole="button"
-            onPress={async () => {
-              const conv = await client.chat.getOrCreate({ listingId: listing.id })
-              router.push(`/chat/${conv.id}` as any)
-            }}
-          >
-            <Feather name="message-circle" size={18} color="#fff" />
-            <Text className="text-base font-semibold text-secondary-foreground">Contacter</Text>
-          </Pressable>
-        )}
+        {session && !isOwner && (() => {
+          if (!myCandidature) {
+            return (
+              <Pressable
+                className="flex-row items-center justify-center gap-2 rounded-button bg-primary py-3.5"
+                accessibilityLabel="Postuler à cette annonce"
+                onPress={() => router.push(`/listing/apply/${listing.id}` as any)}
+              >
+                <Feather name="send" size={18} color="#fff" />
+                <Text className="text-base font-semibold text-primary-foreground">Postuler</Text>
+              </Pressable>
+            )
+          }
+          if (myCandidature.status === 'pending') {
+            return (
+              <View className="items-center rounded-button bg-accent py-3.5">
+                <Text className="text-base font-semibold text-accent-foreground">Candidature envoyée ⏳</Text>
+              </View>
+            )
+          }
+          if (myCandidature.status === 'accepted' || myCandidature.status === 'finalized') {
+            return (
+              <Pressable
+                className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
+                accessibilityLabel="Envoyer un message"
+                onPress={() => {
+                  if (myCandidature.conversationId) router.push(`/chat/${myCandidature.conversationId}` as any)
+                }}
+              >
+                <Feather name="message-circle" size={18} color="#fff" />
+                <Text className="text-base font-semibold text-secondary-foreground">Envoyer un message</Text>
+              </Pressable>
+            )
+          }
+          if (myCandidature.status === 'rejected') {
+            return (
+              <View className="items-center rounded-button bg-muted py-3.5">
+                <Text className="text-base font-medium text-muted-foreground">Candidature non retenue</Text>
+              </View>
+            )
+          }
+          return null
+        })()}
 
         {isOwner && (
           <View className="gap-3 pb-8">

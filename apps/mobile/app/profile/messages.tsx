@@ -1,71 +1,96 @@
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 
-import { orpc } from '@/lib/orpc'
+import { orpc, client } from '@/lib/orpc'
 
-export default function MessagesScreen() {
+const STATUS_CONFIG: Record<string, { label: string; color: string; textColor: string; icon: string }> = {
+  pending: { label: 'En attente', color: 'bg-accent', textColor: 'text-accent-foreground', icon: 'clock' },
+  accepted: { label: 'Acceptée', color: 'bg-secondary', textColor: 'text-secondary-foreground', icon: 'check-circle' },
+  finalized: { label: 'Retenue', color: 'bg-primary', textColor: 'text-primary-foreground', icon: 'award' },
+  rejected: { label: 'Non retenue', color: 'bg-muted', textColor: 'text-muted-foreground', icon: 'x-circle' },
+  withdrawn: { label: 'Retirée', color: 'bg-muted', textColor: 'text-muted-foreground', icon: 'corner-down-left' },
+}
+
+export default function CandidaturesScreen() {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
-  const { data: conversations = [], isLoading, refetch, isRefetching } = useQuery(
-    orpc.chat.list.queryOptions(),
-  )
+  const { data: candidatures = [], isLoading, refetch, isRefetching } = useQuery({
+    queryKey: ['my-candidatures'],
+    queryFn: () => client.candidature.mine(),
+  })
+
+  const withdrawM = useMutation({
+    mutationFn: (id: string) => client.candidature.withdraw({ id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-candidatures'] }),
+  })
 
   if (isLoading) return <View className="flex-1 items-center justify-center bg-background"><ActivityIndicator size="large" color="#FF6B35" /></View>
 
   return (
     <View className="flex-1 bg-background">
       <FlatList
-        data={conversations}
+        data={candidatures}
         keyExtractor={(item) => item.id}
         onRefresh={() => refetch()}
         refreshing={isRefetching}
-        contentContainerStyle={{ paddingVertical: 8 }}
-        ItemSeparatorComponent={() => <View className="mx-6 h-px bg-border" />}
+        contentContainerStyle={{ padding: 24 }}
+        ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item }) => {
-          const isUnread = item.unread === true
+          const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.pending
           return (
-            <Pressable
-              className="flex-row items-center gap-3 px-6 py-4"
-              onPress={() => router.push(`/chat/${item.id}` as any)}
-              accessibilityLabel={`Conversation avec ${item.otherUser?.name ?? 'utilisateur'}${isUnread ? ', non lu' : ''}`}
-            >
-              <View className="relative">
-                <View className="h-12 w-12 items-center justify-center rounded-full bg-accent">
-                  <Text className="text-lg font-bold text-primary">
-                    {item.otherUser?.name?.charAt(0).toUpperCase() ?? '?'}
-                  </Text>
-                </View>
-                {isUnread && (
-                  <View className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-primary" />
-                )}
-              </View>
-              <View className="flex-1">
-                <View className="flex-row items-center justify-between">
-                  <Text className={`text-base text-foreground ${isUnread ? 'font-bold' : 'font-semibold'}`} numberOfLines={1}>
-                    {item.otherUser?.name ?? 'Utilisateur'}
-                  </Text>
-                  <Text className={`text-xs ${isUnread ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
-                    {new Date(item.lastMessageAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                  </Text>
-                </View>
-                <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-                  {item.listingTitle}
+            <View className="rounded-card bg-card p-4 shadow-sm">
+              <View className="flex-row items-center justify-between">
+                <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={1}>
+                  {item.listingTitle ?? 'Annonce'}
                 </Text>
-                {item.lastMessage && (
-                  <Text className={`mt-0.5 text-sm ${isUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`} numberOfLines={1}>
-                    {item.lastMessage}
-                  </Text>
+                <View className={`flex-row items-center gap-1 rounded-pill px-2.5 py-0.5 ${config.color}`}>
+                  <Feather name={config.icon as any} size={12} color={item.status === 'finalized' ? '#fff' : undefined} />
+                  <Text className={`text-xs font-medium ${config.textColor}`}>{config.label}</Text>
+                </View>
+              </View>
+
+              {item.message && (
+                <Text className="mt-2 text-sm text-muted-foreground" numberOfLines={2}>« {item.message} »</Text>
+              )}
+
+              <Text className="mt-1 text-xs text-muted-foreground">
+                {new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </Text>
+
+              <View className="mt-3 flex-row gap-2">
+                {item.status === 'pending' && (
+                  <Pressable
+                    className="flex-row items-center gap-1 rounded-button bg-muted px-3 py-1.5"
+                    onPress={() => Alert.alert('Retirer', 'Retirer votre candidature ?', [
+                      { text: 'Annuler', style: 'cancel' },
+                      { text: 'Retirer', style: 'destructive', onPress: () => withdrawM.mutate(item.id) },
+                    ])}
+                  >
+                    <Feather name="x" size={14} color="#8B7E74" />
+                    <Text className="text-xs text-muted-foreground">Retirer</Text>
+                  </Pressable>
+                )}
+                {(item.status === 'accepted' || item.status === 'finalized') && item.conversationId && (
+                  <Pressable
+                    className="flex-row items-center gap-1 rounded-button bg-secondary px-3 py-1.5"
+                    onPress={() => router.push(`/chat/${item.conversationId}` as any)}
+                  >
+                    <Feather name="message-circle" size={14} color="#fff" />
+                    <Text className="text-xs text-secondary-foreground">Message</Text>
+                  </Pressable>
                 )}
               </View>
-            </Pressable>
+            </View>
           )
         }}
         ListEmptyComponent={
           <View className="items-center pt-20">
-            <Feather name="message-circle" size={48} color="#E8DDD3" />
-            <Text className="mt-4 text-base text-muted-foreground">Aucun message</Text>
+            <Feather name="send" size={48} color="#E8DDD3" />
+            <Text className="mt-4 text-base text-muted-foreground">Aucune candidature</Text>
+            <Text className="mt-1 text-sm text-muted-foreground">Postulez à des annonces pour commencer</Text>
           </View>
         }
       />

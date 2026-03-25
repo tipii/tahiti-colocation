@@ -3,9 +3,6 @@ import { z } from 'zod'
 import { conversationSchema, messageSchema } from '../schemas/chat'
 
 export const chatContract = {
-  getOrCreate: oc
-    .input(z.object({ listingId: z.string() }))
-    .output(conversationSchema),
   list: oc
     .output(z.array(conversationSchema)),
   messages: oc

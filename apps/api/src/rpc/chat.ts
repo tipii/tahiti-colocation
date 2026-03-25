@@ -45,38 +45,6 @@ async function enrichConversation(conv: typeof conversations.$inferSelect, userI
   }
 }
 
-export const getOrCreate = authed.chat.getOrCreate.handler(async ({ input, context }) => {
-  const [listing] = await db
-    .select()
-    .from(listings)
-    .where(eq(listings.id, input.listingId))
-    .limit(1)
-
-  if (!listing) throw new Error('Listing not found')
-  if (listing.authorId === context.user.id) throw new Error('Cannot message yourself')
-
-  // Check existing conversation
-  const [existing] = await db
-    .select()
-    .from(conversations)
-    .where(and(eq(conversations.listingId, input.listingId), eq(conversations.seekerId, context.user.id)))
-    .limit(1)
-
-  if (existing) return enrichConversation(existing, context.user.id)
-
-  // Create new
-  const [created] = await db
-    .insert(conversations)
-    .values({
-      listingId: input.listingId,
-      seekerId: context.user.id,
-      providerId: listing.authorId,
-    })
-    .returning()
-
-  return enrichConversation(created!, context.user.id)
-})
-
 export const list = authed.chat.list.handler(async ({ context }) => {
   const results = await db
     .select()

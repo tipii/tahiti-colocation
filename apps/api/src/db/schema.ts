@@ -212,6 +212,31 @@ export const favorites = pgTable(
   ],
 )
 
+export const candidatures = pgTable(
+  'candidatures',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    listingId: text('listing_id')
+      .notNull()
+      .references(() => listings.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    message: text('message'),
+    status: varchar('status', { length: 20 }).default('pending').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('candidatures_listing_idx').on(table.listingId),
+    index('candidatures_user_idx').on(table.userId),
+    index('candidatures_status_idx').on(table.status),
+  ],
+)
+
 export const conversations = pgTable(
   'conversations',
   {
@@ -225,12 +250,15 @@ export const conversations = pgTable(
     providerId: text('provider_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
+    candidatureId: text('candidature_id')
+      .references(() => candidatures.id, { onDelete: 'set null' }),
     lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
     index('conversations_seeker_idx').on(table.seekerId),
     index('conversations_provider_idx').on(table.providerId),
+    index('conversations_candidature_idx').on(table.candidatureId),
     index('conversations_last_msg_idx').on(table.lastMessageAt),
   ],
 )

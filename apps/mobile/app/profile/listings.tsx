@@ -62,6 +62,10 @@ export default function MyListingsScreen() {
               {item.commune}, {item.island} · {item.price.toLocaleString('fr-FR')} XPF · {item.views} vues
             </Text>
             <View className="mt-3 flex-row gap-2">
+              <Pressable className="flex-row items-center gap-1 rounded-button bg-secondary px-3 py-1.5" onPress={() => router.push(`/listing/candidatures/${item.id}` as any)}>
+                <Feather name="users" size={14} color="#fff" />
+                <Text className="text-xs text-secondary-foreground">Candidatures</Text>
+              </Pressable>
               <Pressable className="flex-row items-center gap-1 rounded-button bg-muted px-3 py-1.5" onPress={() => router.push(`/listing/edit/${item.id}` as any)}>
                 <Feather name="edit-2" size={14} color="#8B7E74" />
                 <Text className="text-xs text-muted-foreground">Modifier</Text>
