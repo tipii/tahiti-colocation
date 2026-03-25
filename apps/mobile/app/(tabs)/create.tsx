@@ -123,8 +123,8 @@ export default function CreateListingScreen() {
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <View className="px-6 pb-8" style={{ paddingTop: insets.top + 8 }}>
+      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
+        <View className="px-6" style={{ paddingTop: insets.top + 8 }}>
           <Text className="text-3xl font-bold text-foreground">Nouvelle annonce</Text>
 
           {/* Photos */}

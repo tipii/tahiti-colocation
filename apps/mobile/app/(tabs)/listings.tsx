@@ -53,7 +53,7 @@ export default function MyListingsScreen() {
       <FlatList
         data={listings}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 60 }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item }) => (
           <Pressable className="rounded-card bg-card p-4 shadow-sm" onPress={() => router.push(`/listing/${item.slug}` as any)}>

@@ -41,7 +41,7 @@ export default function CandidaturesScreen() {
         keyExtractor={(item) => item.id}
         onRefresh={() => refetch()}
         refreshing={isRefetching}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 60 }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item }) => {
           const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.pending

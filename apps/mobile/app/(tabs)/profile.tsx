@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, ScrollView, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Image } from 'expo-image'
 import { Feather } from '@expo/vector-icons'
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
   const avatarUrl = (profile as any)?.avatar || (profile as any)?.image
 
   return (
-    <View className="flex-1 bg-background px-6" style={{ paddingTop: insets.top + 8 }}>
+    <ScrollView className="flex-1 bg-background" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 60 }}>
       {/* User info */}
       {session && (
         <View className="flex-row items-center gap-4">
@@ -118,6 +118,6 @@ export default function ProfileScreen() {
       <Pressable className="mt-8 items-center rounded-button border border-destructive py-3" onPress={handleLogout} accessibilityLabel="Se déconnecter" accessibilityRole="button">
         <Text className="text-base font-medium text-destructive">Se déconnecter</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   )
 }
