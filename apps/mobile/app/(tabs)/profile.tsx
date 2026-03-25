@@ -2,15 +2,22 @@ import { Pressable, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useQuery } from '@tanstack/react-query'
 
 import { authClient } from '@/lib/auth'
+import { orpc } from '@/lib/orpc'
 
-function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+function MenuItem({ icon, label, badge, onPress }: { icon: string; label: string; badge?: number; onPress: () => void }) {
   return (
-    <Pressable className="flex-row items-center justify-between rounded-card bg-card px-4 py-3.5" onPress={onPress} accessibilityLabel={label} accessibilityRole="button">
+    <Pressable className="flex-row items-center justify-between rounded-card bg-card px-4 py-3.5" onPress={onPress} accessibilityLabel={badge ? `${label}, ${badge} non lus` : label} accessibilityRole="button">
       <View className="flex-row items-center gap-3">
         <Feather name={icon as any} size={20} color="#0D9488" />
         <Text className="text-base text-foreground">{label}</Text>
+        {badge !== undefined && badge > 0 && (
+          <View className="min-w-[20px] items-center rounded-full bg-primary px-1.5 py-0.5">
+            <Text className="text-xs font-bold text-primary-foreground">{badge}</Text>
+          </View>
+        )}
       </View>
       <Feather name="chevron-right" size={18} color="#8B7E74" />
     </Pressable>
@@ -21,6 +28,12 @@ export default function ProfileScreen() {
   const { data: session } = authClient.useSession()
   const router = useRouter()
   const insets = useSafeAreaInsets()
+
+  const { data: unread } = useQuery({
+    ...orpc.chat.unreadCount.queryOptions(),
+    enabled: !!session,
+    refetchInterval: 10000,
+  })
 
   const handleLogout = async () => {
     await authClient.signOut()
@@ -44,11 +57,11 @@ export default function ProfileScreen() {
       )}
 
       <View className="mt-8 gap-2">
-        <MenuItem icon="message-circle" label="Messages" onPress={() => router.push('/profile/messages' as any)} />
+        <MenuItem icon="message-circle" label="Messages" badge={unread?.count} onPress={() => router.push('/profile/messages' as any)} />
         <MenuItem icon="list" label="Mes annonces" onPress={() => router.push('/profile/listings' as any)} />
         <MenuItem icon="heart" label="Favoris" onPress={() => router.push('/profile/favorites' as any)} />
         <MenuItem icon="edit-2" label="Modifier le profil" onPress={() => router.push('/profile/edit' as any)} />
-        <MenuItem icon="settings" label="Parametres" onPress={() => router.push('/profile/settings' as any)} />
+        <MenuItem icon="settings" label="Paramètres" onPress={() => router.push('/profile/settings' as any)} />
       </View>
 
       <Pressable className="mt-8 items-center rounded-button border border-destructive py-3" onPress={handleLogout} accessibilityLabel="Se déconnecter" accessibilityRole="button">

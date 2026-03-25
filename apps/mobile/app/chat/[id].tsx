@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
 
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
@@ -47,6 +48,7 @@ export default function ChatScreen() {
   const handleSend = () => {
     const trimmed = text.trim()
     if (!trimmed) return
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     sendMutation.mutate(trimmed)
   }
 

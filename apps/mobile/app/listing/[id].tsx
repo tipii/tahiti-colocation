@@ -7,6 +7,7 @@ import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
 import { Feather } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
 
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
@@ -152,7 +153,7 @@ export default function ListingDetailScreen() {
                 className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
                 accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                 accessibilityRole="button"
-                onPress={(e) => { e.stopPropagation(); toggleFav.mutate() }}
+                onPress={(e) => { e.stopPropagation(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleFav.mutate() }}
               >
                 <Feather name="heart" size={20} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
               </Pressable>

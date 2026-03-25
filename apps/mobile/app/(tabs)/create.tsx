@@ -19,6 +19,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, Island, RoomType } from '@coloc/shared/constants'
 
+import * as Haptics from 'expo-haptics'
 import { orpc, client } from '@/lib/orpc'
 import { uploadImage } from '@/lib/upload'
 import { DateField } from '@/components/DateField'
@@ -112,7 +113,11 @@ export default function CreateListingScreen() {
     if (!v.commune) errors.push('Commune')
     if (!v.availableFrom) errors.push('Date de disponibilité')
     setValidationErrors(errors)
-    if (errors.length > 0) return
+    if (errors.length > 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+      return
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     submitMutation.mutate(publish)
   }
 

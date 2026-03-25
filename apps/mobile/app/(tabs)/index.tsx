@@ -7,6 +7,7 @@ import { ISLANDS, DURATION_TYPES, DURATION_LABELS } from '@coloc/shared/constant
 import { authClient } from '@/lib/auth'
 import { orpc } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
+import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
 
 export default function HomeScreen() {
   const { data: session } = authClient.useSession()
@@ -84,9 +85,7 @@ export default function HomeScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#FF6B35" />
-        </View>
+        <ListingSkeletonList />
       ) : (
         <FlatList
           data={listings}

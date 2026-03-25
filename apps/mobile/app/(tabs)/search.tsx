@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import type { DurationType, Island, RoomType } from '@coloc/shared/constants'
 
 import { orpc } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
+import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets()
@@ -16,14 +17,24 @@ export default function SearchScreen() {
   const [roomType, setRoomType] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
+  const [debouncedMin, setDebouncedMin] = useState('')
+  const [debouncedMax, setDebouncedMax] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(true)
+
+  const debouncePrice = useCallback((value: string, setter: (v: string) => void) => {
+    const timer = setTimeout(() => setter(value), 500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleMinPrice = (v: string) => { setMinPrice(v); debouncePrice(v, setDebouncedMin) }
+  const handleMaxPrice = (v: string) => { setMaxPrice(v); debouncePrice(v, setDebouncedMax) }
 
   const input = {
     ...(island ? { island: island as Island } : {}),
     ...(durationType ? { durationType: durationType as DurationType } : {}),
     ...(roomType ? { roomType: roomType as RoomType } : {}),
-    ...(minPrice ? { minPrice: Number(minPrice) } : {}),
-    ...(maxPrice ? { maxPrice: Number(maxPrice) } : {}),
+    ...(debouncedMin ? { minPrice: Number(debouncedMin) } : {}),
+    ...(debouncedMax ? { maxPrice: Number(debouncedMax) } : {}),
   }
 
   const { data, isLoading, refetch, isRefetching } = useQuery(
@@ -98,7 +109,7 @@ export default function SearchScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator size="large" color="#FF6B35" /></View>
+        <ListingSkeletonList />
       ) : (
         <FlatList
           data={listings}
