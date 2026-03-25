@@ -23,8 +23,8 @@ export const router = pub.router({
   },
   favorite: {
     list: favorite.list,
+    ids: favorite.ids,
     toggle: favorite.toggle,
-    check: favorite.check,
   },
   chat: {
     getOrCreate: chat.getOrCreate,

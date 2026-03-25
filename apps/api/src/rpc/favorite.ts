@@ -58,6 +58,15 @@ export const list = authed.favorite.list.handler(async ({ context }) => {
   )
 })
 
+export const ids = authed.favorite.ids.handler(async ({ context }) => {
+  const favs = await db
+    .select({ listingId: favorites.listingId })
+    .from(favorites)
+    .where(eq(favorites.userId, context.user.id))
+
+  return favs.map((f) => f.listingId)
+})
+
 export const toggle = authed.favorite.toggle.handler(async ({ input, context }) => {
   const [existing] = await db
     .select()
@@ -72,14 +81,4 @@ export const toggle = authed.favorite.toggle.handler(async ({ input, context }) 
 
   await db.insert(favorites).values({ userId: context.user.id, listingId: input.listingId })
   return { favorited: true }
-})
-
-export const check = authed.favorite.check.handler(async ({ input, context }) => {
-  const [existing] = await db
-    .select()
-    .from(favorites)
-    .where(and(eq(favorites.userId, context.user.id), eq(favorites.listingId, input.listingId)))
-    .limit(1)
-
-  return { favorited: !!existing }
 })

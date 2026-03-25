@@ -85,7 +85,7 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="listing/[id]" options={{ headerShown: true, title: '', headerTintColor: '#FF6B35' }} />
+        <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="listing/edit/[id]" options={{ headerShown: true, title: 'Modifier', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/messages" options={{ headerShown: true, title: 'Messages', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/listings" options={{ headerShown: true, title: 'Mes annonces', headerTintColor: '#FF6B35' }} />

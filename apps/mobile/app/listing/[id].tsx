@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { ActivityIndicator, Alert, Image as RNImage, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
-import { Feather } from '@expo/vector-icons'
-import * as Haptics from 'expo-haptics'
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
+import { useFavorite } from '@/hooks/useFavorite'
 
 const AMENITY_CONFIG: { key: string; icon: string; label: string }[] = [
   { key: 'privateBathroom', icon: 'droplet', label: 'Salle de bain\nprivée' },
@@ -27,6 +28,7 @@ export default function ListingDetailScreen() {
   const { width } = useWindowDimensions()
   const { data: session } = authClient.useSession()
   const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
 
@@ -39,23 +41,23 @@ export default function ListingDetailScreen() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: orpc.listing.key() }); router.back() },
   })
 
-  const { data: favData } = useQuery({
-    ...orpc.favorite.check.queryOptions({ input: { listingId: id! } }),
-    enabled: !!id && !!session,
-  })
+  const { isFavorited, toggle: toggleFav, isLoggedIn } = useFavorite(id!)
 
-  const toggleFav = useMutation({
-    mutationFn: () => client.favorite.toggle({ listingId: listing!.id }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orpc.favorite.key() })
-    },
-  })
-
-  if (isLoading) return <View className="flex-1 items-center justify-center bg-background"><ActivityIndicator size="large" color="#FF6B35" /></View>
+  if (isLoading) return (
+    <View className="flex-1 items-center justify-center bg-background">
+      <Pressable className="absolute left-4 h-10 w-10 items-center justify-center rounded-full bg-white/80" style={{ top: insets.top + 4 }} onPress={() => router.back()}>
+        <Feather name="chevron-left" size={22} color="#2D2A26" />
+      </Pressable>
+      <ActivityIndicator size="large" color="#FF6B35" />
+    </View>
+  )
 
   if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-background px-6">
+        <Pressable className="absolute left-4 h-10 w-10 items-center justify-center rounded-full bg-white/80" style={{ top: insets.top + 4 }} onPress={() => router.back()}>
+          <Feather name="chevron-left" size={22} color="#2D2A26" />
+        </Pressable>
         <Feather name="wifi-off" size={48} color="#E8DDD3" />
         <Text className="mt-4 text-center text-lg font-semibold text-foreground">Impossible de charger l'annonce</Text>
         <Text className="mt-1 text-center text-sm text-muted-foreground">Vérifiez votre connexion et réessayez</Text>
@@ -69,23 +71,23 @@ export default function ListingDetailScreen() {
   if (!listing) {
     return (
       <View className="flex-1 items-center justify-center bg-background px-6">
+        <Pressable className="absolute left-4 h-10 w-10 items-center justify-center rounded-full bg-white/80" style={{ top: insets.top + 4 }} onPress={() => router.back()}>
+          <Feather name="chevron-left" size={22} color="#2D2A26" />
+        </Pressable>
         <Feather name="search" size={48} color="#E8DDD3" />
         <Text className="mt-4 text-center text-lg font-semibold text-foreground">Annonce introuvable</Text>
         <Text className="mt-1 text-center text-sm text-muted-foreground">Cette annonce a peut-être été supprimée</Text>
-        <Pressable className="mt-6 rounded-button bg-primary px-6 py-3" accessibilityLabel="Retour" onPress={() => router.back()}>
-          <Text className="text-base font-semibold text-primary-foreground">Retour</Text>
-        </Pressable>
       </View>
     )
   }
 
   const isOwner = session?.user?.id === listing.authorId
-  const isFavorited = favData?.favorited ?? false
   const images = listing.images ?? []
   const activeAmenities = AMENITY_CONFIG.filter((a) => (listing as any)[a.key])
 
   return (
-    <ScrollView className="flex-1 bg-background">
+    <View className="flex-1 bg-background">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top }}>
       {/* Fullscreen Gallery Modal */}
       <Modal visible={galleryOpen} animationType="fade" statusBarTranslucent onRequestClose={() => setGalleryOpen(false)}>
         <View className="flex-1 bg-black">
@@ -98,9 +100,9 @@ export default function ListingDetailScreen() {
             onMomentumScrollEnd={(e) => setGalleryIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
           >
             {images.map((img) => (
-              <View key={img.id} className="flex-1 items-center justify-center" style={{ width }}>
+              <Pressable key={img.id} className="flex-1 items-center justify-center" style={{ width }} onPress={() => setGalleryOpen(false)}>
                 <RNImage source={{ uri: img.mediumUrl ?? '' }} style={{ width, flex: 1 }} resizeMode="contain" accessibilityLabel={`Photo ${images.indexOf(img) + 1} sur ${images.length}`} />
-              </View>
+              </Pressable>
             ))}
           </ScrollView>
           <Pressable className="absolute right-4 top-14 h-10 w-10 items-center justify-center rounded-full bg-white/20" accessibilityLabel="Fermer la galerie" onPress={() => setGalleryOpen(false)}>
@@ -143,19 +145,22 @@ export default function ListingDetailScreen() {
               </View>
             )}
 
-            <View className="absolute left-3 top-3 rounded-pill bg-primary px-3.5 py-1.5" accessibilityElementsHidden>
-              <Text className="text-sm font-bold text-primary-foreground">
-                {listing.price.toLocaleString('fr-FR')} XPF / mois
-              </Text>
-            </View>
-            {session && !isOwner && (
+            <Pressable
+              className="absolute left-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
+              onPress={() => router.back()}
+              accessibilityLabel="Retour"
+              accessibilityRole="button"
+            >
+              <Feather name="chevron-left" size={22} color="#FF6B35" />
+            </Pressable>
+            {isLoggedIn && !isOwner && (
               <Pressable
                 className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
                 accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                 accessibilityRole="button"
-                onPress={(e) => { e.stopPropagation(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleFav.mutate() }}
+                onPress={(e) => { e.stopPropagation(); toggleFav() }}
               >
-                <Feather name="heart" size={20} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
+                <MaterialCommunityIcons name={isFavorited ? 'heart' : 'heart-outline'} size={22} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
               </Pressable>
             )}
             {images.length > 1 && (
@@ -192,6 +197,9 @@ export default function ListingDetailScreen() {
             <Feather name="map-pin" size={16} color="#0D9488" />
             <Text className="text-base text-muted-foreground">{listing.commune}, {listing.island}</Text>
           </View>
+          <Text className="mt-2 text-xl font-bold text-primary">
+            {listing.price.toLocaleString('fr-FR')} XPF / mois
+          </Text>
         </View>
 
         <View className="flex-row gap-3" accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, ${listing.numberOfPeople} personnes, disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
@@ -290,5 +298,6 @@ export default function ListingDetailScreen() {
         )}
       </View>
     </ScrollView>
+    </View>
   )
 }
