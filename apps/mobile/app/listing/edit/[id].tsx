@@ -28,7 +28,7 @@ export default function EditListingScreen() {
       title: '',
       description: '',
       price: '',
-      durationType: 'long_terme' as DurationType,
+      durationType: 'location' as DurationType,
       availableFrom: '',
       availableTo: '',
       island: 'Tahiti' as Island,

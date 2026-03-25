@@ -28,7 +28,7 @@ function futureDate(daysMin: number, daysMax: number) {
 // ── Data ────────────────────────────────────────────────────────────────────
 
 const ISLANDS = ['Tahiti', 'Moorea', 'Bora Bora', 'Huahine', 'Raiatea', 'Rangiroa', 'Fakarava', 'Nuku Hiva'] as const
-const DURATIONS = ['court_terme', 'moyen_terme', 'long_terme'] as const
+const DURATIONS = ['sous_location', 'location'] as const
 const ROOM_TYPES = ['single', 'couple', 'both'] as const
 
 const COMMUNES: Record<string, string[]> = {
@@ -172,7 +172,7 @@ async function seed() {
       views: rand(5, 250),
       durationType: duration,
       availableFrom: futureDate(1, 60),
-      availableTo: duration === 'court_terme' ? futureDate(61, 120) : null,
+      availableTo: duration === 'sous_location' ? futureDate(61, 120) : null,
       island,
       commune,
       roomType: pick(ROOM_TYPES),

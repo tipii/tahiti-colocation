@@ -5,7 +5,7 @@ export const ISLANDS = [
   'Bora Bora', 'Rangiroa', 'Fakarava', 'Nuku Hiva', 'Hiva Oa', 'Other',
 ] as const
 
-export const DURATION_TYPES = ['court_terme', 'moyen_terme', 'long_terme'] as const
+export const DURATION_TYPES = ['sous_location', 'location'] as const
 export const ROOM_TYPES = ['single', 'couple', 'both'] as const
 export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
 

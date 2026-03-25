@@ -16,7 +16,7 @@ export const ISLANDS = [
 ] as const
 export type Island = (typeof ISLANDS)[number]
 
-export const DURATION_TYPES = ['court_terme', 'moyen_terme', 'long_terme'] as const
+export const DURATION_TYPES = ['sous_location', 'location'] as const
 export type DurationType = (typeof DURATION_TYPES)[number]
 
 export const ROOM_TYPES = ['single', 'couple', 'both'] as const
@@ -26,9 +26,8 @@ export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
 export type ListingStatus = (typeof LISTING_STATUSES)[number]
 
 export const DURATION_LABELS: Record<DurationType, string> = {
-  court_terme: 'Court terme',
-  moyen_terme: 'Moyen terme',
-  long_terme: 'Long terme',
+  sous_location: 'Sous-location',
+  location: 'Location',
 }
 
 export const ROOM_TYPE_LABELS: Record<RoomType, string> = {

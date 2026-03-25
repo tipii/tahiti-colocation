@@ -24,7 +24,7 @@ export default function NewListingPage() {
   const form = useForm({
     defaultValues: {
       title: '', description: '', price: 0,
-      durationType: 'long_terme' as DurationType,
+      durationType: 'location' as DurationType,
       availableFrom: '', availableTo: '',
       island: 'Tahiti' as Island, commune: '',
       roomType: 'single' as RoomType, numberOfPeople: 1,
