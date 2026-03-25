@@ -118,16 +118,16 @@ export default function ListingDetailScreen() {
         {images.length > 0 ? (
           <Pressable className="overflow-hidden rounded-2xl" accessibilityLabel="Voir les photos en plein écran" onPress={() => { setGalleryIndex(0); setGalleryOpen(true) }}>
             {images.length === 1 ? (
-              <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 320 }} contentFit="cover" transition={200} accessibilityLabel={`Photo de ${listing.title}`} />
+              <Image source={{ uri: images[0].mediumUrl ?? '' }} style={{ width: '100%', height: 320 }} contentFit="cover" transition={200} accessibilityLabel={`Photo de ${listing.title}`} />
             ) : images.length === 2 ? (
               <View className="flex-row" style={{ height: 280 }}>
-                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 1 de ${listing.title}`} />
+                <Image source={{ uri: images[0].mediumUrl ?? '' }} style={{ flex: 1, height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 1 de ${listing.title}`} />
                 <View style={{ width: 2 }} />
-                <Image source={{ uri: images[1].mediumUrl ?? '' }} className="flex-1" style={{ height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 2 de ${listing.title}`} />
+                <Image source={{ uri: images[1].mediumUrl ?? '' }} style={{ flex: 1, height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 2 de ${listing.title}`} />
               </View>
             ) : (
               <View style={{ height: 280 }}>
-                <Image source={{ uri: images[0].mediumUrl ?? '' }} className="w-full" style={{ height: 185 }} contentFit="cover" transition={200} accessibilityLabel={`Photo principale de ${listing.title}`} />
+                <Image source={{ uri: images[0].mediumUrl ?? '' }} style={{ width: '100%', height: 185 }} contentFit="cover" transition={200} accessibilityLabel={`Photo principale de ${listing.title}`} />
                 <View className="flex-row" style={{ height: 93, marginTop: 2 }}>
                   {images.slice(1, 4).map((img, i) => (
                     <View key={img.id} style={{ flex: 1, marginLeft: i > 0 ? 2 : 0 }}>

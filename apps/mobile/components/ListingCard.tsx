@@ -31,8 +31,8 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <View className="relative">
         {firstImage?.mediumUrl ? (
           <Image
-            source={{ uri: firstImage.mediumUrl }}
-            className="h-48 w-full"
+            source={{ uri: firstImage.mediumUrl ?? '' }}
+            style={{ width: '100%', height: 192 }}
             contentFit="cover"
             transition={200}
             accessibilityLabel={`Photo de ${listing.title}`}
