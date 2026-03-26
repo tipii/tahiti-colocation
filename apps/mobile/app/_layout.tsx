@@ -8,6 +8,8 @@ import { useFonts } from 'expo-font'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
+import { ActivityIndicator, Text, View } from 'react-native'
+import { Feather } from '@expo/vector-icons'
 import 'react-native-reanimated'
 
 import { useColorScheme } from '@/components/useColorScheme'
@@ -24,22 +26,36 @@ SplashScreen.preventAutoHideAsync()
 const queryClient = new QueryClient()
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
+  const { isPending: sessionPending } = authClient.useSession()
 
   useEffect(() => {
-    if (error) throw error
-  }, [error])
+    if (fontError) throw fontError
+  }, [fontError])
 
+  const ready = fontsLoaded && !sessionPending
+
+  // Keep native splash until fonts + session are resolved, then fade out
   useEffect(() => {
-    if (loaded) {
+    if (ready) {
+      SplashScreen.setOptions({ duration: 400, fade: true })
       SplashScreen.hideAsync()
     }
-  }, [loaded])
+  }, [ready])
 
-  if (!loaded) {
-    return null
+  if (!ready) {
+    // In Expo Go: native splash is just Expo icon, so this JS screen shows during loading
+    // In production builds: native splash covers this entirely, user never sees it
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFF8F0', alignItems: 'center', justifyContent: 'center' }}>
+        <Feather name="home" size={64} color="#FF6B35" />
+        <Text style={{ marginTop: 16, fontSize: 32, fontWeight: '700', color: '#FF6B35' }}>Coloc</Text>
+        <Text style={{ marginTop: 6, fontSize: 14, color: '#8B7E74' }}>Colocation en Polynésie</Text>
+        <ActivityIndicator style={{ marginTop: 32 }} size="small" color="#FF6B35" />
+      </View>
+    )
   }
 
   return (

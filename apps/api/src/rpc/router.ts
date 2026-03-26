@@ -38,6 +38,7 @@ export const router = pub.router({
     count: candidature.count,
   },
   chat: {
+    get: chat.get,
     list: chat.list,
     messages: chat.getMessages,
     send: chat.send,

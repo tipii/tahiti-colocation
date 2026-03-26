@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -7,7 +7,8 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { Image } from 'expo-image'
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
@@ -22,9 +23,58 @@ export default function ChatScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>()
   const { data: session } = authClient.useSession()
   const queryClient = useQueryClient()
+  const navigation = useNavigation()
+  const router = useRouter()
   const insets = useSafeAreaInsets()
   const headerHeight = useHeaderHeight()
   const [text, setText] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Fetch conversation details (interlocutor info)
+  const { data: conversation } = useQuery(
+    orpc.chat.get.queryOptions({ input: { conversationId: conversationId! } }),
+  )
+
+  // Set header with interlocutor name/avatar + menu button
+  useEffect(() => {
+    if (!conversation?.otherUser) return
+    const other = conversation.otherUser
+    navigation.setOptions({
+      headerTitle: () => (
+        <View className="flex-row items-center gap-2.5">
+          {other.avatar ? (
+            <Image
+              source={{ uri: other.avatar }}
+              style={{ width: 32, height: 32, borderRadius: 16 }}
+            />
+          ) : (
+            <View className="h-8 w-8 items-center justify-center rounded-full bg-accent">
+              <Text className="text-sm font-bold text-primary">
+                {other.name?.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View>
+            <Text className="text-base font-semibold text-foreground">{other.name}</Text>
+            {conversation.listingTitle && (
+              <Text className="text-xs text-muted-foreground" numberOfLines={1}>{conversation.listingTitle}</Text>
+            )}
+          </View>
+        </View>
+      ),
+      headerRight: () => (
+        <Pressable
+          onPress={() => setMenuOpen((v) => !v)}
+          className="h-10 w-10 items-center justify-center rounded-full"
+          accessibilityLabel="Menu"
+          accessibilityRole="button"
+          style={{ marginRight: 4 }}
+        >
+          <Feather name="more-vertical" size={20} color="#FF6B35" />
+        </Pressable>
+      ),
+    })
+  }, [conversation, navigation])
 
   const { data: messages = [], isLoading, error, refetch } = useQuery({
     ...orpc.chat.messages.queryOptions({ input: { conversationId: conversationId! } }),
@@ -72,6 +122,28 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={headerHeight}>
       <View className="flex-1 bg-background">
+        {/* Context menu dropdown */}
+        {menuOpen && (
+          <>
+            <Pressable className="absolute inset-0 z-10" onPress={() => setMenuOpen(false)} />
+            <View
+              className="absolute right-3 z-20 overflow-hidden rounded-button border border-border bg-card"
+              style={{ top: 4, minWidth: 200, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }}
+            >
+              <Pressable
+                className="flex-row items-center gap-3 px-4 py-3.5 active:bg-muted"
+                onPress={() => {
+                  setMenuOpen(false)
+                  if (conversation?.listingId) router.push(`/listing/${conversation.listingId}` as any)
+                }}
+              >
+                <Feather name="home" size={16} color="#FF6B35" />
+                <Text className="text-sm font-medium text-foreground">Voir l'annonce</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
+
         <FlatList
           data={invertedMessages}
           inverted

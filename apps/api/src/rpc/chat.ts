@@ -45,6 +45,21 @@ async function enrichConversation(conv: typeof conversations.$inferSelect, userI
   }
 }
 
+export const get = authed.chat.get.handler(async ({ input, context }) => {
+  const [conv] = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, input.conversationId))
+    .limit(1)
+
+  if (!conv) throw new Error('Conversation not found')
+  if (conv.seekerId !== context.user.id && conv.providerId !== context.user.id) {
+    throw new Error('Forbidden')
+  }
+
+  return enrichConversation(conv, context.user.id)
+})
+
 export const list = authed.chat.list.handler(async ({ context }) => {
   const results = await db
     .select()
