@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Image as RNImage, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
+import { ImageGallery } from '@/components/ImageGallery'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -96,32 +97,12 @@ export default function ListingDetailScreen() {
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top }}>
       {/* Fullscreen Gallery Modal */}
-      <Modal visible={galleryOpen} animationType="fade" statusBarTranslucent onRequestClose={() => setGalleryOpen(false)}>
-        <View className="flex-1 bg-black">
-          <StatusBar barStyle="light-content" />
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: galleryIndex * width, y: 0 }}
-            onMomentumScrollEnd={(e) => setGalleryIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
-          >
-            {images.map((img) => (
-              <Pressable key={img.id} className="flex-1 items-center justify-center" style={{ width }} onPress={() => setGalleryOpen(false)}>
-                <RNImage source={{ uri: img.mediumUrl ?? '' }} style={{ width, flex: 1 }} resizeMode="contain" accessibilityLabel={`Photo ${images.indexOf(img) + 1} sur ${images.length}`} />
-              </Pressable>
-            ))}
-          </ScrollView>
-          <Pressable className="absolute right-4 top-14 h-10 w-10 items-center justify-center rounded-full bg-white/20" accessibilityLabel="Fermer la galerie" onPress={() => setGalleryOpen(false)}>
-            <Feather name="x" size={22} color="#fff" />
-          </Pressable>
-          {images.length > 1 && (
-            <View className="absolute bottom-10 w-full items-center">
-              <Text className="text-sm font-medium text-white">{galleryIndex + 1} / {images.length}</Text>
-            </View>
-          )}
-        </View>
-      </Modal>
+      <ImageGallery
+        visible={galleryOpen}
+        images={images.map((img) => ({ uri: img.mediumUrl ?? '' }))}
+        initialIndex={galleryIndex}
+        onClose={() => setGalleryOpen(false)}
+      />
 
       <View className="px-4 pt-2">
         {images.length > 0 ? (
@@ -152,19 +133,6 @@ export default function ListingDetailScreen() {
               </View>
             )}
 
-            <Pressable
-              className="absolute left-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
-              onPress={() => router.back()}
-              accessibilityLabel="Retour"
-              accessibilityRole="button"
-            >
-              <Feather name="chevron-left" size={22} color="#FF6B35" />
-            </Pressable>
-            {!isOwner && (
-              <View className="absolute right-3 top-3">
-                <FavoriteButton listingId={listing.id} />
-              </View>
-            )}
             {images.length > 1 && (
               <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1" accessibilityElementsHidden>
                 <Feather name="image" size={12} color="#fff" />
@@ -176,6 +144,20 @@ export default function ListingDetailScreen() {
           <View className="h-48 items-center justify-center rounded-2xl bg-muted">
             <Feather name="image" size={48} color="#E8DDD3" />
             <Text className="mt-2 text-sm text-muted-foreground">Pas de photos</Text>
+          </View>
+        )}
+        {/* Back + Favorite — always visible */}
+        <Pressable
+          className="absolute left-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
+          onPress={() => router.back()}
+          accessibilityLabel="Retour"
+          accessibilityRole="button"
+        >
+          <Feather name="chevron-left" size={22} color="#FF6B35" />
+        </Pressable>
+        {!isOwner && (
+          <View className="absolute right-3 top-3">
+            <FavoriteButton listingId={listing.id} />
           </View>
         )}
       </View>
@@ -204,20 +186,20 @@ export default function ListingDetailScreen() {
           </Text>
         </View>
 
-        <View className="flex-row gap-3" accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, ${listing.numberOfPeople} personnes, disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
-          <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
+        <View className="flex-row flex-wrap" style={{ gap: 10 }} accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, ${listing.numberOfPeople} personnes, disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
+          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="home" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
               {ROOM_TYPE_LABELS[listing.roomType as RoomType]}
             </Text>
           </View>
-          <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
+          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="users" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
               {listing.numberOfPeople} {listing.numberOfPeople > 1 ? 'personnes' : 'personne'}
             </Text>
           </View>
-          <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
+          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="calendar" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
               {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
@@ -228,9 +210,9 @@ export default function ListingDetailScreen() {
         {activeAmenities.length > 0 && (
           <View>
             <Text className="text-sm font-semibold text-muted-foreground uppercase">Équipements</Text>
-            <View className="mt-3 flex-row flex-wrap gap-3">
+            <View className="mt-3 flex-row flex-wrap" style={{ gap: 10 }}>
               {activeAmenities.map(({ key, icon, label }) => (
-                <View key={key} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: (width - 60) / 3 }}>
+                <View key={key} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
                   <Feather name={icon as any} size={24} color="#FF6B35" />
                   <Text className="mt-1.5 text-xs text-center text-muted-foreground">{label}</Text>
                 </View>

@@ -17,5 +17,8 @@ export const candidatureSchema = z.object({
     bio: z.string().nullable(),
   }).optional(),
   listingTitle: z.string().optional(),
+  listingCommune: z.string().optional(),
+  listingIsland: z.string().optional(),
+  listingImage: z.string().nullable().optional(),
   conversationId: z.string().nullable().optional(),
 })

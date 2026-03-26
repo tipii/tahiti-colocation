@@ -18,11 +18,25 @@ async function enrichCandidature(c: typeof candidatures.$inferSelect, includeUse
 
   if (includeListingTitle) {
     const [l] = await db
-      .select({ title: listings.title })
+      .select({ title: listings.title, commune: listings.commune, island: listings.island })
       .from(listings)
       .where(eq(listings.id, c.listingId))
       .limit(1)
     result.listingTitle = l?.title
+    result.listingCommune = l?.commune
+    result.listingIsland = l?.island
+
+    // Get listing thumbnail
+    const { images } = await import('../db/schema')
+    const { asc } = await import('drizzle-orm')
+    const { getPublicUrl } = await import('../lib/r2')
+    const [img] = await db
+      .select({ mediumKey: images.mediumKey })
+      .from(images)
+      .where(and(eq(images.entityType, 'listing'), eq(images.entityId, c.listingId), eq(images.status, 'ready')))
+      .orderBy(asc(images.sortOrder))
+      .limit(1)
+    result.listingImage = img?.mediumKey ? getPublicUrl(img.mediumKey) : null
   }
 
   // Find linked conversation

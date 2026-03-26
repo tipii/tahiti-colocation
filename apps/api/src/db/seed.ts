@@ -91,25 +91,9 @@ const DESCRIPTIONS = [
 async function seed() {
   console.log('🌱 Seeding database...')
 
-  // Create users via Better Auth (need to hash passwords)
-  const { createHash } = await import('crypto')
-  const bcryptHash = async (password: string) => {
-    // Better Auth uses bcrypt but we'll use the auth API instead
-    // For seeding, we insert directly into the DB
-    const { default: bcryptjs } = await import('bcryptjs')
-    return bcryptjs.hash(password, 10)
-  }
-
-  let hashedPassword: string
-  try {
-    hashedPassword = await bcryptHash(PASSWORD)
-  } catch {
-    console.log('⚠️  bcryptjs not installed, installing...')
-    const { execSync } = await import('child_process')
-    execSync('pnpm add -D bcryptjs @types/bcryptjs --filter @coloc/api', { stdio: 'inherit' })
-    const { default: bcryptjs } = await import('bcryptjs')
-    hashedPassword = await bcryptjs.hash(PASSWORD, 10)
-  }
+  // Use Better Auth's own password hasher
+  const { hashPassword } = await import('better-auth/crypto')
+  const hashedPassword = await hashPassword(PASSWORD)
 
   const userIds: string[] = []
 
