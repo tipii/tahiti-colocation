@@ -1,6 +1,7 @@
 import '../globals.css'
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
@@ -43,9 +44,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <RootLayoutNav />
-      </QueryClientProvider>
+      <KeyboardProvider>
+        <QueryClientProvider client={queryClient}>
+          <RootLayoutNav />
+        </QueryClientProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   )
 }

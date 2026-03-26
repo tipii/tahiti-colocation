@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   Text,
   TextInput,
@@ -13,6 +11,9 @@ import { useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useHeaderHeight } from '@react-navigation/elements'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
@@ -21,8 +22,9 @@ export default function ChatScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>()
   const { data: session } = authClient.useSession()
   const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
+  const headerHeight = useHeaderHeight()
   const [text, setText] = useState('')
-  const flatListRef = useRef<FlatList>(null)
 
   const { data: messages = [], isLoading, error, refetch } = useQuery({
     ...orpc.chat.messages.queryOptions({ input: { conversationId: conversationId! } }),
@@ -30,6 +32,8 @@ export default function ChatScreen() {
     refetchInterval: 3000,
     refetchIntervalInBackground: false,
   })
+
+  const invertedMessages = [...messages].reverse()
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => client.chat.send({ conversationId: conversationId!, content }),
@@ -39,12 +43,6 @@ export default function ChatScreen() {
     },
   })
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)
-    }
-  }, [messages.length])
-
   const handleSend = () => {
     const trimmed = text.trim()
     if (!trimmed) return
@@ -52,7 +50,11 @@ export default function ChatScreen() {
     sendMutation.mutate(trimmed)
   }
 
-  if (isLoading) return <View className="flex-1 items-center justify-center bg-background"><ActivityIndicator size="large" color="#FF6B35" /></View>
+  if (isLoading) return (
+    <View className="flex-1 items-center justify-center bg-background">
+      <ActivityIndicator size="large" color="#FF6B35" />
+    </View>
+  )
 
   if (error) {
     return (
@@ -68,60 +70,64 @@ export default function ChatScreen() {
   }
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={90}>
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, gap: 8 }}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        renderItem={({ item }) => {
-          const isMe = item.senderId === session?.user?.id
-          return (
-            <View className={`max-w-[80%] ${isMe ? 'self-end' : 'self-start'}`} accessibilityLabel={`${isMe ? 'Vous' : 'Message reçu'}: ${item.content}`}>
-              <View className={`rounded-2xl px-4 py-2.5 ${isMe ? 'bg-primary rounded-br-sm' : 'bg-card rounded-bl-sm'}`}>
-                <Text className={`text-base ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}>
-                  {item.content}
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={headerHeight}>
+      <View className="flex-1 bg-background">
+        <FlatList
+          data={invertedMessages}
+          inverted
+          keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          contentContainerStyle={{ padding: 16, gap: 8 }}
+          renderItem={({ item }) => {
+            const isMe = item.senderId === session?.user?.id
+            return (
+              <View className={`max-w-[80%] ${isMe ? 'self-end' : 'self-start'}`} accessibilityLabel={`${isMe ? 'Vous' : 'Message reçu'}: ${item.content}`}>
+                <View className={`rounded-2xl px-4 py-2.5 ${isMe ? 'bg-primary rounded-br-sm' : 'bg-card rounded-bl-sm'}`}>
+                  <Text className={`text-base ${isMe ? 'text-primary-foreground' : 'text-foreground'}`}>
+                    {item.content}
+                  </Text>
+                </View>
+                <Text className={`mt-1 text-xs text-muted-foreground ${isMe ? 'text-right' : ''}`}>
+                  {new Date(item.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
-              <Text className={`mt-1 text-xs text-muted-foreground ${isMe ? 'text-right' : ''}`}>
-                {new Date(item.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-              </Text>
+            )
+          }}
+          ListEmptyComponent={
+            <View className="items-center pt-20" style={{ transform: [{ scaleY: -1 }] }}>
+              <Feather name="message-circle" size={48} color="#E8DDD3" />
+              <Text className="mt-4 text-base text-muted-foreground">Commencez la conversation</Text>
             </View>
-          )
-        }}
-        ListEmptyComponent={
-          <View className="items-center pt-20">
-            <Feather name="message-circle" size={48} color="#E8DDD3" />
-            <Text className="mt-4 text-base text-muted-foreground">Commencez la conversation</Text>
-          </View>
-        }
-      />
-
-      <View className="flex-row items-end gap-2 border-t border-border bg-card px-4 py-3">
-        <TextInput
-          className="flex-1 rounded-pill border border-border bg-background px-4 py-2.5 text-base text-foreground"
-          placeholder="Votre message..."
-          placeholderTextColor="#8B7E74"
-          value={text}
-          onChangeText={setText}
-          multiline
-          maxLength={1000}
-          accessibilityLabel="Écrire un message"
+          }
         />
-        <Pressable
-          className={`h-10 w-10 items-center justify-center rounded-full bg-primary ${(!text.trim() || sendMutation.isPending) ? 'opacity-50' : ''}`}
-          onPress={handleSend}
-          disabled={!text.trim() || sendMutation.isPending}
-          accessibilityLabel="Envoyer le message"
-          accessibilityRole="button"
-        >
-          {sendMutation.isPending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Feather name="send" size={18} color="#fff" />
-          )}
-        </Pressable>
+
+        <View className="flex-row items-end gap-2 border-t border-border bg-card px-4 py-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+          <TextInput
+            className="flex-1 rounded-pill border border-border bg-background px-4 py-2.5 text-base text-foreground"
+            placeholder="Votre message..."
+            placeholderTextColor="#8B7E74"
+            value={text}
+            onChangeText={setText}
+            multiline
+            maxLength={1000}
+            style={{ maxHeight: 100 }}
+            accessibilityLabel="Écrire un message"
+          />
+          <Pressable
+            className={`h-10 w-10 items-center justify-center rounded-full bg-primary ${(!text.trim() || sendMutation.isPending) ? 'opacity-50' : ''}`}
+            onPress={handleSend}
+            disabled={!text.trim() || sendMutation.isPending}
+            accessibilityLabel="Envoyer le message"
+            accessibilityRole="button"
+          >
+            {sendMutation.isPending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Feather name="send" size={18} color="#fff" />
+            )}
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   )
