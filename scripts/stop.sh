@@ -17,13 +17,21 @@ else
   echo "🗄️  PostgreSQL not running"
 fi
 
-# Colima
-if colima status &>/dev/null; then
-  echo "🐳 Stopping Colima..."
-  colima stop
-  echo "🐳 Colima stopped"
+# Docker runtime (Colima on macOS, systemd on Linux)
+if command -v colima &>/dev/null; then
+  if colima status &>/dev/null; then
+    echo "🐳 Stopping Colima..."
+    colima stop
+    echo "🐳 Colima stopped"
+  else
+    echo "🐳 Colima not running"
+  fi
+elif systemctl is-active --quiet docker; then
+  echo "🐳 Stopping Docker..."
+  sudo systemctl stop docker
+  echo "🐳 Docker stopped"
 else
-  echo "🐳 Colima not running"
+  echo "🐳 Docker not running"
 fi
 
 echo "✅ All services stopped"

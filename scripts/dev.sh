@@ -3,12 +3,19 @@ set -e
 
 echo "🔧 Starting dev environment..."
 
-# 1. Colima (Docker runtime)
-if ! colima status &>/dev/null; then
-  echo "🐳 Starting Colima..."
-  colima start --activate
+# 1. Docker runtime (Colima on macOS, systemd on Linux)
+if command -v colima &>/dev/null; then
+  if ! colima status &>/dev/null; then
+    echo "🐳 Starting Colima..."
+    colima start --activate
+  else
+    echo "🐳 Colima already running"
+  fi
+elif ! docker info &>/dev/null; then
+  echo "🐳 Starting Docker..."
+  sudo systemctl start docker
 else
-  echo "🐳 Colima already running"
+  echo "🐳 Docker already running"
 fi
 
 # 2. PostgreSQL
@@ -22,10 +29,18 @@ else
 fi
 
 # 3. Cloudflare Tunnel
-if ! pgrep -f "cloudflared tunnel run" &>/dev/null; then
+if ! command -v cloudflared &>/dev/null; then
+  echo "⚠️  cloudflared not found — install it: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/"
+elif ! pgrep -f "cloudflared tunnel run" &>/dev/null; then
   echo "🌐 Starting Cloudflare tunnel..."
   cloudflared tunnel run coloc-dev &>/dev/null &
-  echo "🌐 Tunnel started (dev.theop.dev)"
+  TUNNEL_PID=$!
+  sleep 2
+  if kill -0 "$TUNNEL_PID" 2>/dev/null; then
+    echo "🌐 Tunnel started (dev.theop.dev)"
+  else
+    echo "⚠️  Cloudflare tunnel failed to start — run 'cloudflared tunnel login' then 'cloudflared tunnel list' to check config"
+  fi
 else
   echo "🌐 Cloudflare tunnel already running"
 fi

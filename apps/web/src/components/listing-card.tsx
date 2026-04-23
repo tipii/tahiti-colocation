@@ -14,6 +14,13 @@ const AMENITY_CONFIG: [string, any, string][] = [
   ['petsAccepted', Heart, 'Animaux'],
 ]
 
+function colocLabel(roommateCount: number, roomType: RoomType): string {
+  const base = `Coloc à ${roommateCount}`
+  if (roomType === 'single') return `${base} + 1 (toi)`
+  if (roomType === 'couple') return `${base} + 2 (vous)`
+  return `${base} + 1 ou 2 (toi ou vous)`
+}
+
 export function ListingCard({ listing }: { listing: Listing }) {
   const firstImage = listing.images?.[0]
   const durationLabel = DURATION_LABELS[listing.durationType as DurationType]
@@ -44,13 +51,16 @@ export function ListingCard({ listing }: { listing: Listing }) {
             {listing.commune}, {listing.island}
           </p>
 
-          {/* Room info */}
-          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+          {/* Coloc makeup */}
+          <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+            <Home className="h-3 w-3" />
+            {colocLabel(listing.roommateCount, listing.roomType as RoomType)}
+          </p>
+
+          {/* Secondary meta */}
+          <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Home className="h-3 w-3" /> {roomLabel}
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="h-3 w-3" /> {listing.numberOfPeople} pers.
+              <Users className="h-3 w-3" /> {roomLabel}
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />

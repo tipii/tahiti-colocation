@@ -186,7 +186,7 @@ export default function ListingDetailScreen() {
           </Text>
         </View>
 
-        <View className="flex-row flex-wrap" style={{ gap: 10 }} accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, ${listing.numberOfPeople} personnes, disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
+        <View className="flex-row flex-wrap" style={{ gap: 10 }} accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, coloc à ${listing.roommateCount} personne(s), disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
           <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="home" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
@@ -196,7 +196,7 @@ export default function ListingDetailScreen() {
           <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="users" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
-              {listing.numberOfPeople} {listing.numberOfPeople > 1 ? 'personnes' : 'personne'}
+              Avec {listing.roommateCount} {listing.roommateCount > 1 ? 'colocs' : 'coloc'}
             </Text>
           </View>
           <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
@@ -227,7 +227,7 @@ export default function ListingDetailScreen() {
         </View>
 
         <View className="rounded-card bg-card p-4 shadow-sm">
-          <Text className="text-sm font-semibold text-muted-foreground uppercase">Contact</Text>
+          <Text className="text-sm font-semibold text-muted-foreground uppercase">Annonceur</Text>
           <View className="mt-3 flex-row items-center gap-3">
             {listing.author && (
               <>
@@ -236,12 +236,7 @@ export default function ListingDetailScreen() {
                     {listing.author.name?.charAt(0).toUpperCase()}
                   </Text>
                 </View>
-                <View>
-                  <Text className="text-base font-semibold text-foreground">{listing.author.name}</Text>
-                  {listing.contactEmail && (
-                    <Text className="text-sm text-muted-foreground">{listing.contactEmail}</Text>
-                  )}
-                </View>
+                <Text className="text-base font-semibold text-foreground">{listing.author.name}</Text>
               </>
             )}
           </View>
@@ -271,13 +266,11 @@ export default function ListingDetailScreen() {
             return (
               <Pressable
                 className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
-                accessibilityLabel="Envoyer un message"
-                onPress={() => {
-                  if (myCandidature.conversationId) router.push(`/chat/${myCandidature.conversationId}` as any)
-                }}
+                accessibilityLabel="Voir le contact"
+                onPress={() => router.push(`/candidature/${myCandidature.id}` as any)}
               >
-                <Feather name="message-circle" size={18} color="#fff" />
-                <Text className="text-base font-semibold text-secondary-foreground">Envoyer un message</Text>
+                <Feather name="phone" size={18} color="#fff" />
+                <Text className="text-base font-semibold text-secondary-foreground">Voir le contact</Text>
               </Pressable>
             )
           }

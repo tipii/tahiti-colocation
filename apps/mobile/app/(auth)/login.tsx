@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native'
 import { Link, useRouter } from 'expo-router'
+import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import * as WebBrowser from 'expo-web-browser'
 
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -80,14 +82,23 @@ export default function LoginScreen() {
           />
 
           <Text className="mt-2 text-sm font-medium text-foreground">Mot de passe</Text>
-          <TextInput
-            className="rounded-input border border-border bg-card px-4 py-3 text-base text-foreground"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="Votre mot de passe"
-            placeholderTextColor="#8B7E74"
-          />
+          <View className="relative">
+            <TextInput
+              className="rounded-input border border-border bg-card px-4 py-3 pr-12 text-base text-foreground"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              placeholder="Votre mot de passe"
+              placeholderTextColor="#8B7E74"
+            />
+            <Pressable
+              className="absolute right-3 top-0 h-full justify-center px-1"
+              onPress={() => setShowPassword((v) => !v)}
+              hitSlop={8}
+            >
+              <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color="#8B7E74" />
+            </Pressable>
+          </View>
 
           {error && <Text className="mt-1 text-sm text-destructive">{error}</Text>}
 

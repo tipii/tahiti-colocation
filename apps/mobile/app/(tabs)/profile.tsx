@@ -38,12 +38,6 @@ export default function ProfileScreen() {
     enabled: !!session,
   })
 
-  const { data: unread } = useQuery({
-    ...orpc.chat.unreadCount.queryOptions(),
-    enabled: !!session,
-    refetchInterval: 10000,
-  })
-
   const mode = (profile as any)?.mode ?? 'seeker'
   const isSeeker = mode === 'seeker'
 
@@ -107,10 +101,8 @@ export default function ProfileScreen() {
 
       {/* Menu */}
       <View className="mt-6 gap-2">
+        <MenuItem icon="send" label="Mes candidatures" onPress={() => router.push('/profile/messages' as any)} />
         <MenuItem icon="heart" label="Favoris" onPress={() => router.push('/profile/favorites' as any)} />
-        {(unread?.count ?? 0) > 0 && (
-          <MenuItem icon="message-circle" label="Messages" badge={unread?.count} onPress={() => router.push('/profile/messages' as any)} />
-        )}
         <MenuItem icon="edit-2" label="Modifier le profil" onPress={() => router.push('/profile/edit' as any)} />
         <MenuItem icon="settings" label="Paramètres" onPress={() => router.push('/profile/settings' as any)} />
       </View>

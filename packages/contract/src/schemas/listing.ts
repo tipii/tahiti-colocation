@@ -9,6 +9,12 @@ export const DURATION_TYPES = ['sous_location', 'location'] as const
 export const ROOM_TYPES = ['single', 'couple', 'both'] as const
 export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
 
+export const OCCUPATIONS = ['student', 'employed', 'self_employed', 'retired', 'other'] as const
+export const SMOKER_CHOICES = ['no', 'outside', 'yes'] as const
+export const PET_CHOICES = ['none', 'cat', 'dog', 'other'] as const
+export const SCHEDULE_CHOICES = ['day', 'night', 'flexible'] as const
+export const LANGUAGE_CHOICES = ['fr', 'en', 'ty'] as const
+
 export const imageSchema = z.object({
   id: z.string(),
   originalUrl: z.string().nullable(),
@@ -39,15 +45,13 @@ export const listingSchema = z.object({
   latitude: z.string().nullable(),
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),
-  numberOfPeople: z.number().int().positive(),
+  roommateCount: z.number().int().nonnegative(),
   privateBathroom: z.boolean(),
   privateToilets: z.boolean(),
   pool: z.boolean(),
   parking: z.boolean(),
   airConditioning: z.boolean(),
   petsAccepted: z.boolean(),
-  showPhone: z.boolean(),
-  contactEmail: z.string().nullable(),
   authorId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
@@ -67,15 +71,13 @@ export const createListingSchema = z.object({
   latitude: z.string().nullable().optional(),
   longitude: z.string().nullable().optional(),
   roomType: z.enum(ROOM_TYPES),
-  numberOfPeople: z.number().int().positive(),
+  roommateCount: z.number().int().nonnegative(),
   privateBathroom: z.boolean().optional().default(false),
   privateToilets: z.boolean().optional().default(false),
   pool: z.boolean().optional().default(false),
   parking: z.boolean().optional().default(false),
   airConditioning: z.boolean().optional().default(false),
   petsAccepted: z.boolean().optional().default(false),
-  showPhone: z.boolean().optional().default(false),
-  contactEmail: z.string().nullable().optional(),
   status: z.enum(LISTING_STATUSES).optional().default('draft'),
 })
 

@@ -73,13 +73,13 @@ export default function CandidaturesScreen() {
                     <Text className="text-xs text-muted-foreground">Retirer</Text>
                   </Pressable>
                 )}
-                {(item.status === 'accepted' || item.status === 'finalized') && item.conversationId && (
+                {(item.status === 'accepted' || item.status === 'finalized') && (
                   <Pressable
                     className="flex-row items-center gap-1 rounded-button bg-secondary px-3 py-1.5"
-                    onPress={() => router.push(`/chat/${item.conversationId}` as any)}
+                    onPress={() => router.push(`/candidature/${item.id}` as any)}
                   >
-                    <Feather name="message-circle" size={14} color="#fff" />
-                    <Text className="text-xs text-secondary-foreground">Message</Text>
+                    <Feather name="phone" size={14} color="#fff" />
+                    <Text className="text-xs text-secondary-foreground">Contact</Text>
                   </Pressable>
                 )}
               </View>

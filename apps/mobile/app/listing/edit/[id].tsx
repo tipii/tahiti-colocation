@@ -34,15 +34,13 @@ export default function EditListingScreen() {
       island: 'Tahiti' as Island,
       commune: '',
       roomType: 'single' as RoomType,
-      numberOfPeople: '1',
+      roommateCount: '1',
       privateBathroom: false,
       privateToilets: false,
       pool: false,
       parking: false,
       airConditioning: false,
       petsAccepted: false,
-      showPhone: false,
-      contactEmail: '',
       status: 'draft' as string,
     },
   })
@@ -61,15 +59,13 @@ export default function EditListingScreen() {
         form.setFieldValue('island', l.island)
         form.setFieldValue('commune', l.commune)
         form.setFieldValue('roomType', l.roomType)
-        form.setFieldValue('numberOfPeople', String(l.numberOfPeople))
+        form.setFieldValue('roommateCount', String(l.roommateCount))
         form.setFieldValue('privateBathroom', l.privateBathroom)
         form.setFieldValue('privateToilets', l.privateToilets)
         form.setFieldValue('pool', l.pool)
         form.setFieldValue('parking', l.parking)
         form.setFieldValue('airConditioning', l.airConditioning)
         form.setFieldValue('petsAccepted', l.petsAccepted)
-        form.setFieldValue('showPhone', l.showPhone)
-        form.setFieldValue('contactEmail', l.contactEmail ?? '')
         form.setFieldValue('status', l.status)
         setExistingImages(l.images ?? [])
         setInitialized(true)
@@ -98,11 +94,10 @@ export default function EditListingScreen() {
         durationType: v.durationType, availableFrom: new Date(v.availableFrom),
         availableTo: v.availableTo ? new Date(v.availableTo) : null,
         island: v.island, commune: v.commune, roomType: v.roomType,
-        numberOfPeople: Number(v.numberOfPeople),
+        roommateCount: Number(v.roommateCount),
         privateBathroom: v.privateBathroom, privateToilets: v.privateToilets,
         pool: v.pool, parking: v.parking, airConditioning: v.airConditioning,
-        petsAccepted: v.petsAccepted, showPhone: v.showPhone,
-        contactEmail: v.contactEmail || null,
+        petsAccepted: v.petsAccepted,
       })
     },
     onSuccess: () => { Alert.alert('Succes', 'Annonce mise a jour'); invalidate() },
@@ -149,16 +144,12 @@ export default function EditListingScreen() {
 
           <SectionTitle>Logement</SectionTitle>
           <form.Field name="roomType">{(f) => <View className="flex-row gap-2">{ROOM_TYPES.map((rt) => <Pressable key={rt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === rt ? 'bg-secondary' : 'bg-muted'}`} onPress={() => f.handleChange(rt)}><Text className={`text-sm font-medium ${f.state.value === rt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>{ROOM_TYPE_LABELS[rt]}</Text></Pressable>)}</View>}</form.Field>
-          <form.Field name="numberOfPeople">{(f) => <View className="mt-3 flex-row items-center gap-2"><Text className="text-base text-foreground">Nombre de personnes:</Text><TextInput className="w-16 rounded-input border border-border bg-card px-3 py-2 text-center text-base text-foreground" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} /></View>}</form.Field>
+          <form.Field name="roommateCount">{(f) => <View className="mt-3"><View className="flex-row items-center gap-2"><Text className="text-base text-foreground">Colocataires actuels:</Text><TextInput className="w-16 rounded-input border border-border bg-card px-3 py-2 text-center text-base text-foreground" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} /></View><Text className="mt-1 text-xs text-muted-foreground">Vous non compris</Text></View>}</form.Field>
 
           <SectionTitle>Equipements</SectionTitle>
           {([['privateBathroom', 'Salle de bain privee'], ['privateToilets', 'Toilettes privees'], ['pool', 'Piscine'], ['parking', 'Parking'], ['airConditioning', 'Climatisation'], ['petsAccepted', 'Animaux acceptes']] as const).map(([name, label]) => (
             <form.Field key={name} name={name}>{(f) => <View className="flex-row items-center justify-between py-2"><Text className="text-base text-foreground">{label}</Text><Switch value={f.state.value} onValueChange={f.handleChange} trackColor={{ true: '#FF6B35' }} /></View>}</form.Field>
           ))}
-
-          <SectionTitle>Contact</SectionTitle>
-          <form.Field name="showPhone">{(f) => <View className="flex-row items-center justify-between py-2"><Text className="text-base text-foreground">Afficher mon telephone</Text><Switch value={f.state.value} onValueChange={f.handleChange} trackColor={{ true: '#FF6B35' }} /></View>}</form.Field>
-          <form.Field name="contactEmail">{(f) => <TextInput className="mt-1 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Email de contact (optionnel)" placeholderTextColor="#8B7E74" keyboardType="email-address" autoCapitalize="none" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
 
           <View className="mt-8 gap-3 pb-8">
             <Pressable className="items-center rounded-button bg-primary py-3.5" onPress={() => saveMutation.mutate()} disabled={isPending}>

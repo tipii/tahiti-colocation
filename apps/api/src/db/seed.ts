@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { eq } from 'drizzle-orm'
 import * as schema from './schema'
+import { auth } from '../lib/auth'
 
 const db = drizzle(process.env.DATABASE_URL!, { schema })
 
@@ -98,9 +99,6 @@ async function seed() {
   const userIds: string[] = []
 
   for (const u of USERS) {
-    const id = crypto.randomUUID()
-
-    // Check if user exists
     const [existing] = await db.select().from(schema.user).where(eq(schema.user.email, u.email)).limit(1)
     if (existing) {
       userIds.push(existing.id)
@@ -108,28 +106,39 @@ async function seed() {
       continue
     }
 
-    await db.insert(schema.user).values({
-      id,
-      name: u.name,
-      email: u.email,
-      emailVerified: true,
-      role: 'user',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const res = await auth.api.signUpEmail({
+      body: { email: u.email, password: PASSWORD, name: u.name },
     })
 
-    // Create account (credential)
-    await db.insert(schema.account).values({
-      id: crypto.randomUUID(),
-      accountId: id,
-      providerId: 'credential',
-      userId: id,
-      password: hashedPassword,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
+    const birthYear = 1985 + rand(0, 20)
+    const birthMonth = rand(1, 12).toString().padStart(2, '0')
+    const birthDay = rand(1, 28).toString().padStart(2, '0')
+    const phoneDigits = rand(10000000, 99999999)
 
-    userIds.push(id)
+    await db
+      .update(schema.user)
+      .set({
+        emailVerified: true,
+        role: 'user',
+        bio: pick([
+          'Passionné de voile et de plongée, je cherche une coloc chill proche du lagon.',
+          'Arrivée récente en Polynésie, je télétravaille et j\'aime cuisiner.',
+          'Local·e, je cherche un bon deal pour partager les frais.',
+          'Étudiante sérieuse, non-fumeuse, sans animaux.',
+          'Digital nomad, WiFi fibre indispensable.',
+        ]),
+        dob: `${birthYear}-${birthMonth}-${birthDay}`,
+        phone: `+689${phoneDigits}`,
+        occupation: pick(['student', 'employed', 'self_employed', 'retired', 'other'] as const),
+        occupationDetail: pick(['Infirmier·e CHPF', 'Développeur·se', 'Enseignant·e', 'Commerçant·e', 'Restauration', null]),
+        languages: pick([['fr'], ['fr', 'en'], ['fr', 'ty'], ['fr', 'en', 'ty']] as const) as any,
+        smoker: pick(['no', 'outside', 'yes'] as const),
+        pets: pick(['none', 'none', 'cat', 'dog', 'other'] as const),
+        schedule: pick(['day', 'night', 'flexible'] as const),
+      })
+      .where(eq(schema.user.id, res.user.id))
+
+    userIds.push(res.user.id)
     console.log(`  👤 ${u.name}`)
   }
 
@@ -160,15 +169,13 @@ async function seed() {
       island,
       commune,
       roomType: pick(ROOM_TYPES),
-      numberOfPeople: pick([1, 1, 1, 2, 2, 3]),
+      roommateCount: pick([0, 1, 1, 2, 2, 3]),
       privateBathroom: Math.random() > 0.5,
       privateToilets: Math.random() > 0.5,
       pool: Math.random() > 0.7,
       parking: Math.random() > 0.4,
       airConditioning: Math.random() > 0.5,
       petsAccepted: Math.random() > 0.6,
-      showPhone: Math.random() > 0.5,
-      contactEmail: Math.random() > 0.5 ? `${pick(['contact', 'info', 'coloc'])}@${commune.toLowerCase()}.pf` : null,
       authorId,
     })
 
@@ -196,50 +203,37 @@ async function seed() {
 
   console.log(`  ❤️  ${favCount} favorites created`)
 
-  // Create some conversations + messages
-  let convCount = 0
-  let msgCount = 0
+  // Create some candidatures
+  let candCount = 0
+  const CAND_MESSAGES = [
+    'Ia ora na ! Je cherche une coloc calme, la chambre est-elle toujours disponible ?',
+    'Bonjour, infirmier au CHPF, horaires stables. La place m\'intéresse beaucoup.',
+    'Salut ! Je suis digital nomad, WiFi indispensable. Dispo à partir du 1er.',
+    'Bonjour, étudiante sérieuse, non-fumeuse, sans animaux.',
+  ]
+  const CAND_STATUSES = ['pending', 'pending', 'accepted', 'rejected'] as const
 
   for (const seekerId of seekerIds) {
-    const numConvs = rand(1, 3)
-    const shuffled = [...allListings].sort(() => Math.random() - 0.5).slice(0, numConvs)
+    const numCands = rand(1, 3)
+    const shuffled = [...allListings].sort(() => Math.random() - 0.5).slice(0, numCands)
 
     for (const listing of shuffled) {
       const [fullListing] = await db.select().from(schema.listings).where(eq(schema.listings.id, listing.id)).limit(1)
       if (!fullListing || fullListing.authorId === seekerId) continue
 
-      const convId = crypto.randomUUID()
-      await db.insert(schema.conversations).values({
-        id: convId,
+      await db.insert(schema.candidatures).values({
         listingId: listing.id,
-        seekerId,
-        providerId: fullListing.authorId,
-        lastMessageAt: new Date(),
+        userId: seekerId,
+        message: pick(CAND_MESSAGES),
+        status: pick(CAND_STATUSES),
+        isCouple: Math.random() > 0.85,
+        preferredMoveInDate: futureDate(10, 90).toISOString().slice(0, 10),
       })
-      convCount++
-
-      const messages = [
-        { senderId: seekerId, content: 'Ia ora na ! La chambre est toujours disponible ?' },
-        { senderId: fullListing.authorId, content: 'Ia ora na ! Oui bien sur, tu peux passer visiter quand tu veux.' },
-        { senderId: seekerId, content: 'Super, je suis dispo ce weekend. Samedi matin ca te va ?' },
-        { senderId: fullListing.authorId, content: 'Parfait, je t\'attends samedi a 10h. A bientot !' },
-      ]
-
-      const numMsgs = rand(2, messages.length)
-      for (let j = 0; j < numMsgs; j++) {
-        const delay = j * rand(300, 3600) * 1000
-        await db.insert(schema.messages).values({
-          conversationId: convId,
-          senderId: messages[j]!.senderId,
-          content: messages[j]!.content,
-          createdAt: new Date(Date.now() - (numMsgs - j) * 3600000 + delay),
-        })
-        msgCount++
-      }
+      candCount++
     }
   }
 
-  console.log(`  💬 ${convCount} conversations, ${msgCount} messages`)
+  console.log(`  📝 ${candCount} candidatures created`)
   console.log('✅ Seed complete!')
   process.exit(0)
 }

@@ -123,6 +123,12 @@ export default function CandidaturesManagementScreen() {
           const isPending = item.status === 'pending'
           const isRejected = item.status === 'rejected' || item.status === 'withdrawn'
 
+          const tags: string[] = []
+          if (u?.age) tags.push(`${u.age} ans`)
+          if (u?.occupation) tags.push(({ student: 'Étudiant·e', employed: 'Salarié·e', self_employed: 'Indépendant·e', retired: 'Retraité·e', other: 'Autre' } as any)[u.occupation])
+          if (u?.smoker) tags.push(({ no: 'Non-fumeur', outside: 'Fume dehors', yes: 'Fumeur' } as any)[u.smoker])
+          if (u?.pets && u.pets !== 'none') tags.push(({ cat: '🐱', dog: '🐶', other: 'Animal' } as any)[u.pets])
+
           return (
             <View className={`mb-3 rounded-card bg-card p-4 shadow-sm ${isRejected ? 'opacity-50' : ''}`}>
               <View className="flex-row items-center gap-3">
@@ -134,17 +140,20 @@ export default function CandidaturesManagementScreen() {
                   </View>
                 )}
                 <View className="flex-1">
-                  <Text className="text-base font-semibold text-foreground">{u?.name}</Text>
-                  {u?.bio && <Text className="text-sm text-muted-foreground" numberOfLines={1}>{u.bio}</Text>}
+                  <Text className="text-base font-semibold text-foreground">{u?.name}{item.isCouple ? ' · Couple' : ''}</Text>
+                  {tags.length > 0 && <Text className="text-xs text-muted-foreground">{tags.join(' · ')}</Text>}
                 </View>
               </View>
+
+              {u?.bio && <Text className="mt-2 text-sm text-foreground" numberOfLines={2}>{u.bio}</Text>}
 
               {item.message && (
                 <Text className="mt-2 text-sm text-muted-foreground italic">« {item.message} »</Text>
               )}
 
-              <Text className="mt-1 text-xs text-muted-foreground">
-                {new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+              <Text className="mt-2 text-xs text-muted-foreground">
+                {item.preferredMoveInDate && `Emménagement: ${new Date(item.preferredMoveInDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} · `}
+                Postulé le {new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
               </Text>
 
               <View className="mt-3 flex-row gap-2">
@@ -171,15 +180,13 @@ export default function CandidaturesManagementScreen() {
                 )}
                 {isAccepted && (
                   <>
-                    {item.conversationId && (
-                      <Pressable
-                        className="flex-row items-center gap-1 rounded-button bg-secondary px-3 py-2"
-                        onPress={() => router.push(`/chat/${item.conversationId}` as any)}
-                      >
-                        <Feather name="message-circle" size={14} color="#fff" />
-                        <Text className="text-sm font-medium text-secondary-foreground">Message</Text>
-                      </Pressable>
-                    )}
+                    <Pressable
+                      className="flex-row items-center gap-1 rounded-button bg-secondary px-3 py-2"
+                      onPress={() => router.push(`/candidature/${item.id}` as any)}
+                    >
+                      <Feather name="phone" size={14} color="#fff" />
+                      <Text className="text-sm font-medium text-secondary-foreground">Contact</Text>
+                    </Pressable>
                     {item.status === 'accepted' && (
                       <Pressable
                         className="flex-row items-center gap-1 rounded-button bg-primary px-3 py-2"

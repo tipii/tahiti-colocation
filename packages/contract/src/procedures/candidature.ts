@@ -1,10 +1,15 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { candidatureSchema } from '../schemas/candidature'
+import { candidatureSchema, contactPayloadSchema } from '../schemas/candidature'
 
 export const candidatureContract = {
   apply: oc
-    .input(z.object({ listingId: z.string(), message: z.string().nullable().optional() }))
+    .input(z.object({
+      listingId: z.string(),
+      message: z.string().nullable().optional(),
+      isCouple: z.boolean().optional().default(false),
+      preferredMoveInDate: z.coerce.date().nullable().optional(),
+    }))
     .output(candidatureSchema),
   withdraw: oc
     .input(z.object({ id: z.string() }))
@@ -13,7 +18,7 @@ export const candidatureContract = {
     .input(z.object({ id: z.string() }))
     .output(candidatureSchema),
   reject: oc
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string(), rejectionMessage: z.string().nullable().optional() }))
     .output(candidatureSchema),
   finalize: oc
     .input(z.object({ candidatureId: z.string(), rejectionMessage: z.string().nullable().optional() }))
@@ -26,4 +31,7 @@ export const candidatureContract = {
   count: oc
     .input(z.object({ listingId: z.string() }))
     .output(z.object({ total: z.number().int(), pending: z.number().int() })),
+  contact: oc
+    .input(z.object({ id: z.string() }))
+    .output(contactPayloadSchema),
 }

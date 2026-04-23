@@ -16,6 +16,13 @@ const AMENITY_ICONS: [string, string, string][] = [
   ['petsAccepted', 'heart', 'Animaux'],
 ]
 
+function colocLabel(roommateCount: number, roomType: RoomType): string {
+  const base = `Coloc à ${roommateCount}`
+  if (roomType === 'single') return `${base} + 1 (toi)`
+  if (roomType === 'couple') return `${base} + 2 (vous)`
+  return `${base} + 1 ou 2 (toi ou vous)`
+}
+
 export function ListingCard({ listing }: { listing: Listing }) {
   const router = useRouter()
   const firstImage = listing.images?.[0]
@@ -64,14 +71,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
           <Feather name="map-pin" size={13} color="#0D9488" />
           <Text className="text-sm text-muted-foreground" numberOfLines={1}>{listing.commune}, {listing.island}</Text>
         </View>
-        <View className="mt-2 flex-row items-center gap-3">
+        <View className="mt-2 flex-row items-center gap-1">
+          <Feather name="home" size={13} color="#8B7E74" />
+          <Text className="text-xs text-muted-foreground" numberOfLines={1}>{colocLabel(listing.roommateCount, listing.roomType as RoomType)}</Text>
+        </View>
+        <View className="mt-1 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
-            <Feather name="home" size={13} color="#8B7E74" />
+            <Feather name="tag" size={13} color="#8B7E74" />
             <Text className="text-xs text-muted-foreground">{roomLabel}</Text>
-          </View>
-          <View className="flex-row items-center gap-1">
-            <Feather name="users" size={13} color="#8B7E74" />
-            <Text className="text-xs text-muted-foreground">{listing.numberOfPeople} pers.</Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Feather name="calendar" size={13} color="#8B7E74" />
