@@ -1,11 +1,26 @@
 import { relations } from 'drizzle-orm'
-import { index, integer, jsonb, pgTable, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
-import type { ISLANDS, DURATION_TYPES, ROOM_TYPES, LISTING_STATUSES } from '@coloc/contract'
+import { date, index, integer, jsonb, pgTable, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
+import type {
+  ISLANDS,
+  DURATION_TYPES,
+  ROOM_TYPES,
+  LISTING_STATUSES,
+  OCCUPATIONS,
+  SMOKER_CHOICES,
+  PET_CHOICES,
+  SCHEDULE_CHOICES,
+  LANGUAGE_CHOICES,
+} from '@coloc/contract'
 
 type Island = (typeof ISLANDS)[number]
 type DurationType = (typeof DURATION_TYPES)[number]
 type RoomType = (typeof ROOM_TYPES)[number]
 type ListingStatus = (typeof LISTING_STATUSES)[number]
+type Occupation = (typeof OCCUPATIONS)[number]
+type SmokerChoice = (typeof SMOKER_CHOICES)[number]
+type PetChoice = (typeof PET_CHOICES)[number]
+type ScheduleChoice = (typeof SCHEDULE_CHOICES)[number]
+type LanguageChoice = (typeof LANGUAGE_CHOICES)[number]
 
 // ── Better Auth tables (generated) ──────────────────────────────────────────
 
@@ -21,8 +36,20 @@ export const user = pgTable('user', {
     .$onUpdate(() => new Date())
     .notNull(),
   role: text('role').default('user'),
+  mode: text('mode').default('seeker'),
   bio: text('bio'),
   avatar: text('avatar'),
+  dob: date('dob'),
+  phone: text('phone'),
+  occupation: varchar('occupation', { length: 20 }).$type<Occupation>(),
+  occupationDetail: text('occupation_detail'),
+  languages: jsonb('languages').$type<LanguageChoice[]>(),
+  smoker: varchar('smoker', { length: 10 }).$type<SmokerChoice>(),
+  pets: varchar('pets', { length: 10 }).$type<PetChoice>(),
+  schedule: varchar('schedule', { length: 10 }).$type<ScheduleChoice>(),
+  whatsappOverride: text('whatsapp_override'),
+  facebookUrl: text('facebook_url'),
+  pushToken: text('push_token'),
 })
 
 export const session = pgTable(
@@ -127,16 +154,13 @@ export const listings = pgTable(
     longitude: text('longitude'),
     // Amenities
     roomType: varchar('room_type', { length: 20 }).$type<RoomType>().notNull(),
-    numberOfPeople: integer('number_of_people').notNull(),
+    roommateCount: integer('roommate_count').notNull(),
     privateBathroom: boolean('private_bathroom').default(false).notNull(),
     privateToilets: boolean('private_toilets').default(false).notNull(),
     pool: boolean('pool').default(false).notNull(),
     parking: boolean('parking').default(false).notNull(),
     airConditioning: boolean('air_conditioning').default(false).notNull(),
     petsAccepted: boolean('pets_accepted').default(false).notNull(),
-    // Contact
-    showPhone: boolean('show_phone').default(false).notNull(),
-    contactEmail: varchar('contact_email', { length: 255 }),
     // Meta
     authorId: text('author_id')
       .notNull()
@@ -212,45 +236,31 @@ export const favorites = pgTable(
   ],
 )
 
-export const conversations = pgTable(
-  'conversations',
+export const candidatures = pgTable(
+  'candidatures',
   {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     listingId: text('listing_id')
       .notNull()
       .references(() => listings.id, { onDelete: 'cascade' }),
-    seekerId: text('seeker_id')
+    userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    providerId: text('provider_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
+    message: text('message'),
+    status: varchar('status', { length: 20 }).default('pending').notNull(),
+    isCouple: boolean('is_couple').default(false).notNull(),
+    preferredMoveInDate: date('preferred_move_in_date'),
+    rejectionMessage: text('rejection_message'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [
-    index('conversations_seeker_idx').on(table.seekerId),
-    index('conversations_provider_idx').on(table.providerId),
-    index('conversations_last_msg_idx').on(table.lastMessageAt),
+    index('candidatures_listing_idx').on(table.listingId),
+    index('candidatures_user_idx').on(table.userId),
+    index('candidatures_status_idx').on(table.status),
   ],
 )
 
-export const messages = pgTable(
-  'messages',
-  {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    conversationId: text('conversation_id')
-      .notNull()
-      .references(() => conversations.id, { onDelete: 'cascade' }),
-    senderId: text('sender_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    content: text('content').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    readAt: timestamp('read_at'),
-  },
-  (table) => [
-    index('messages_conversation_idx').on(table.conversationId),
-    index('messages_created_idx').on(table.createdAt),
-  ],
-)

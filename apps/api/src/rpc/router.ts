@@ -2,7 +2,7 @@ import { pub } from './base'
 import * as listing from './listing'
 import * as image from './image'
 import * as favorite from './favorite'
-import * as chat from './chat'
+import * as candidature from './candidature'
 import * as userProc from './user'
 
 export const router = pub.router({
@@ -26,17 +26,23 @@ export const router = pub.router({
     ids: favorite.ids,
     toggle: favorite.toggle,
   },
-  chat: {
-    getOrCreate: chat.getOrCreate,
-    list: chat.list,
-    messages: chat.getMessages,
-    send: chat.send,
-    unreadCount: chat.unreadCount,
+  candidature: {
+    apply: candidature.apply,
+    withdraw: candidature.withdraw,
+    accept: candidature.accept,
+    reject: candidature.reject,
+    finalize: candidature.finalize,
+    forListing: candidature.forListing,
+    mine: candidature.mine,
+    count: candidature.count,
+    contact: candidature.contact,
   },
   user: {
     me: userProc.me,
     update: userProc.update,
     updateAvatar: userProc.updateAvatar,
     removeAvatar: userProc.removeAvatar,
+    setMode: userProc.setMode,
+    registerPushToken: userProc.registerPushToken,
   },
 })

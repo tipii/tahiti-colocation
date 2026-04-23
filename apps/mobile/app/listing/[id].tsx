@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Image as RNImage, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
+import { ImageGallery } from '@/components/ImageGallery'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import { Feather } from '@expo/vector-icons'
 
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
-import { useFavorite } from '@/hooks/useFavorite'
+import { FavoriteButton } from '@/components/FavoriteButton'
 
 const AMENITY_CONFIG: { key: string; icon: string; label: string }[] = [
   { key: 'privateBathroom', icon: 'droplet', label: 'Salle de bain\nprivée' },
@@ -36,12 +37,19 @@ export default function ListingDetailScreen() {
     orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
   )
 
+  // Fetch user's candidature for this listing
+  const { data: myCandidatures = [] } = useQuery({
+    queryKey: ['my-candidatures'],
+    queryFn: () => client.candidature.mine(),
+    enabled: !!session,
+  })
+  const myCandidature = myCandidatures.find((c: any) => c.listingId === id)
+
   const deleteM = useMutation({
     mutationFn: () => client.listing.delete({ id: listing!.id }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: orpc.listing.key() }); router.back() },
   })
 
-  const { isFavorited, toggle: toggleFav, isLoggedIn } = useFavorite(id!)
 
   if (isLoading) return (
     <View className="flex-1 items-center justify-center bg-background">
@@ -89,32 +97,12 @@ export default function ListingDetailScreen() {
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top }}>
       {/* Fullscreen Gallery Modal */}
-      <Modal visible={galleryOpen} animationType="fade" statusBarTranslucent onRequestClose={() => setGalleryOpen(false)}>
-        <View className="flex-1 bg-black">
-          <StatusBar barStyle="light-content" />
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: galleryIndex * width, y: 0 }}
-            onMomentumScrollEnd={(e) => setGalleryIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
-          >
-            {images.map((img) => (
-              <Pressable key={img.id} className="flex-1 items-center justify-center" style={{ width }} onPress={() => setGalleryOpen(false)}>
-                <RNImage source={{ uri: img.mediumUrl ?? '' }} style={{ width, flex: 1 }} resizeMode="contain" accessibilityLabel={`Photo ${images.indexOf(img) + 1} sur ${images.length}`} />
-              </Pressable>
-            ))}
-          </ScrollView>
-          <Pressable className="absolute right-4 top-14 h-10 w-10 items-center justify-center rounded-full bg-white/20" accessibilityLabel="Fermer la galerie" onPress={() => setGalleryOpen(false)}>
-            <Feather name="x" size={22} color="#fff" />
-          </Pressable>
-          {images.length > 1 && (
-            <View className="absolute bottom-10 w-full items-center">
-              <Text className="text-sm font-medium text-white">{galleryIndex + 1} / {images.length}</Text>
-            </View>
-          )}
-        </View>
-      </Modal>
+      <ImageGallery
+        visible={galleryOpen}
+        images={images.map((img) => ({ uri: img.mediumUrl ?? '' }))}
+        initialIndex={galleryIndex}
+        onClose={() => setGalleryOpen(false)}
+      />
 
       <View className="px-4 pt-2">
         {images.length > 0 ? (
@@ -145,24 +133,6 @@ export default function ListingDetailScreen() {
               </View>
             )}
 
-            <Pressable
-              className="absolute left-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
-              onPress={() => router.back()}
-              accessibilityLabel="Retour"
-              accessibilityRole="button"
-            >
-              <Feather name="chevron-left" size={22} color="#FF6B35" />
-            </Pressable>
-            {isLoggedIn && !isOwner && (
-              <Pressable
-                className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
-                accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                accessibilityRole="button"
-                onPress={(e) => { e.stopPropagation(); toggleFav() }}
-              >
-                <MaterialCommunityIcons name={isFavorited ? 'heart' : 'heart-outline'} size={22} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
-              </Pressable>
-            )}
             {images.length > 1 && (
               <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1" accessibilityElementsHidden>
                 <Feather name="image" size={12} color="#fff" />
@@ -174,6 +144,20 @@ export default function ListingDetailScreen() {
           <View className="h-48 items-center justify-center rounded-2xl bg-muted">
             <Feather name="image" size={48} color="#E8DDD3" />
             <Text className="mt-2 text-sm text-muted-foreground">Pas de photos</Text>
+          </View>
+        )}
+        {/* Back + Favorite — always visible */}
+        <Pressable
+          className="absolute left-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white/80"
+          onPress={() => router.back()}
+          accessibilityLabel="Retour"
+          accessibilityRole="button"
+        >
+          <Feather name="chevron-left" size={22} color="#FF6B35" />
+        </Pressable>
+        {!isOwner && (
+          <View className="absolute right-3 top-3">
+            <FavoriteButton listingId={listing.id} />
           </View>
         )}
       </View>
@@ -202,20 +186,20 @@ export default function ListingDetailScreen() {
           </Text>
         </View>
 
-        <View className="flex-row gap-3" accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, ${listing.numberOfPeople} personnes, disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
-          <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
+        <View className="flex-row flex-wrap" style={{ gap: 10 }} accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, coloc à ${listing.roommateCount} personne(s), disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
+          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="home" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
               {ROOM_TYPE_LABELS[listing.roomType as RoomType]}
             </Text>
           </View>
-          <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
+          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="users" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
-              {listing.numberOfPeople} {listing.numberOfPeople > 1 ? 'personnes' : 'personne'}
+              Avec {listing.roommateCount} {listing.roommateCount > 1 ? 'colocs' : 'coloc'}
             </Text>
           </View>
-          <View className="flex-1 items-center rounded-card bg-card p-3 shadow-sm">
+          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
             <Feather name="calendar" size={22} color="#0D9488" />
             <Text className="mt-1.5 text-xs text-muted-foreground text-center">
               {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
@@ -226,9 +210,9 @@ export default function ListingDetailScreen() {
         {activeAmenities.length > 0 && (
           <View>
             <Text className="text-sm font-semibold text-muted-foreground uppercase">Équipements</Text>
-            <View className="mt-3 flex-row flex-wrap gap-3">
+            <View className="mt-3 flex-row flex-wrap" style={{ gap: 10 }}>
               {activeAmenities.map(({ key, icon, label }) => (
-                <View key={key} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: (width - 60) / 3 }}>
+                <View key={key} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
                   <Feather name={icon as any} size={24} color="#FF6B35" />
                   <Text className="mt-1.5 text-xs text-center text-muted-foreground">{label}</Text>
                 </View>
@@ -243,7 +227,7 @@ export default function ListingDetailScreen() {
         </View>
 
         <View className="rounded-card bg-card p-4 shadow-sm">
-          <Text className="text-sm font-semibold text-muted-foreground uppercase">Contact</Text>
+          <Text className="text-sm font-semibold text-muted-foreground uppercase">Annonceur</Text>
           <View className="mt-3 flex-row items-center gap-3">
             {listing.author && (
               <>
@@ -252,31 +236,53 @@ export default function ListingDetailScreen() {
                     {listing.author.name?.charAt(0).toUpperCase()}
                   </Text>
                 </View>
-                <View>
-                  <Text className="text-base font-semibold text-foreground">{listing.author.name}</Text>
-                  {listing.contactEmail && (
-                    <Text className="text-sm text-muted-foreground">{listing.contactEmail}</Text>
-                  )}
-                </View>
+                <Text className="text-base font-semibold text-foreground">{listing.author.name}</Text>
               </>
             )}
           </View>
         </View>
 
-        {session && !isOwner && (
-          <Pressable
-            className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
-            accessibilityLabel="Contacter le propriétaire"
-            accessibilityRole="button"
-            onPress={async () => {
-              const conv = await client.chat.getOrCreate({ listingId: listing.id })
-              router.push(`/chat/${conv.id}` as any)
-            }}
-          >
-            <Feather name="message-circle" size={18} color="#fff" />
-            <Text className="text-base font-semibold text-secondary-foreground">Contacter</Text>
-          </Pressable>
-        )}
+        {session && !isOwner && (() => {
+          if (!myCandidature) {
+            return (
+              <Pressable
+                className="flex-row items-center justify-center gap-2 rounded-button bg-primary py-3.5"
+                accessibilityLabel="Postuler à cette annonce"
+                onPress={() => router.push(`/listing/apply/${listing.id}` as any)}
+              >
+                <Feather name="send" size={18} color="#fff" />
+                <Text className="text-base font-semibold text-primary-foreground">Postuler</Text>
+              </Pressable>
+            )
+          }
+          if (myCandidature.status === 'pending') {
+            return (
+              <View className="items-center rounded-button bg-accent py-3.5">
+                <Text className="text-base font-semibold text-accent-foreground">Candidature envoyée ⏳</Text>
+              </View>
+            )
+          }
+          if (myCandidature.status === 'accepted' || myCandidature.status === 'finalized') {
+            return (
+              <Pressable
+                className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
+                accessibilityLabel="Voir le contact"
+                onPress={() => router.push(`/candidature/${myCandidature.id}` as any)}
+              >
+                <Feather name="phone" size={18} color="#fff" />
+                <Text className="text-base font-semibold text-secondary-foreground">Voir le contact</Text>
+              </Pressable>
+            )
+          }
+          if (myCandidature.status === 'rejected') {
+            return (
+              <View className="items-center rounded-button bg-muted py-3.5">
+                <Text className="text-base font-medium text-muted-foreground">Candidature non retenue</Text>
+              </View>
+            )
+          }
+          return null
+        })()}
 
         {isOwner && (
           <View className="gap-3 pb-8">

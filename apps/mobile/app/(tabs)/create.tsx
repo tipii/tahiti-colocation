@@ -46,15 +46,13 @@ export default function CreateListingScreen() {
       island: 'Tahiti' as Island,
       commune: '',
       roomType: 'single' as RoomType,
-      numberOfPeople: '1',
+      roommateCount: '1',
       privateBathroom: false,
       privateToilets: false,
       pool: false,
       parking: false,
       airConditioning: false,
       petsAccepted: false,
-      showPhone: false,
-      contactEmail: '',
     },
   })
 
@@ -71,15 +69,13 @@ export default function CreateListingScreen() {
         island: v.island,
         commune: v.commune,
         roomType: v.roomType,
-        numberOfPeople: Number(v.numberOfPeople),
+        roommateCount: Number(v.roommateCount),
         privateBathroom: v.privateBathroom,
         privateToilets: v.privateToilets,
         pool: v.pool,
         parking: v.parking,
         airConditioning: v.airConditioning,
         petsAccepted: v.petsAccepted,
-        showPhone: v.showPhone,
-        contactEmail: v.contactEmail || null,
         status: publish ? 'published' : 'draft',
       })
 
@@ -123,8 +119,8 @@ export default function CreateListingScreen() {
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <View className="px-6 pb-8" style={{ paddingTop: insets.top + 8 }}>
+      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
+        <View className="px-6" style={{ paddingTop: insets.top + 8 }}>
           <Text className="text-3xl font-bold text-foreground">Nouvelle annonce</Text>
 
           {/* Photos */}
@@ -209,11 +205,14 @@ export default function CreateListingScreen() {
               </View>
             )}
           </form.Field>
-          <form.Field name="numberOfPeople">
+          <form.Field name="roommateCount">
             {(f) => (
-              <View className="mt-3 flex-row items-center gap-2">
-                <Text className="text-base text-foreground">Nombre de personnes:</Text>
-                <TextInput className="w-16 rounded-input border border-border bg-card px-3 py-2 text-center text-base text-foreground" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} />
+              <View className="mt-3">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-base text-foreground">Colocataires actuels:</Text>
+                  <TextInput className="w-16 rounded-input border border-border bg-card px-3 py-2 text-center text-base text-foreground" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} />
+                </View>
+                <Text className="mt-1 text-xs text-muted-foreground">Vous non compris</Text>
               </View>
             )}
           </form.Field>
@@ -237,20 +236,6 @@ export default function CreateListingScreen() {
               )}
             </form.Field>
           ))}
-
-          {/* Contact */}
-          <SectionTitle>Contact</SectionTitle>
-          <form.Field name="showPhone">
-            {(f) => (
-              <View className="flex-row items-center justify-between py-2">
-                <Text className="text-base text-foreground">Afficher mon telephone</Text>
-                <Switch value={f.state.value} onValueChange={f.handleChange} trackColor={{ true: '#FF6B35' }} />
-              </View>
-            )}
-          </form.Field>
-          <form.Field name="contactEmail">
-            {(f) => <TextInput className="mt-1 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Email de contact (optionnel)" placeholderTextColor="#8B7E74" keyboardType="email-address" autoCapitalize="none" value={f.state.value} onChangeText={f.handleChange} />}
-          </form.Field>
 
           {/* Validation errors */}
           {validationErrors.length > 0 && (

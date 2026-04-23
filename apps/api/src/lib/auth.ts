@@ -5,7 +5,8 @@ import { expo } from '@better-auth/expo'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export const auth = betterAuth({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const auth: any = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3001',
   database: drizzleAdapter(db, {
     provider: 'pg',

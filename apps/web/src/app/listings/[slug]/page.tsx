@@ -72,8 +72,7 @@ export default function ListingDetailPage() {
           <div>
             <h2 className="text-sm font-semibold uppercase text-muted-foreground">Logement</h2>
             <p className="mt-1">
-              {ROOM_TYPE_LABELS[listing.roomType as RoomType]} · {listing.numberOfPeople}{' '}
-              {listing.numberOfPeople > 1 ? 'personnes' : 'personne'}
+              {ROOM_TYPE_LABELS[listing.roomType as RoomType]} · Coloc avec {listing.roommateCount} {listing.roommateCount > 1 ? 'personnes' : 'personne'}
             </p>
           </div>
 
@@ -110,9 +109,8 @@ export default function ListingDetailPage() {
             <p className="text-2xl font-bold">{listing.price.toLocaleString('fr-FR')} XPF</p>
             <p className="text-sm text-muted-foreground">par mois</p>
             <Separator className="my-4" />
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground">Contact</h3>
+            <h3 className="text-sm font-semibold uppercase text-muted-foreground">Annonceur</h3>
             {listing.author && <p className="mt-2 font-medium">{listing.author.name}</p>}
-            {listing.contactEmail && <p className="text-sm text-muted-foreground">{listing.contactEmail}</p>}
           </div>
 
           {isOwner && (

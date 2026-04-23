@@ -1,12 +1,12 @@
 import { Pressable, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import { Feather } from '@expo/vector-icons'
 import type { Listing } from '@coloc/shared/types'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
-import { useFavorite } from '@/hooks/useFavorite'
+import { FavoriteButton } from '@/components/FavoriteButton'
 
 const AMENITY_ICONS: [string, string, string][] = [
   ['privateBathroom', 'droplet', 'SdB privée'],
@@ -16,14 +16,19 @@ const AMENITY_ICONS: [string, string, string][] = [
   ['petsAccepted', 'heart', 'Animaux'],
 ]
 
+function colocLabel(roommateCount: number, roomType: RoomType): string {
+  const base = `Coloc à ${roommateCount}`
+  if (roomType === 'single') return `${base} + 1 (toi)`
+  if (roomType === 'couple') return `${base} + 2 (vous)`
+  return `${base} + 1 ou 2 (toi ou vous)`
+}
+
 export function ListingCard({ listing }: { listing: Listing }) {
   const router = useRouter()
   const firstImage = listing.images?.[0]
   const durationLabel = DURATION_LABELS[listing.durationType as DurationType]
   const roomLabel = ROOM_TYPE_LABELS[listing.roomType as RoomType]
   const activeAmenities = AMENITY_ICONS.filter(([key]) => (listing as any)[key])
-  const { isFavorited, toggle, isLoggedIn } = useFavorite(listing.id)
-
   return (
     <Pressable
       className="overflow-hidden rounded-card bg-card shadow-sm"
@@ -53,15 +58,9 @@ export function ListingCard({ listing }: { listing: Listing }) {
         <View className="absolute top-3 left-3 rounded-pill bg-white/90 px-2.5 py-1" accessibilityElementsHidden>
           <Text className="text-xs font-medium text-foreground">{durationLabel}</Text>
         </View>
-        {isLoggedIn && (
-          <Pressable
-            className="absolute top-3 right-3 h-8 w-8 items-center justify-center rounded-full bg-white/80"
-            onPress={(e) => { e.stopPropagation(); toggle() }}
-            accessibilityLabel={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          >
-            <MaterialCommunityIcons name={isFavorited ? 'heart' : 'heart-outline'} size={18} color={isFavorited ? '#FF6B35' : '#8B7E74'} />
-          </Pressable>
-        )}
+        <View className="absolute top-3 right-3">
+          <FavoriteButton listingId={listing.id} size={18} className="h-8 w-8" />
+        </View>
       </View>
 
       <View className="p-4">
@@ -72,14 +71,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
           <Feather name="map-pin" size={13} color="#0D9488" />
           <Text className="text-sm text-muted-foreground" numberOfLines={1}>{listing.commune}, {listing.island}</Text>
         </View>
-        <View className="mt-2 flex-row items-center gap-3">
+        <View className="mt-2 flex-row items-center gap-1">
+          <Feather name="home" size={13} color="#8B7E74" />
+          <Text className="text-xs text-muted-foreground" numberOfLines={1}>{colocLabel(listing.roommateCount, listing.roomType as RoomType)}</Text>
+        </View>
+        <View className="mt-1 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
-            <Feather name="home" size={13} color="#8B7E74" />
+            <Feather name="tag" size={13} color="#8B7E74" />
             <Text className="text-xs text-muted-foreground">{roomLabel}</Text>
-          </View>
-          <View className="flex-row items-center gap-1">
-            <Feather name="users" size={13} color="#8B7E74" />
-            <Text className="text-xs text-muted-foreground">{listing.numberOfPeople} pers.</Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Feather name="calendar" size={13} color="#8B7E74" />

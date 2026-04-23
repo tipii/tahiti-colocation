@@ -1,12 +1,13 @@
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, ScrollView, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Image } from 'expo-image'
 import { Feather } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import * as Haptics from 'expo-haptics'
 
 import { authClient } from '@/lib/auth'
-import { orpc } from '@/lib/orpc'
+import { orpc, client } from '@/lib/orpc'
 
 function MenuItem({ icon, label, badge, onPress }: { icon: string; label: string; badge?: number; onPress: () => void }) {
   return (
@@ -29,16 +30,23 @@ export default function ProfileScreen() {
   const { data: session } = authClient.useSession()
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const queryClient = useQueryClient()
 
   const { data: profile } = useQuery({
-    ...orpc.user.me.queryOptions(),
+    queryKey: ['user-profile'],
+    queryFn: () => client.user.me(),
     enabled: !!session,
   })
 
-  const { data: unread } = useQuery({
-    ...orpc.chat.unreadCount.queryOptions(),
-    enabled: !!session,
-    refetchInterval: 10000,
+  const mode = (profile as any)?.mode ?? 'seeker'
+  const isSeeker = mode === 'seeker'
+
+  const modeMutation = useMutation({
+    mutationFn: (newMode: 'seeker' | 'provider') => client.user.setMode({ mode: newMode }),
+    onSuccess: () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] })
+    },
   })
 
   const handleLogout = async () => {
@@ -49,7 +57,8 @@ export default function ProfileScreen() {
   const avatarUrl = (profile as any)?.avatar || (profile as any)?.image
 
   return (
-    <View className="flex-1 bg-background px-6" style={{ paddingTop: insets.top + 8 }}>
+    <ScrollView className="flex-1 bg-background" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 60 }}>
+      {/* User info */}
       {session && (
         <View className="flex-row items-center gap-4">
           {avatarUrl ? (
@@ -61,19 +70,38 @@ export default function ProfileScreen() {
               </Text>
             </View>
           )}
-          <View>
+          <View className="flex-1">
             <Text className="text-xl font-semibold text-foreground">{(profile as any)?.name ?? session.user.name}</Text>
             <Text className="text-sm text-muted-foreground">{session.user.email}</Text>
-            {(profile as any)?.bio && (
-              <Text className="mt-0.5 text-sm text-muted-foreground" numberOfLines={1}>{(profile as any).bio}</Text>
-            )}
           </View>
         </View>
       )}
 
-      <View className="mt-8 gap-2">
-        <MenuItem icon="message-circle" label="Messages" badge={unread?.count} onPress={() => router.push('/profile/messages' as any)} />
-        <MenuItem icon="list" label="Mes annonces" onPress={() => router.push('/profile/listings' as any)} />
+      {/* Mode toggle */}
+      <View className="mt-5 flex-row overflow-hidden rounded-pill border border-border bg-card">
+        <Pressable
+          className={`flex-1 flex-row items-center justify-center gap-2 py-3 ${isSeeker ? 'bg-primary' : ''}`}
+          onPress={() => modeMutation.mutate('seeker')}
+          accessibilityLabel="Mode chercheur"
+          accessibilityState={{ selected: isSeeker }}
+        >
+          <Feather name="search" size={16} color={isSeeker ? '#fff' : '#8B7E74'} />
+          <Text className={`text-sm font-semibold ${isSeeker ? 'text-primary-foreground' : 'text-muted-foreground'}`}>Je cherche</Text>
+        </Pressable>
+        <Pressable
+          className={`flex-1 flex-row items-center justify-center gap-2 py-3 ${!isSeeker ? 'bg-primary' : ''}`}
+          onPress={() => modeMutation.mutate('provider')}
+          accessibilityLabel="Mode propriétaire"
+          accessibilityState={{ selected: !isSeeker }}
+        >
+          <Feather name="home" size={16} color={!isSeeker ? '#fff' : '#8B7E74'} />
+          <Text className={`text-sm font-semibold ${!isSeeker ? 'text-primary-foreground' : 'text-muted-foreground'}`}>Je propose</Text>
+        </Pressable>
+      </View>
+
+      {/* Menu */}
+      <View className="mt-6 gap-2">
+        <MenuItem icon="send" label="Mes candidatures" onPress={() => router.push('/profile/messages' as any)} />
         <MenuItem icon="heart" label="Favoris" onPress={() => router.push('/profile/favorites' as any)} />
         <MenuItem icon="edit-2" label="Modifier le profil" onPress={() => router.push('/profile/edit' as any)} />
         <MenuItem icon="settings" label="Paramètres" onPress={() => router.push('/profile/settings' as any)} />
@@ -82,6 +110,6 @@ export default function ProfileScreen() {
       <Pressable className="mt-8 items-center rounded-button border border-destructive py-3" onPress={handleLogout} accessibilityLabel="Se déconnecter" accessibilityRole="button">
         <Text className="text-base font-medium text-destructive">Se déconnecter</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   )
 }

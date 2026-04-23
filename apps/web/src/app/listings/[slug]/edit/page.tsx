@@ -34,10 +34,9 @@ export default function EditListingPage() {
       durationType: 'location' as DurationType,
       availableFrom: '', availableTo: '',
       island: 'Tahiti' as Island, commune: '',
-      roomType: 'single' as RoomType, numberOfPeople: 1,
+      roomType: 'single' as RoomType, roommateCount: 1,
       privateBathroom: false, privateToilets: false, pool: false,
       parking: false, airConditioning: false, petsAccepted: false,
-      showPhone: false, contactEmail: '',
     },
   })
 
@@ -52,15 +51,13 @@ export default function EditListingPage() {
     form.setFieldValue('island', l.island)
     form.setFieldValue('commune', l.commune)
     form.setFieldValue('roomType', l.roomType)
-    form.setFieldValue('numberOfPeople', l.numberOfPeople)
+    form.setFieldValue('roommateCount', l.roommateCount)
     form.setFieldValue('privateBathroom', l.privateBathroom)
     form.setFieldValue('privateToilets', l.privateToilets)
     form.setFieldValue('pool', l.pool)
     form.setFieldValue('parking', l.parking)
     form.setFieldValue('airConditioning', l.airConditioning)
     form.setFieldValue('petsAccepted', l.petsAccepted)
-    form.setFieldValue('showPhone', l.showPhone)
-    form.setFieldValue('contactEmail', l.contactEmail ?? '')
     setExistingImages(l.images ?? [])
     setInitialized(true)
   }
@@ -72,7 +69,6 @@ export default function EditListingPage() {
         id: listing!.id, ...v,
         availableFrom: new Date(v.availableFrom),
         availableTo: v.availableTo ? new Date(v.availableTo) : null,
-        contactEmail: v.contactEmail || null,
       })
     },
     onSuccess: () => {
@@ -159,7 +155,7 @@ export default function EditListingPage() {
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">Logement</h2>
           <form.Field name="roomType">{(f) => <div className="flex gap-2">{ROOM_TYPES.map((rt) => <Button key={rt} type="button" size="sm" variant={f.state.value === rt ? 'default' : 'outline'} onClick={() => f.handleChange(rt)}>{ROOM_TYPE_LABELS[rt]}</Button>)}</div>}</form.Field>
-          <form.Field name="numberOfPeople">{(f) => <div><label className="text-sm font-medium">Nombre de personnes</label><Input type="number" min={1} value={f.state.value} onChange={(e) => f.handleChange(Number(e.target.value))} className="mt-1 w-24" /></div>}</form.Field>
+          <form.Field name="roommateCount">{(f) => <div><label className="text-sm font-medium">Colocataires actuels</label><Input type="number" min={0} value={f.state.value} onChange={(e) => f.handleChange(Number(e.target.value))} className="mt-1 w-24" /><p className="mt-1 text-xs text-muted-foreground">Vous non compris</p></div>}</form.Field>
         </section>
 
         <Separator />
@@ -169,14 +165,6 @@ export default function EditListingPage() {
           {([['privateBathroom', 'Salle de bain privee'], ['privateToilets', 'Toilettes privees'], ['pool', 'Piscine'], ['parking', 'Parking'], ['airConditioning', 'Climatisation'], ['petsAccepted', 'Animaux acceptes']] as const).map(([name, label]) => (
             <form.Field key={name} name={name}>{(f) => <div className="flex items-center justify-between"><label className="text-sm">{label}</label><Switch checked={f.state.value} onCheckedChange={(v) => f.handleChange(v)} /></div>}</form.Field>
           ))}
-        </section>
-
-        <Separator />
-
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">Contact</h2>
-          <form.Field name="showPhone">{(f) => <div className="flex items-center justify-between"><label className="text-sm">Afficher mon telephone</label><Switch checked={f.state.value} onCheckedChange={(v) => f.handleChange(v)} /></div>}</form.Field>
-          <form.Field name="contactEmail">{(f) => <div><label className="text-sm font-medium">Email de contact (optionnel)</label><Input type="email" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} className="mt-1" /></div>}</form.Field>
         </section>
 
         <Separator />
