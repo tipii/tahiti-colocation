@@ -1,17 +1,22 @@
-# Coloc
+# Coolive
 
-Colocation platform for French Polynesia. Monorepo: `apps/api` (Hono), `apps/web` (Next.js), `apps/mobile` (Expo), `packages/shared`, `packages/contract`.
+Colocation platform for French Polynesia. Monorepo: `apps/api` (Hono), `apps/web` (Next.js), `apps/mobile` (Expo), `packages/contract`, `packages/shared`, `packages/ui`.
+
+Product is branded **Coolive**; internal package scope stays `@coloc/*`. See `RENAME.md` for the user-facing rename scope.
 
 ## Commands
 
-- `pnpm dev` — starts Colima, Postgres, Cloudflare tunnel, then Turbo (API + Drizzle Studio + Web + Mobile)
+- `pnpm dev` — starts Docker runtime (Colima on macOS, systemctl on Linux), Postgres, Cloudflare tunnel (if `cloudflared` installed), then Turbo (API + Drizzle Studio + Web + Mobile)
 - `pnpm stop` — tears down all services
-- `pnpm db:push` — apply schema changes
+- `pnpm db:push` — apply schema changes (dev only)
+- `pnpm --filter @coloc/api db:seed` — seed users, listings, candidatures (full profile fields)
+- `pnpm --filter @coloc/api db:seed-images` — upload + process fresh images to R2 (slow)
+- `pnpm --filter @coloc/api db:reattribute-images` — fast path: reuse existing R2 objects for current listings (no upload)
 - `pnpm turbo typecheck` — typecheck all apps
 
 ## Architecture
 
-All traffic goes through Next.js (port 3000) which proxies `/api/*` and `/rpc/*` to Hono (port 3001). Same-origin cookies, no CORS issues. See `ARCHITECTURE.md` for details.
+All traffic goes through Next.js (port 3000) which proxies `/api/*` and `/rpc/*` to Hono (port 3001). Same-origin cookies, no CORS issues. Mobile hits Hono directly (LAN IP in dev, `api.coolive.app` in prod). See `ARCHITECTURE.md`.
 
 ### oRPC (contract-first)
 
@@ -28,12 +33,27 @@ implements contract  imports Contract type → full type safety
 - **Clients**: `ContractRouterClient<Contract>` + `createTanstackQueryUtils` → `orpc.listing.list.queryOptions()`
 - **Image upload** stays REST (`/api/images/upload`) — multipart FormData not suited for RPC
 
+## Product model
+
+### Candidature flow
+`pending → accepted → finalized` (with `rejected` / `withdrawn` exits).
+- Multiple `accepted` per listing allowed (shortlist)
+- One `finalized` per listing — cascades: archives listing + rejects other non-withdrawn with optional `rejectionMessage`
+- Contact reveal gated server-side in `candidature.contact`: returns phone / whatsapp / email / facebookUrl only if caller is candidate OR listing owner AND status ∈ (`accepted`, `finalized`)
+- No chat; structured profile fields + off-platform contact after acceptance
+
+### User profile fields (affecting candidature)
+- Required to apply: `avatar`, `name`, `dob`, `occupation`, `smoker`, `pets`, `phone`
+- Optional: `bio`, `occupationDetail`, `languages[]`, `schedule`, `whatsappOverride`, `facebookUrl`
+- Age derived from `dob` (DOB never leaves server)
+
 ## Key Files
 
 - `packages/contract/src/` — Zod schemas, oRPC contract definitions, Contract type
-- `apps/api/src/rpc/` — oRPC handlers (listing.ts, image.ts, router.ts, context.ts, base.ts)
+- `apps/api/src/rpc/` — oRPC handlers (listing.ts, image.ts, router.ts, context.ts, base.ts, candidature.ts, user.ts)
 - `apps/api/src/routes/images.ts` — image upload REST endpoint (multipart)
 - `apps/api/src/db/schema.ts` — Drizzle schema with `$type<>()` narrowing for enum fields
+- `apps/api/src/lib/notifications.ts` — event dispatcher (Resend + Expo Push, currently stubbed)
 - `apps/web/src/lib/orpc.ts` — typed oRPC client + TanStack Query utils
 - `apps/mobile/lib/orpc.ts` — typed oRPC client with cookie forwarding
 
@@ -42,32 +62,34 @@ implements contract  imports Contract type → full type safety
 - **UI components**: shadcn/ui (base-nova style) — `apps/web/src/components/ui/`
 - **Forms**: TanStack Form — validate with contract Zod schemas
 - **Data fetching**: oRPC + TanStack Query — `orpc.listing.list.queryOptions()`
-- **Styling**: Tailwind v4, shadcn design tokens
+- **Styling**: Tailwind v4, shadcn design tokens (palette in `BRAND.md`)
 
 ## Mobile
 
 - **UI**: NativeWind v4 (Tailwind classes on React Native)
 - **Data fetching**: oRPC + TanStack Query
 - **Forms**: plain useState
-- **Image upload**: via REST API proxy (`/api/images/upload`), not direct R2
+- **Image upload**: via REST API proxy (`/api/images/upload`), not direct R2 (Expo Go IPv6 issue)
 
 ## Rules
 
-- **Type safety first**: all API types flow from `packages/contract`. Never use `any` for RPC types.
+- **Type safety first**: all API types flow from `packages/contract`. Never use `any` for RPC types (exception: the `auth` export in `apps/api/src/lib/auth.ts` needs `: any` due to a Better Auth 1.6 type leak from internal zod v4).
 - **DB enum fields**: use `.$type<>()` on Drizzle varchar columns to narrow to contract enum unions
-- **Better Auth schema**: always generate with `npx @better-auth/cli generate`, never hand-write
+- **Better Auth schema**: generate with `npx @better-auth/cli generate` if you regenerate; hand-edit allowed after
 - **Images**: upload through API (`/api/images/upload`), not directly to R2 (Expo Go IPv6 issue)
-- **Images**: only store medium (1200x900) + thumbnail (200x200), no original
-- **French only** for all UI labels
+- **Images**: only store medium (1200×900) + thumbnail (200×200) WebP, no original
+- **Contact fields** (`phone`, `whatsappOverride`, `facebookUrl`, `dob`): NEVER return from any RPC except `user.me` (self) or `candidature.contact` (status-gated). Audit before adding new endpoints.
+- **French only** for all UI labels; tutoiement (see `BRAND.md` voice rules)
 - **Currency**: XPF (integer, no decimals)
-- **DB migrations**: `db:push` in dev, auto-push on deploy via Dockerfile CMD
+- **DB migrations**: `db:push` in dev, committed migrations in prod (see `INFRASTRUCTURE.md`)
 
 ## Dev Environment
 
-- Docker: Colima (macOS)
+- Docker: Colima (macOS) or systemd (Linux) — `scripts/dev.sh` auto-detects
 - DB: Postgres 17 via Docker Compose
-- Tunnel: Cloudflare (`dev.theop.dev` → localhost:3000)
+- Tunnel: Cloudflare (`dev.theop.dev` → localhost:3000) — skipped with warning if `cloudflared` missing
 - Mobile dev caveat: Expo Go can't fetch IPv6 hosts (Cloudflare). Use LAN IP as fallback.
+- Facebook OAuth in mobile: requires a dev build (EAS); Expo Go can't handle the scheme redirect reliably.
 
 ## Plans
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.
@@ -78,3 +100,11 @@ implements contract  imports Contract type → full type safety
 ## Git
 - **Never mention Claude, AI, or add Co-Authored-By lines in commits** — no trace of AI in git history
 - Make concise descriptions about what changes were made, bullet list appreciated
+
+## Related docs
+- `BRAND.md` — identity, voice, palette, product vocabulary
+- `LAUNCH.md` — pre-launch punch list + timeline
+- `INFRASTRUCTURE.md` — prod domains, deploy, versioning
+- `RENAME.md` — Coloc → Coolive cutover
+- `ARCHITECTURE.md` — deeper technical reference
+- `SEED.md` — dev test users

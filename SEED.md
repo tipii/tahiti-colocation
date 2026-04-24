@@ -21,7 +21,12 @@ All users share the same password: `coloc2026`
 
 ## What gets created
 
-- 10 users (all with role `user`)
-- 30 published listings across Tahiti, Moorea, Bora Bora, etc.
-- ~20 favorites
-- ~8 conversations with sample messages
+- 10 users with full profile fields (dob, phone, occupation, smoker, pets, schedule, languages, bio)
+- 30 published listings across Tahiti, Moorea, Bora Bora, Raiatea, Rangiroa, Fakarava, Nuku Hiva, Huahine
+- ~20 favorites across seeker users
+- ~5–10 candidatures with mixed statuses (pending / accepted / rejected)
+
+## Images
+
+Use `pnpm --filter @coloc/api db:seed-images` to upload + Sharp-process local photos to R2 (slow).
+Or `pnpm --filter @coloc/api db:reattribute-images` to reuse existing R2 objects across current listings without re-uploading (fast).

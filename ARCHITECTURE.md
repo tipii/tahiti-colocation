@@ -1,8 +1,10 @@
-# Coloc — Architecture
+# Architecture
+
+Technical reference for the codebase. For product/brand see [`BRAND.md`](./BRAND.md); for launch plan [`LAUNCH.md`](./LAUNCH.md); for prod infra [`INFRASTRUCTURE.md`](./INFRASTRUCTURE.md).
 
 ## Overview
 
-Coloc is a monorepo (pnpm + Turborepo) with three apps and one shared package:
+Monorepo (pnpm + Turborepo):
 
 ```
 apps/
@@ -10,122 +12,137 @@ apps/
   web/       → Next.js 16 (port 3000)
   mobile/    → Expo SDK 55 (Expo Router, NativeWind)
 packages/
-  shared/    → Shared types and schemas (Zod)
+  contract/  → oRPC contract (Zod schemas + procedure signatures)
+  shared/    → Constants, types, helpers shared across apps
+  ui/        → Design tokens (color, radius)
 ```
 
-## Request Flow
+Internal package scope stays `@coloc/*` even though the product is branded Coolive — rename is external only (see [`RENAME.md`](./RENAME.md)).
 
-All traffic goes through a single entry point — the web app. Next.js proxies `/api/*` to the Hono API server. This eliminates cross-origin issues (CORS, cookies, SameSite).
+## Request flow
 
-```
-Browser  → Next.js (3000) → /api/* rewrite → Hono (3001)
-Mobile   → Next.js (3000) → /api/* rewrite → Hono (3001)
-Facebook → Next.js (3000) → /api/* rewrite → Hono (3001)
-```
-
-### Why a reverse proxy?
-
-- **Same-origin cookies**: session cookies work with `SameSite: Lax` (secure default), no need for `SameSite: None` or `Secure` hacks
-- **No CORS for web**: browser sees everything as same-origin
-- **Single OAuth redirect URI**: Facebook redirects to the same domain as the app
-- **Production-identical**: in production, Nginx/Caddy/Coolify does the same routing
-
-## Dev Environment
-
-### Infrastructure (`scripts/dev.sh`)
-
-1. **Colima** — Docker runtime (starts if needed)
-2. **PostgreSQL 17** — via Docker Compose (Alpine image)
-3. **Cloudflare Tunnel** — exposes `dev.theop.dev` → `localhost:3000`
-
-`pnpm dev` runs the script then starts all apps via Turbo.
-`pnpm stop` tears everything down (`scripts/stop.sh`).
-
-### Tunnel Architecture
-
-The Cloudflare tunnel points to Next.js (port 3000), not directly to the API. This mirrors production where a reverse proxy sits in front.
+Web traffic goes through Next.js, which proxies `/api/*` and `/rpc/*` to Hono. Same-origin cookies, no CORS issues.
 
 ```
-dev.theop.dev      → localhost:3000 (Next.js, proxies /api/*)
-api-dev.theop.dev  → localhost:3001 (direct API access, kept as fallback)
+Browser  → Next.js (3000)   → /api/* + /rpc/* rewrite → Hono (3001)
+Mobile   → Hono directly (LAN IP in dev, api.coolive.app in prod)
+OAuth    → Next.js (3000)   → /api/auth/callback/* → Hono (3001)
 ```
 
-### Mobile Dev Caveat
+### Why the proxy for web
 
-Expo Go on Android has a broken IPv6 stack (React Native's OkHttp doesn't implement Happy Eyeballs). Cloudflare forces IPv6 on all domains. Mobile fetch hangs on IPv6 hosts.
+- Same-origin cookies with `SameSite=Lax`
+- No CORS on the browser side
+- OAuth redirect URIs live on one hostname
+- Mirrors prod behind Coolify/Traefik
 
-**Workaround for dev**: mobile uses the LAN IP (`http://192.168.178.62:3001`) to talk directly to the API, bypassing Cloudflare.
+### Mobile dev caveat
 
-**In production**: standalone builds configure OkHttp properly, IPv6 works fine.
+Expo Go + Cloudflare = broken IPv6 (React Native OkHttp lacks Happy Eyeballs). Mobile dev hits the LAN IP (`http://192.168.x.x:3001`) directly. In production, standalone builds implement IPv6 correctly, so `https://api.coolive.app` works.
+
+## Contract-first RPC (oRPC)
+
+```
+packages/contract (@orpc/contract + zod)   ← schemas + procedure signatures
+       ↓                     ↓
+   apps/api          apps/web + apps/mobile
+   (@orpc/server)    (@orpc/client + @orpc/tanstack-query)
+   implements        imports Contract type → full type safety
+```
+
+- **Contract** (`packages/contract/src/`): Zod schemas + `oc` procedure definitions. Zero server deps. Single source of truth for types.
+- **Server** (`apps/api/src/rpc/`): `implement(contract)` with handler files per domain.
+- **Clients** (`apps/*/lib/orpc.ts`): `ContractRouterClient<Contract>` + `createTanstackQueryUtils` → `orpc.listing.list.queryOptions()`.
+- **Image upload** stays REST (`/api/images/upload`) — multipart FormData doesn't fit RPC.
+
+### Procedure domains
+
+- `listing` — CRUD, search, publish/archive
+- `image` — list, delete, reorder
+- `favorite` — list, ids, toggle
+- `candidature` — apply, withdraw, accept, reject, finalize, forListing, mine, count, contact
+- `user` — me, update, updateAvatar, removeAvatar, setMode, registerPushToken
 
 ## Auth (Better Auth)
 
-- **Email/password** + **Facebook OAuth**
-- Server plugin: `@better-auth/expo` for mobile support
-- Client plugin: `expoClient` with `expo-secure-store` for session persistence
-- `skipStateCookieCheck: true` in dev (proxy and callback on different domains for mobile LAN flow)
+- Email/password + Facebook OAuth (Google + Apple wired but not enabled)
+- Expo plugin (`@better-auth/expo`) for mobile token forwarding via custom scheme
+- Session cookies in Postgres (`session` table)
 
-### OAuth Flow (Web)
+## Candidature flow (core product loop)
 
-1. Browser POSTs to `/api/auth/sign-in/social` (same-origin via proxy)
-2. Redirects to Facebook
-3. Facebook redirects to `https://dev.theop.dev/api/auth/callback/facebook`
-4. API sets session cookie, redirects to `/`
-5. Cookie is same-origin — `useSession()` works immediately
+Statuses: `pending → accepted → finalized` (with `rejected` / `withdrawn` side exits).
 
-### OAuth Flow (Mobile)
+- Multiple `accepted` candidatures per listing allowed — shortlist
+- One `finalized` per listing — cascades: archives listing + rejects other non-withdrawn candidatures (copies optional thank-you into `rejectionMessage`)
+- **Contact reveal** gated server-side in `candidature.contact`: returns phone/whatsapp/email/facebookUrl only if the caller is either the candidate or the listing owner AND status ∈ (`accepted`, `finalized`)
+- No chat — replaced by structured profile fields + off-platform contact after acceptance
 
-1. App POSTs to API via LAN IP
-2. Expo plugin opens in-app browser to `/api/auth/expo-authorization-proxy`
-3. Proxy redirects to Facebook
-4. Facebook redirects to tunnel callback
-5. Expo plugin's `after` hook passes session cookie via URL param back to the app
+## Notifications
+
+`apps/api/src/lib/notifications.ts` — event dispatch with Resend (email) + Expo Push (mobile) placeholders. Events:
+
+- `candidature.submitted` → email provider
+- `candidature.accepted` → email + push candidate
+- `candidature.finalized` → email + push chosen
+- `candidature.rejected` → email + push candidate with optional message
+- `candidature.withdrawn` → email provider
+
+Live providers wired when `RESEND_API_KEY` / `EXPO_PUSH_ACCESS_TOKEN` env vars present; otherwise logs to stdout.
 
 ## Database
 
-- **PostgreSQL 17** (Docker, Alpine)
+- **PostgreSQL 17** via Docker (dev) / managed (prod — see [`INFRASTRUCTURE.md`](./INFRASTRUCTURE.md))
 - **Drizzle ORM** with `pg` driver
-- Schema generated by Better Auth CLI (auth tables) + custom app tables
-- `pnpm db:push` to apply schema, `pnpm db:studio` for Drizzle Studio
+- Schema in `apps/api/src/db/schema.ts` — uses `.$type<>()` to narrow varchar columns to contract enum unions
+- Better Auth tables (user, session, account, verification) generated once via `npx @better-auth/cli generate`; hand-edit is allowed after
+- `pnpm db:push` in dev (destructive renames require SQL `ALTER`); committed migrations in prod
+- `pnpm db:studio` for Drizzle Studio
 
-## Image Upload (Cloudflare R2 + Sharp)
+## Image upload (Cloudflare R2 + Sharp)
 
-### Flow
+Flow:
+1. Client POSTs multipart to `/api/images/upload` (API, not R2 directly — Expo Go IPv6 workaround)
+2. API processes with Sharp into 2 WebP variants:
+   - **Medium**: `fit: inside`, 1200×900, quality 85
+   - **Thumbnail**: `fit: cover`, 200×200, quality 80
+3. Both variants uploaded to R2; original not kept
+4. Row inserted into `images` table (polymorphic: `entityType` + `entityId`; supports `listing` and `avatar`)
 
-1. Client requests presigned upload URL from API
-2. Client uploads directly to R2 (no API bottleneck)
-3. Client calls confirm endpoint
-4. API downloads original from R2, generates 3 WebP variants with Sharp:
-   - **Thumbnail**: 200×200, cover crop, quality 80
-   - **Medium**: 800×600, fit inside, quality 85
-   - **Original**: max 2000px, quality 90
-5. Variants uploaded to R2, raw upload deleted
-6. URLs stored in `images` table (polymorphic: listings + avatars)
-
-### Storage Structure
-
+Storage layout:
 ```
-uploads/    → temporary raw uploads (deleted after processing)
-images/     → permanent optimized variants
+images/
   {entityType}/{entityId}/{imageId}/
-    original.webp
     medium.webp
     thumb.webp
 ```
 
-## Tech Stack
+## Dev environment
 
-| Layer      | Technology                          |
-| ---------- | ----------------------------------- |
-| Runtime    | Node.js                             |
-| API        | Hono                                |
-| Web        | Next.js 16 (App Router, React 19)   |
+`scripts/dev.sh` detects host and boots the right services:
+
+1. **Docker runtime**: Colima on macOS, systemd on Linux
+2. **PostgreSQL 17** via `docker-compose.yml`
+3. **Cloudflare Tunnel** (`coloc-dev`) exposes `dev.theop.dev` → localhost:3000 if `cloudflared` is installed; skips with a warning otherwise
+
+`pnpm dev` runs the script then Turbo (API + Drizzle Studio + Web + Mobile).
+`pnpm stop` tears everything down.
+
+## Tech stack
+
+| Layer      | Tech                                 |
+| ---------- | ------------------------------------ |
+| API        | Hono + oRPC                          |
+| Web        | Next.js 16 (App Router, React 19)    |
 | Mobile     | Expo SDK 55 (Expo Router)            |
 | Styling    | Tailwind CSS v4 (web), NativeWind v4 (mobile) |
-| Database   | PostgreSQL 17 + Drizzle ORM         |
-| Auth       | Better Auth + @better-auth/expo     |
+| Forms      | TanStack Form (web), useState (mobile) |
+| Data       | oRPC + TanStack Query                |
+| Database   | PostgreSQL 17 + Drizzle ORM          |
+| Auth       | Better Auth + @better-auth/expo      |
 | Storage    | Cloudflare R2                        |
-| Images     | Sharp (server-side optimization)     |
-| Deployment | Hetzner + Coolify (planned)          |
-| Tunnel     | Cloudflare Tunnel (dev)              |
+| Images     | Sharp (server-side, 2 WebP variants) |
+| Email      | Resend (wired via placeholder)       |
+| Push       | Expo Push (wired via placeholder)    |
+| Deployment | Coolify (planned, see [`INFRASTRUCTURE.md`](./INFRASTRUCTURE.md)) |
 | Monorepo   | pnpm workspaces + Turborepo          |
