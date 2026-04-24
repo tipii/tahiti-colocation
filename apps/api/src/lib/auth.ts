@@ -12,7 +12,7 @@ export const auth: any = betterAuth({
     provider: 'pg',
     schema,
   }),
-  trustedOrigins: ['http://localhost:3000', 'https://dev.theop.dev', 'mobile://', 'exp://'],
+  trustedOrigins: ['http://localhost:3000', 'https://dev.theop.dev', 'https://api-coloc.theop.dev', 'https://coolive.app', 'coolive://', 'mobile://', 'exp://'],
   plugins: [expo()],
   emailAndPassword: {
     enabled: true,

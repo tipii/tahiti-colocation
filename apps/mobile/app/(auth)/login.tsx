@@ -62,9 +62,9 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View className="flex-1 justify-center px-6">
-        <Text className="text-center text-3xl font-bold text-primary">Coloc Tahiti</Text>
+        <Text className="text-center text-3xl font-bold text-primary">Coolive</Text>
         <Text className="mt-1 text-center text-base text-secondary italic">
-          La coloc au paradis 🌴
+          La coloc, en mieux.
         </Text>
         <Text className="mt-6 text-center text-xl font-semibold text-foreground">Connexion</Text>
 

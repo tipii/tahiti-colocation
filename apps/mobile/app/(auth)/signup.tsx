@@ -49,9 +49,9 @@ export default function SignupScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerClassName="grow justify-center px-6 py-12" keyboardShouldPersistTaps="handled">
-        <Text className="text-center text-3xl font-bold text-primary">Coloc Tahiti</Text>
+        <Text className="text-center text-3xl font-bold text-primary">Coolive</Text>
         <Text className="mt-1 text-center text-base text-secondary italic">
-          La coloc au paradis 🌴
+          La coloc, en mieux.
         </Text>
         <Text className="mt-6 text-center text-xl font-semibold text-foreground">Creer un compte</Text>
 

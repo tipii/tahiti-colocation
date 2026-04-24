@@ -36,7 +36,7 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-background">
       <View className="px-6 pb-2" style={{ paddingTop: insets.top + 8 }}>
-        <Text className="text-3xl font-bold text-foreground">Coloc Tahiti</Text>
+        <Text className="text-3xl font-bold text-foreground">Coolive</Text>
         {session && (
           <Text className="mt-1 text-base text-muted-foreground">
             Ia ora na, {session.user.name} 🌺

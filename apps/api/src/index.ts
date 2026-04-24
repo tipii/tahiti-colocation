@@ -18,7 +18,7 @@ app.use('*', logger())
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:8081', 'https://dev.theop.dev', 'https://api-dev.theop.dev'],
+    origin: ['http://localhost:3000', 'http://localhost:8081', 'https://dev.theop.dev', 'https://coolive.app'],
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,

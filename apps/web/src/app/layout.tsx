@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Coloc - Trouvez votre colocation',
-  description: 'La plateforme qui connecte les chercheurs de colocation avec les offres disponibles.',
+  title: 'Coolive — La coloc en Polynésie',
+  description: 'Ta coloc, sans prise de tête. Trouve ou propose une chambre partagée en Polynésie française.',
 }
 
 export default function RootLayout({

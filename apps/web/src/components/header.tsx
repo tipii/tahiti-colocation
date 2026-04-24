@@ -20,7 +20,7 @@ export function Header() {
     <header className="flex items-center justify-between border-b border-border/50 bg-card px-6 py-4">
       <div className="flex items-center gap-6">
         <Link href="/" className="text-xl font-bold text-primary">
-          Coloc Tahiti
+          Coolive
         </Link>
         {!isPending && session && (
           <nav className="flex items-center gap-4">

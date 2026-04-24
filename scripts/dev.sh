@@ -37,12 +37,16 @@ elif ! pgrep -f "cloudflared tunnel run" &>/dev/null; then
   TUNNEL_PID=$!
   sleep 2
   if kill -0 "$TUNNEL_PID" 2>/dev/null; then
-    echo "🌐 Tunnel started (dev.theop.dev)"
+    echo "🌐 Tunnel started:"
+    echo "   • web → https://dev.theop.dev"
+    echo "   • api → https://api-coloc.theop.dev"
   else
     echo "⚠️  Cloudflare tunnel failed to start — run 'cloudflared tunnel login' then 'cloudflared tunnel list' to check config"
   fi
 else
-  echo "🌐 Cloudflare tunnel already running"
+  echo "🌐 Cloudflare tunnel already running:"
+  echo "   • web → https://dev.theop.dev"
+  echo "   • api → https://api-coloc.theop.dev"
 fi
 
 echo "✅ Infrastructure ready"

@@ -113,7 +113,6 @@ function RootLayoutNav() {
         <Stack.Screen name="profile/favorites" options={{ headerShown: true, title: 'Favoris', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/edit" options={{ headerShown: true, title: 'Modifier le profil', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="profile/settings" options={{ headerShown: true, title: 'Parametres', headerTintColor: '#FF6B35' }} />
-        <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: 'Conversation', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="candidature/[id]" options={{ headerShown: true, title: 'Candidature', headerTintColor: '#FF6B35' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

@@ -1,16 +1,18 @@
 {
   "expo": {
-    "name": "Coloc",
-    "slug": "mobile",
-    "version": "1.0.0",
+    "name": "Coolive",
+    "slug": "coolive",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "coolive",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.coolive.mobile"
     },
     "android": {
+      "package": "app.coolive.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#FFF8F0",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

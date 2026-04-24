@@ -6,7 +6,7 @@ export const authClient = createAuthClient({
   baseURL: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001',
   plugins: [
     expoClient({
-      scheme: 'mobile',
+      scheme: 'coolive',
       storagePrefix: 'coloc',
       storage: SecureStore,
     }),
