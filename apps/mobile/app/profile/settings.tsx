@@ -1,31 +1,109 @@
-import { Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { Feather } from '@expo/vector-icons'
-import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'expo-router'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { File, Paths } from 'expo-file-system'
+import * as Sharing from 'expo-sharing'
 
-import { orpc } from '@/lib/orpc'
+import { authClient } from '@/lib/auth'
+import { orpc, client } from '@/lib/orpc'
 
 export default function SettingsScreen() {
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const { data: profile } = useQuery(orpc.user.me.queryOptions())
   const avatarUrl = (profile as any)?.avatar || (profile as any)?.image
 
+  const exportM = useMutation({
+    mutationFn: () => client.user.exportData(),
+    onSuccess: async (data) => {
+      try {
+        const filename = `coolive-export-${new Date().toISOString().slice(0, 10)}.json`
+        const file = new File(Paths.cache, filename)
+        file.create({ overwrite: true })
+        file.write(JSON.stringify(data, null, 2))
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Mes données Coolive' })
+        } else {
+          Alert.alert('Export prêt', `Fichier sauvegardé: ${file.uri}`)
+        }
+      } catch (e: any) {
+        Alert.alert('Erreur', e.message ?? 'Impossible de sauvegarder le fichier')
+      }
+    },
+    onError: () => Alert.alert('Erreur', "Impossible d'exporter les données"),
+  })
+
+  const deleteM = useMutation({
+    mutationFn: () => client.user.deleteAccount(),
+    onSuccess: async () => {
+      queryClient.clear()
+      await authClient.signOut()
+      router.replace('/(auth)/login')
+    },
+    onError: () => Alert.alert('Erreur', 'Impossible de supprimer le compte'),
+  })
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Supprimer mon compte',
+      'Cette action est irréversible. Toutes tes annonces, candidatures, favoris et photos seront supprimés. Continuer ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: () => deleteM.mutate() },
+      ],
+    )
+  }
+
   return (
-    <View className="flex-1 items-center justify-center bg-background px-8">
-      {avatarUrl ? (
-        <Image source={{ uri: avatarUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} contentFit="cover" transition={200} />
-      ) : (
-        <View className="h-20 w-20 items-center justify-center rounded-full bg-accent">
-          {profile?.name ? (
-            <Text className="text-3xl font-bold text-primary">{profile.name.charAt(0).toUpperCase()}</Text>
-          ) : (
-            <Feather name="settings" size={36} color="#FF6B35" />
-          )}
-        </View>
-      )}
-      <Text className="mt-6 text-xl font-semibold text-foreground">Paramètres</Text>
-      <Text className="mt-2 text-center text-base text-muted-foreground">
-        Les paramètres seront bientôt disponibles. Notifications, langue et gestion du compte.
-      </Text>
-    </View>
+    <ScrollView className="flex-1 bg-background" contentContainerStyle={{ padding: 24, paddingBottom: 60 }}>
+      <View className="items-center">
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} contentFit="cover" transition={200} />
+        ) : (
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-accent">
+            {profile?.name ? (
+              <Text className="text-3xl font-bold text-primary">{profile.name.charAt(0).toUpperCase()}</Text>
+            ) : (
+              <Feather name="settings" size={36} color="#FF6B35" />
+            )}
+          </View>
+        )}
+        {profile?.name && <Text className="mt-3 text-lg font-semibold text-foreground">{profile.name}</Text>}
+        {profile?.email && <Text className="text-sm text-muted-foreground">{profile.email}</Text>}
+      </View>
+
+      <View className="mt-8 gap-3">
+        <Text className="text-xs font-semibold uppercase text-muted-foreground">Mes données</Text>
+        <Pressable
+          className={`flex-row items-center justify-between rounded-card bg-card px-4 py-3.5 ${exportM.isPending ? 'opacity-50' : ''}`}
+          onPress={() => exportM.mutate()}
+          disabled={exportM.isPending}
+        >
+          <View className="flex-row items-center gap-3">
+            <Feather name="download" size={20} color="#0D9488" />
+            <Text className="text-base text-foreground">Télécharger mes données</Text>
+          </View>
+          {exportM.isPending ? <ActivityIndicator color="#0D9488" /> : <Feather name="chevron-right" size={18} color="#8B7E74" />}
+        </Pressable>
+      </View>
+
+      <View className="mt-8 gap-3">
+        <Text className="text-xs font-semibold uppercase text-destructive">Zone dangereuse</Text>
+        <Pressable
+          className={`flex-row items-center justify-between rounded-card border border-destructive/30 bg-destructive/10 px-4 py-3.5 ${deleteM.isPending ? 'opacity-50' : ''}`}
+          onPress={confirmDelete}
+          disabled={deleteM.isPending}
+        >
+          <View className="flex-row items-center gap-3">
+            <Feather name="trash-2" size={20} color="#EF4444" />
+            <Text className="text-base font-medium text-destructive">Supprimer mon compte</Text>
+          </View>
+          {deleteM.isPending ? <ActivityIndicator color="#EF4444" /> : <Feather name="chevron-right" size={18} color="#EF4444" />}
+        </Pressable>
+        <Text className="text-xs text-muted-foreground">Action définitive. Toutes tes données seront effacées.</Text>
+      </View>
+    </ScrollView>
   )
 }

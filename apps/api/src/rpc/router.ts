@@ -44,5 +44,7 @@ export const router = pub.router({
     removeAvatar: userProc.removeAvatar,
     setMode: userProc.setMode,
     registerPushToken: userProc.registerPushToken,
+    exportData: userProc.exportData,
+    deleteAccount: userProc.deleteAccount,
   },
 })

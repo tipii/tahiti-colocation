@@ -1,8 +1,12 @@
 import { eq } from 'drizzle-orm'
 
 import { db } from '../db'
-import { user } from '../db/schema'
+import { candidatures, favorites, images, listings, user } from '../db/schema'
+import { logger } from '../lib/logger'
+import { deleteObject } from '../lib/r2'
 import { authed } from './base'
+
+const log = logger.child({ module: 'user' })
 
 function pickProfile(u: typeof user.$inferSelect) {
   return {
@@ -68,5 +72,41 @@ export const setMode = authed.user.setMode.handler(async ({ input, context }) =>
 
 export const registerPushToken = authed.user.registerPushToken.handler(async ({ input, context }) => {
   await db.update(user).set({ pushToken: input.token }).where(eq(user.id, context.user.id))
+  return { success: true }
+})
+
+export const exportData = authed.user.exportData.handler(async ({ context }) => {
+  const userId = context.user.id
+  const [u] = await db.select().from(user).where(eq(user.id, userId)).limit(1)
+  const [myListings, myCandidatures, myFavorites, myImages] = await Promise.all([
+    db.select().from(listings).where(eq(listings.authorId, userId)),
+    db.select().from(candidatures).where(eq(candidatures.userId, userId)),
+    db.select().from(favorites).where(eq(favorites.userId, userId)),
+    db.select().from(images).where(eq(images.uploadedBy, userId)),
+  ])
+  return {
+    user: u ?? null,
+    listings: myListings,
+    candidatures: myCandidatures,
+    favorites: myFavorites,
+    images: myImages,
+    exportedAt: new Date(),
+  }
+})
+
+export const deleteAccount = authed.user.deleteAccount.handler(async ({ context }) => {
+  const userId = context.user.id
+
+  // 1. Find all R2 objects owned by this user (avatar + listing photos uploaded by them)
+  const myImages = await db.select().from(images).where(eq(images.uploadedBy, userId))
+  const keys = [...new Set(myImages.flatMap((img) => [img.originalKey, img.mediumKey, img.thumbnailKey].filter(Boolean) as string[]))]
+
+  // 2. Delete R2 objects (best-effort; don't block deletion if some fail)
+  await Promise.all(keys.map((k) => deleteObject(k).catch((e) => log.warn({ err: e, key: k }, 'r2 delete failed during account deletion'))))
+
+  // 3. Delete the user row — DB CASCADE wipes sessions, accounts, listings, candidatures, favorites, images
+  await db.delete(user).where(eq(user.id, userId))
+
+  log.info({ userId, r2KeysDeleted: keys.length }, 'account deleted')
   return { success: true }
 })

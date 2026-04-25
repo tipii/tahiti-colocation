@@ -53,4 +53,13 @@ export const userContract = {
   registerPushToken: oc
     .input(z.object({ token: z.string() }))
     .output(z.object({ success: z.boolean() })),
+  exportData: oc.output(z.object({
+    user: z.unknown(),
+    listings: z.array(z.unknown()),
+    candidatures: z.array(z.unknown()),
+    favorites: z.array(z.unknown()),
+    images: z.array(z.unknown()),
+    exportedAt: z.coerce.date(),
+  })),
+  deleteAccount: oc.output(z.object({ success: z.boolean() })),
 }
