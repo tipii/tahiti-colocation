@@ -14,7 +14,7 @@ Core product is feature-complete for v1:
 
 - ✅ Auth (email + Facebook), profile, favorites, listings CRUD with images
 - ✅ Candidature flow: apply → accept → finalize with server-side contact gating
-- ✅ Notifications scaffold (Resend + Expo Push stubs in place)
+- ✅ Notifications scaffold (Brevo + Expo Push, falls back to log when env keys missing)
 - ✅ Both app typecheck clean
 
 Missing pieces before store submission split into three priorities below.
@@ -60,8 +60,8 @@ Missing pieces before store submission split into three priorities below.
 
 ### Notifications (wire placeholders)
 
-- [ ] Resend account + domain `mail.coolive.app` verified (SPF, DKIM, DMARC records)
-- [ ] Un-stub `apps/api/src/lib/notifications.ts` — swap `console.log` for Resend SDK call
+- [x] Email provider wired (Brevo, REST direct, configurable via `BREVO_API_KEY` + `EMAIL_FROM_ADDRESS`)
+- [ ] Brevo: domain authenticated (SPF/DKIM/DMARC) + sender `hello@coolive.app` verified
 - [ ] Email templates (FR): submitted / accepted / finalized / rejected / withdrawn
 - [ ] Expo Push credentials (iOS APNs + FCM server key) configured in EAS
 - [ ] Mobile: capture push token on first launch → `user.registerPushToken`
@@ -104,7 +104,7 @@ Missing pieces before store submission split into three priorities below.
 Week 1  Legal docs + rename + EAS config + iOS/Android platform IDs
         Start Apple/Google account enrollments in parallel
 Week 2  Delete account + export + password reset + email verification gate
-        Resend wired, templates in FR
+        Brevo verified + sender authenticated; templates in FR
 Week 3  Sentry + analytics + managed DB migration
         First EAS production build → TestFlight + Play internal testing
 Week 4  Screenshots, store copy, submit for review

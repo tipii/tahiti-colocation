@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -29,7 +30,9 @@ export default function SignupScreen() {
       setError(result.error.message ?? 'Une erreur est survenue')
       setLoading(false)
     } else {
-      router.replace('/(tabs)')
+      Alert.alert('Email de confirmation envoyé', `Vérifie ${email} pour confirmer ton compte. Tu peux continuer en attendant.`, [
+        { text: 'OK', onPress: () => router.replace('/(tabs)') },
+      ])
     }
   }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   Text,
@@ -14,6 +15,8 @@ import * as Haptics from 'expo-haptics'
 import * as WebBrowser from 'expo-web-browser'
 
 import { authClient } from '@/lib/auth'
+
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://dev.theop.dev'
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -101,6 +104,14 @@ export default function LoginScreen() {
           </View>
 
           {error && <Text className="mt-1 text-sm text-destructive">{error}</Text>}
+
+          <Pressable
+            className="mt-2 self-end"
+            onPress={() => Linking.openURL(`${WEB_URL}/forgot-password`)}
+            hitSlop={8}
+          >
+            <Text className="text-sm text-primary">Mot de passe oublié ?</Text>
+          </Pressable>
 
           <Pressable
             className="mt-4 items-center rounded-button bg-primary py-3.5"

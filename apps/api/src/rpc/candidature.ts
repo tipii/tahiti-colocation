@@ -90,6 +90,7 @@ export const apply = authed.candidature.apply.handler(async ({ input, context })
   if (listing.status !== 'published') throw new Error('Listing is not available')
 
   const [candidate] = await db.select().from(user).where(eq(user.id, context.user.id)).limit(1)
+  if (!candidate?.emailVerified) throw new Error('Email non confirmé. Vérifie ta boîte mail avant de postuler.')
   if (!candidate?.phone) throw new Error('Phone number required before applying')
 
   const [existing] = await db

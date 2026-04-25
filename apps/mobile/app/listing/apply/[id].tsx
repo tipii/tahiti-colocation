@@ -5,10 +5,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 
+import { authClient } from '@/lib/auth'
 import { client, orpc } from '@/lib/orpc'
 
 function profileComplete(p: any | undefined) {
-  if (!p) return { ok: false, missing: ['profil'] }
+  if (!p) return { ok: false, missing: ['profil'], emailVerified: false }
   const missing: string[] = []
   if (!(p.avatar || p.image)) missing.push('photo')
   if (!p.name) missing.push('nom')
@@ -17,7 +18,7 @@ function profileComplete(p: any | undefined) {
   if (!p.smoker) missing.push('tabac')
   if (!p.pets) missing.push('animaux')
   if (!p.phone) missing.push('téléphone')
-  return { ok: missing.length === 0, missing }
+  return { ok: missing.length === 0 && p.emailVerified, missing, emailVerified: !!p.emailVerified }
 }
 
 export default function ApplyScreen() {
@@ -29,7 +30,13 @@ export default function ApplyScreen() {
   const [moveInDate, setMoveInDate] = useState('')
 
   const { data: profile } = useQuery(orpc.user.me.queryOptions())
-  const { ok: canApply, missing } = profileComplete(profile)
+  const { ok: canApply, missing, emailVerified } = profileComplete(profile)
+
+  const resendM = useMutation({
+    mutationFn: () => authClient.sendVerificationEmail({ email: profile!.email }),
+    onSuccess: () => Alert.alert('Email envoyé', 'Vérifie ta boîte mail (et le dossier spam).'),
+    onError: () => Alert.alert('Erreur', "Impossible de renvoyer l'email"),
+  })
 
   const applyMutation = useMutation({
     mutationFn: () => client.candidature.apply({
@@ -59,7 +66,17 @@ export default function ApplyScreen() {
           <Text className="mt-1 text-center text-sm text-muted-foreground">L'annonceur verra votre profil complet.</Text>
         </View>
 
-        {!canApply && (
+        {!emailVerified && profile && (
+          <View className="mt-6 rounded-card bg-accent/40 p-4">
+            <Text className="text-sm font-semibold text-foreground">Confirme ton email</Text>
+            <Text className="mt-1 text-sm text-muted-foreground">Tu dois confirmer {profile.email} avant de postuler. Vérifie ta boîte mail (et le spam).</Text>
+            <Pressable className="mt-3 items-center rounded-button bg-primary py-2.5" onPress={() => resendM.mutate()} disabled={resendM.isPending}>
+              <Text className="text-sm font-semibold text-primary-foreground">{resendM.isPending ? 'Envoi…' : "Renvoyer l'email"}</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {!canApply && missing.length > 0 && (
           <View className="mt-6 rounded-card bg-destructive/10 p-4">
             <Text className="text-sm font-semibold text-destructive">Complétez votre profil</Text>
             <Text className="mt-1 text-sm text-destructive">Manquant: {missing.join(', ')}</Text>

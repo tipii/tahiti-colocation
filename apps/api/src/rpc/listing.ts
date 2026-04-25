@@ -143,6 +143,9 @@ export const mine = authed.listing.mine.handler(async ({ context }) => {
 })
 
 export const create = authed.listing.create.handler(async ({ input, context }) => {
+  const [author] = await db.select().from(user).where(eq(user.id, context.user.id)).limit(1)
+  if (!author?.emailVerified) throw new Error('Email non confirmé. Vérifie ta boîte mail avant de publier.')
+
   const slug = await uniqueSlug(input.title)
   const [created] = await db
     .insert(listings)
@@ -179,6 +182,9 @@ export const remove = authed.listing.delete.handler(async ({ input, context }) =
 })
 
 export const publish = authed.listing.publish.handler(async ({ input, context }) => {
+  const [author] = await db.select().from(user).where(eq(user.id, context.user.id)).limit(1)
+  if (!author?.emailVerified) throw new Error('Email non confirmé. Vérifie ta boîte mail avant de publier.')
+
   const [existing] = await db.select().from(listings).where(eq(listings.id, input.id)).limit(1)
   if (!existing) throw new Error('Not found')
   if (existing.authorId !== context.user.id) throw new Error('Forbidden')

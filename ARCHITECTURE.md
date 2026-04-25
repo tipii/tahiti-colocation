@@ -80,7 +80,7 @@ Statuses: `pending → accepted → finalized` (with `rejected` / `withdrawn` si
 
 ## Notifications
 
-`apps/api/src/lib/notifications.ts` — event dispatch with Resend (email) + Expo Push (mobile) placeholders. Events:
+`apps/api/src/lib/notifications.ts` — event dispatch with Brevo (email) + Expo Push (mobile). Events:
 
 - `candidature.submitted` → email provider
 - `candidature.accepted` → email + push candidate
@@ -88,7 +88,7 @@ Statuses: `pending → accepted → finalized` (with `rejected` / `withdrawn` si
 - `candidature.rejected` → email + push candidate with optional message
 - `candidature.withdrawn` → email provider
 
-Live providers wired when `RESEND_API_KEY` / `EXPO_PUSH_ACCESS_TOKEN` env vars present; otherwise logs to stdout.
+Live providers wired when `BREVO_API_KEY` / `EXPO_PUSH_ACCESS_TOKEN` env vars present; otherwise logs to stdout.
 
 ## Database
 

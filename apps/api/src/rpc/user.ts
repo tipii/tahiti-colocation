@@ -13,6 +13,7 @@ function pickProfile(u: typeof user.$inferSelect) {
     id: u.id,
     name: u.name,
     email: u.email,
+    emailVerified: u.emailVerified,
     image: u.image ?? null,
     avatar: u.avatar ?? null,
     bio: u.bio ?? null,

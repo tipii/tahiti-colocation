@@ -15,6 +15,12 @@ export default function SettingsScreen() {
   const { data: profile } = useQuery(orpc.user.me.queryOptions())
   const avatarUrl = (profile as any)?.avatar || (profile as any)?.image
 
+  const resendM = useMutation({
+    mutationFn: () => authClient.sendVerificationEmail({ email: profile!.email }),
+    onSuccess: () => Alert.alert('Email envoyé', 'Vérifie ta boîte mail (et le dossier spam).'),
+    onError: () => Alert.alert('Erreur', "Impossible de renvoyer l'email"),
+  })
+
   const exportM = useMutation({
     mutationFn: () => client.user.exportData(),
     onSuccess: async (data) => {
@@ -73,6 +79,16 @@ export default function SettingsScreen() {
         {profile?.name && <Text className="mt-3 text-lg font-semibold text-foreground">{profile.name}</Text>}
         {profile?.email && <Text className="text-sm text-muted-foreground">{profile.email}</Text>}
       </View>
+
+      {profile && !profile.emailVerified && (
+        <View className="mt-6 rounded-card bg-accent/40 p-4">
+          <Text className="text-sm font-semibold text-foreground">Email non confirmé</Text>
+          <Text className="mt-1 text-sm text-muted-foreground">Confirme {profile.email} pour pouvoir postuler ou publier des annonces.</Text>
+          <Pressable className="mt-3 items-center rounded-button bg-primary py-2.5" onPress={() => resendM.mutate()} disabled={resendM.isPending}>
+            <Text className="text-sm font-semibold text-primary-foreground">{resendM.isPending ? 'Envoi…' : "Renvoyer l'email de confirmation"}</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View className="mt-8 gap-3">
         <Text className="text-xs font-semibold uppercase text-muted-foreground">Mes données</Text>

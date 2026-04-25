@@ -15,11 +15,12 @@ import {
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ISLANDS, DURATION_TYPES, DURATION_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, Island, RoomType } from '@coloc/shared/constants'
 
 import * as Haptics from 'expo-haptics'
+import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
 import { uploadImage } from '@/lib/upload'
 import { DateField } from '@/components/DateField'
@@ -34,6 +35,15 @@ export default function CreateListingScreen() {
   const queryClient = useQueryClient()
   const insets = useSafeAreaInsets()
   const [photos, setPhotos] = useState<{ id: string; uri: string }[]>([])
+
+  const { data: profile } = useQuery(orpc.user.me.queryOptions())
+  const emailVerified = !!profile?.emailVerified
+
+  const resendM = useMutation({
+    mutationFn: () => authClient.sendVerificationEmail({ email: profile!.email }),
+    onSuccess: () => Alert.alert('Email envoyé', 'Vérifie ta boîte mail (et le dossier spam).'),
+    onError: () => Alert.alert('Erreur', "Impossible de renvoyer l'email"),
+  })
 
   const form = useForm({
     defaultValues: {
@@ -122,6 +132,16 @@ export default function CreateListingScreen() {
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
         <View className="px-6" style={{ paddingTop: insets.top + 8 }}>
           <Text className="text-3xl font-bold text-foreground">Nouvelle annonce</Text>
+
+          {!emailVerified && profile && (
+            <View className="mt-4 rounded-card bg-accent/40 p-4">
+              <Text className="text-sm font-semibold text-foreground">Confirme ton email</Text>
+              <Text className="mt-1 text-sm text-muted-foreground">Tu dois confirmer {profile.email} avant de publier une annonce.</Text>
+              <Pressable className="mt-3 items-center rounded-button bg-primary py-2.5" onPress={() => resendM.mutate()} disabled={resendM.isPending}>
+                <Text className="text-sm font-semibold text-primary-foreground">{resendM.isPending ? 'Envoi…' : "Renvoyer l'email"}</Text>
+              </Pressable>
+            </View>
+          )}
 
           {/* Photos */}
           <SectionTitle>Photos</SectionTitle>

@@ -88,13 +88,15 @@ Env vars (prod, separate values from dev):
 
 ---
 
-## Email — Resend
+## Email — Brevo
 
-1. Create Resend account
-2. Add domain `mail.coolive.app` → add DNS records (SPF, DKIM, return-path)
-3. Wait for verification
-4. Default `from`: `Coolive <hello@mail.coolive.app>`
-5. Env: `RESEND_API_KEY=re_...`
+1. Create Brevo account (already done) → SMTP & API → API Keys → create new key
+2. Senders & IP → Domains → add `coolive.app` (or `mail.coolive.app` subdomain) → add DKIM/SPF/DMARC records to DNS
+3. Wait for verification (~5–15 min)
+4. Default `from`: `Coolive <hello@coolive.app>` (configurable via `EMAIL_FROM_ADDRESS` + `EMAIL_FROM_NAME`)
+5. Env: `BREVO_API_KEY=xkeysib-...`
+
+We hit Brevo's REST API directly (no SDK). See `apps/api/src/lib/notifications.ts:sendEmail`.
 
 Templates to build (all FR first):
 - `candidature.submitted` (to provider)
@@ -228,7 +230,9 @@ Between native releases, JS-only patches go out via EAS Updates (no store re-rev
 | `FACEBOOK_REDIRECT_URI` | `https://dev.theop.dev/api/auth/callback/facebook` | staging URI | `https://api.coolive.app/api/auth/callback/facebook` |
 | `R2_BUCKET_NAME` | `coloc` | `coloc-staging` | `coloc-prod` |
 | `R2_PUBLIC_URL` | `https://img.theop.dev` | staging CDN | `https://img.coolive.app` |
-| `RESEND_API_KEY` | dev key (sandbox) | dev key | prod key |
+| `BREVO_API_KEY` | dev key | dev key | prod key |
+| `EMAIL_FROM_ADDRESS` | `hello@coolive.app` | same | same |
+| `EMAIL_FROM_NAME` | `Coolive` | same | same |
 | `EXPO_PUBLIC_API_URL` (mobile) | tunnel or LAN IP | `https://api-staging.coolive.app` | `https://api.coolive.app` |
 
 Keep a `.env.example` updated with the full list; real values in Coolify's secrets (never in git).
@@ -245,7 +249,7 @@ Create accounts / generate and store in Coolify:
 - [ ] `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (optional, later)
 - [ ] `APPLE_CLIENT_ID` + `APPLE_CLIENT_SECRET` (optional, later — mandatory on iOS if you use Google/FB login)
 - [ ] `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
-- [ ] `RESEND_API_KEY`
+- [ ] `BREVO_API_KEY`
 - [ ] `EXPO_PUSH_ACCESS_TOKEN`
 - [ ] `SENTRY_DSN` (per surface)
 

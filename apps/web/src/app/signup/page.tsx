@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isPending && session) {
@@ -31,8 +32,8 @@ export default function SignupPage() {
       setError(result.error.message ?? 'Une erreur est survenue')
       setLoading(false)
     } else {
-      router.push('/')
-      router.refresh()
+      setSubmittedEmail(email)
+      setLoading(false)
     }
   }
 
@@ -42,13 +43,27 @@ export default function SignupPage() {
 
   if (isPending || session) return null
 
+  if (submittedEmail) {
+    return (
+      <main className="flex min-h-[calc(100vh-65px)] items-center justify-center px-4">
+        <div className="w-full max-w-md space-y-4 rounded-lg border bg-card p-6 text-center">
+          <h1 className="text-2xl font-bold">Vérifie ton email</h1>
+          <p className="text-sm text-muted-foreground">
+            On a envoyé un lien de confirmation à <span className="font-medium text-foreground">{submittedEmail}</span>. Clique dessus pour activer ton compte.
+          </p>
+          <p className="text-xs text-muted-foreground">Pense à vérifier ton dossier spam.</p>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="flex min-h-[calc(100vh-65px)] items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Creer un compte</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Rejoignez Coloc et trouvez votre colocation
+            Rejoignez Coolive et trouvez votre colocation
           </p>
         </div>
 

@@ -8,6 +8,7 @@ const profileSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string(),
+  emailVerified: z.boolean(),
   image: z.string().nullable(),
   avatar: z.string().nullable(),
   bio: z.string().nullable(),
