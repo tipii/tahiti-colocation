@@ -150,6 +150,31 @@ Separate projects per surface in Sentry. Source maps uploaded via EAS + Next plu
 
 ---
 
+## Mobile builds — EAS
+
+We use **Expo Application Services (EAS)** for native mobile builds. Rationale: our primary dev box is Linux aarch64 where Google doesn't officially ship Android SDK build-tools, and we don't own a Mac for iOS. EAS's free tier covers solo-dev cadence.
+
+Config: `apps/mobile/eas.json` with three profiles:
+
+| Profile | Purpose | Output |
+|---|---|---|
+| `development` | Dev client for local Metro + hot reload | APK (Android), device build (iOS) |
+| `preview` | TestFlight / Play internal testing | APK / IPA |
+| `production` | Store submission | AAB (Android), IPA (iOS), auto-increment build number |
+
+Commands (from `apps/mobile/`):
+
+```bash
+pnpm exec eas login                                   # one-time
+pnpm exec eas build --profile development --platform android
+pnpm exec eas build --profile production --platform all    # when ready to submit
+pnpm exec eas submit --profile production --platform all   # uploads to stores
+```
+
+EAS Dashboard → Project → Environment Variables holds build-time env vars (e.g. `EXPO_PUBLIC_API_URL` for prod, Sentry DSN). Separate per `development` / `preview` / `production` target.
+
+Between native releases, JS-only patches go out via **EAS Updates** — no store re-review.
+
 ## CI/CD — GitHub Actions
 
 Two workflows:
@@ -168,10 +193,7 @@ Runs on push to `main` or tag `v*`:
 - Coolify auto-deploys from `main` (separate path)
 
 ### Mobile builds
-EAS Build runs outside GitHub Actions (its own CI). Trigger with:
-```bash
-eas build --profile production --platform all
-```
+EAS handles mobile builds (see section above). GitHub Actions isn't involved.
 
 ---
 

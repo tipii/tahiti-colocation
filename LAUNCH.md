@@ -36,8 +36,9 @@ Missing pieces before store submission split into three priorities below.
 - [ ] **Apple Developer Program** enrollment ($99/yr) — start now, can take 1–2 weeks validation.
 - [ ] **Google Play Console** account ($25 one-time).
 - [ ] **iOS `bundleIdentifier`** + **Android `package`** set in `app.json` → `app.coolive` (proposed).
-- [ ] **`eas.json`** with `preview` + `production` build profiles.
-- [ ] **`expo-dev-client`** installed (needed for OAuth + push testing off Expo Go).
+- [x] **`eas.json`** with `development` + `preview` + `production` build profiles.
+- [x] **`expo-dev-client`** installed (needed for OAuth + push testing off Expo Go).
+- [ ] First `eas build --profile development --platform android` run, APK installed on dev phone.
 - [ ] App renamed end-to-end — see [`RENAME.md`](./RENAME.md).
 
 ### Auth completeness
@@ -114,7 +115,7 @@ Week 4  Screenshots, store copy, submit for review
 
 ## Immediate next steps (this week)
 
-1. Run `pnpm --filter @coloc/mobile add expo-dev-client` + scaffold `eas.json`.
+1. ~~Run `pnpm --filter @coloc/mobile add expo-dev-client` + scaffold `eas.json`.~~ Done.
 2. Rename app per [`RENAME.md`](./RENAME.md).
 3. Start Apple Developer + Google Play enrollments (multi-day waits — start NOW).
 4. Draft privacy policy + ToS (French-primary). Host at `coolive.app/privacy` + `/terms`.

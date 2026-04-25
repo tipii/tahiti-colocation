@@ -91,6 +91,16 @@ implements contract  imports Contract type → full type safety
 - Mobile dev caveat: Expo Go can't fetch IPv6 hosts (Cloudflare). Use LAN IP as fallback.
 - Facebook OAuth in mobile: requires a dev build (EAS); Expo Go can't handle the scheme redirect reliably.
 
+## Mobile builds (EAS)
+
+Native builds use Expo Application Services (EAS); local Android/iOS builds aren't viable on this Linux aarch64 box. See `INFRASTRUCTURE.md` for profiles. Common commands from `apps/mobile/`:
+
+```bash
+pnpm exec eas build --profile development --platform android   # dev client APK
+pnpm exec eas build --profile production --platform all        # store-ready
+pnpm exec eas submit --profile production --platform all       # upload to stores
+```
+
 ## Plans
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.
 - At the end of each plan, give me a list of unresolved questions to answer, if any.

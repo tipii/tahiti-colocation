@@ -1,8 +1,11 @@
 import * as ImagePicker from 'expo-image-picker'
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 
 import { authClient } from './auth'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001'
+const MAX_DIMENSION = 2000
+const COMPRESSION = 0.8
 
 interface UploadResult {
   id: string
@@ -54,19 +57,38 @@ export async function pickImages(limit = 10): Promise<ImagePicker.ImagePickerAss
   return result.assets
 }
 
+async function downscale(asset: ImagePicker.ImagePickerAsset): Promise<{ uri: string; type: string }> {
+  const fallback = { uri: asset.uri, type: asset.mimeType ?? getMimeType(asset.uri) }
+  const { width, height } = asset
+  if (!width || !height || (width <= MAX_DIMENSION && height <= MAX_DIMENSION)) {
+    return fallback
+  }
+  try {
+    const ctx = ImageManipulator.manipulate(asset.uri)
+    if (width >= height) ctx.resize({ width: MAX_DIMENSION })
+    else ctx.resize({ height: MAX_DIMENSION })
+    const ref = await ctx.renderAsync()
+    const out = await ref.saveAsync({ format: SaveFormat.JPEG, compress: COMPRESSION })
+    return { uri: out.uri, type: 'image/jpeg' }
+  } catch (e) {
+    console.warn('downscale skipped (native module unavailable):', e)
+    return fallback
+  }
+}
+
 export async function uploadImage(
   entityType: 'listing' | 'avatar',
   entityId: string,
   asset: ImagePicker.ImagePickerAsset,
 ): Promise<UploadResult> {
-  const fileName = asset.uri.split('/').pop() ?? 'photo.jpg'
-  const contentType = asset.mimeType ?? getMimeType(asset.uri)
+  const { uri, type: contentType } = await downscale(asset)
+  const fileName = uri.split('/').pop() ?? 'photo.jpg'
   const cookies = authClient.getCookie()
 
   // Upload through API (avoids direct R2 fetch which has IPv6 issues in Expo Go)
   const formData = new FormData()
   formData.append('file', {
-    uri: asset.uri,
+    uri,
     name: fileName,
     type: contentType,
   } as any)

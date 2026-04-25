@@ -28,9 +28,11 @@
     "better-auth": "^1.6.8",
     "expo": "~55.0.15",
     "expo-constants": "~55.0.14",
+    "expo-dev-client": "~55.0.28",
     "expo-font": "~55.0.6",
     "expo-haptics": "~55.0.14",
     "expo-image": "~55.0.8",
+    "expo-image-manipulator": "~55.0.15",
     "expo-image-picker": "~55.0.18",
     "expo-linking": "~55.0.13",
     "expo-network": "^55.0.13",
@@ -56,6 +58,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eas-cli": "^18.8.1",
     "typescript": "~5.9.2"
   },
   "private": true

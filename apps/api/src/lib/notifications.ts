@@ -1,6 +1,10 @@
 // Notification service — placeholders until Resend + Expo credentials are wired.
 // Event dispatches are logged; hook real providers in sendEmail / sendPush.
 
+import { logger } from './logger'
+
+const log = logger.child({ module: 'notifications' })
+
 type Event =
   | { type: 'candidature.submitted'; providerId: string; candidateName: string; listingTitle: string }
   | { type: 'candidature.accepted'; candidateId: string; listingTitle: string }
@@ -14,7 +18,7 @@ type PushPayload = { token: string; title: string; body: string; data?: Record<s
 async function sendEmail(payload: EmailPayload) {
   // TODO: wire Resend when RESEND_API_KEY is available
   if (!process.env.RESEND_API_KEY) {
-    console.log('[email:stub]', payload.to, payload.subject)
+    log.info({ to: payload.to, subject: payload.subject }, 'email:stub')
     return
   }
   // const { Resend } = await import('resend')
@@ -25,7 +29,7 @@ async function sendEmail(payload: EmailPayload) {
 async function sendPush(payload: PushPayload) {
   // TODO: wire Expo Push API when EXPO_PUSH_ACCESS_TOKEN is available
   if (!process.env.EXPO_PUSH_ACCESS_TOKEN) {
-    console.log('[push:stub]', payload.token.slice(0, 12), payload.title)
+    log.info({ token: payload.token.slice(0, 12), title: payload.title }, 'push:stub')
     return
   }
   // await fetch('https://exp.host/--/api/v2/push/send', {

@@ -2,8 +2,11 @@ import { eq, and, sql, desc, ne } from 'drizzle-orm'
 
 import { db } from '../db'
 import { candidatures, listings, user } from '../db/schema'
+import { logger } from '../lib/logger'
 import { dispatch } from '../lib/notifications'
 import { authed } from './base'
+
+const log = logger.child({ module: 'candidature' })
 
 function computeAge(dob: string | null): number | null {
   if (!dob) return null
@@ -115,7 +118,7 @@ export const apply = authed.candidature.apply.handler(async ({ input, context })
     providerId: listing.authorId,
     candidateName: candidate.name,
     listingTitle: listing.title,
-  }).catch((e) => console.error('notification dispatch failed:', e))
+  }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(created!)
 })
@@ -139,7 +142,7 @@ export const withdraw = authed.candidature.withdraw.handler(async ({ input, cont
       providerId: listing.authorId,
       candidateName: context.user.name,
       listingTitle: listing.title,
-    }).catch((e) => console.error('notification dispatch failed:', e))
+    }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
   }
 
   return enrichCandidature(updated!)
@@ -175,7 +178,7 @@ export const accept = authed.candidature.accept.handler(async ({ input, context 
     type: 'candidature.accepted',
     candidateId: c.userId,
     listingTitle: listing.title,
-  }).catch((e) => console.error('notification dispatch failed:', e))
+  }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(updated!)
 })
@@ -199,7 +202,7 @@ export const reject = authed.candidature.reject.handler(async ({ input, context 
     candidateId: c.userId,
     listingTitle: listing.title,
     rejectionMessage: input.rejectionMessage ?? null,
-  }).catch((e) => console.error('notification dispatch failed:', e))
+  }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(updated!)
 })
@@ -239,7 +242,7 @@ export const finalize = authed.candidature.finalize.handler(async ({ input, cont
       candidateId: other.userId,
       listingTitle: listing.title,
       rejectionMessage: input.rejectionMessage ?? null,
-    }).catch((e) => console.error('notification dispatch failed:', e))
+    }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
   }
 
   await db.update(listings).set({ status: 'archived' }).where(eq(listings.id, chosen.listingId))
@@ -248,7 +251,7 @@ export const finalize = authed.candidature.finalize.handler(async ({ input, cont
     type: 'candidature.finalized',
     candidateId: chosen.userId,
     listingTitle: listing.title,
-  }).catch((e) => console.error('notification dispatch failed:', e))
+  }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(updated!)
 })

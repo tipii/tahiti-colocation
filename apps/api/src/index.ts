@@ -3,18 +3,33 @@ import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
+import { pinoLogger, type PinoLogger } from 'hono-pino'
 import { RPCHandler } from '@orpc/server/fetch'
 
 import { auth } from './lib/auth'
+import { logger } from './lib/logger'
 import { router } from './rpc/router'
 import { createContext } from './rpc/context'
 import healthRouter from './routes/health'
 import imagesRouter from './routes/images'
 
-const app = new Hono()
+type Env = { Variables: { logger: PinoLogger } }
 
-app.use('*', logger())
+const app = new Hono<Env>()
+
+app.use('*', pinoLogger({ pino: logger }))
+
+// Tag the request logger with the user (best-effort, ignores errors)
+app.use('*', async (c, next) => {
+  try {
+    const session = await auth.api.getSession({ headers: c.req.raw.headers })
+    if (session?.user) {
+      c.var.logger.assign({ user: session.user.email ?? session.user.id })
+    }
+  } catch {}
+  await next()
+})
+
 app.use(
   '*',
   cors({
@@ -46,7 +61,7 @@ app.route('/api/health', healthRouter)
 app.route('/api/images', imagesRouter)
 
 const port = Number(process.env.PORT) || 3001
-console.log(`Coloc API running on http://localhost:${port}`)
+logger.info(`Coolive API running on http://localhost:${port}`)
 
 serve({
   fetch: app.fetch,
