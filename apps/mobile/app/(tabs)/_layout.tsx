@@ -3,14 +3,13 @@ import { Feather } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 
 import { authClient } from '@/lib/auth'
-import { client } from '@/lib/orpc'
+import { orpc } from '@/lib/orpc'
 
 export default function TabLayout() {
   const { data: session } = authClient.useSession()
 
   const { data: profile } = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: () => client.user.me(),
+    ...orpc.user.me.queryOptions(),
     enabled: !!session,
   })
 

@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 
-import { client } from '@/lib/orpc'
+import { orpc, client } from '@/lib/orpc'
 
 export default function CandidaturesManagementScreen() {
   const { id: listingId } = useLocalSearchParams<{ id: string }>()
@@ -14,8 +14,7 @@ export default function CandidaturesManagementScreen() {
   const queryClient = useQueryClient()
 
   const { data: candidatures = [], isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['candidatures', listingId],
-    queryFn: () => client.candidature.forListing({ listingId: listingId! }),
+    ...orpc.candidature.forListing.queryOptions({ input: { listingId: listingId! } }),
     enabled: !!listingId,
   })
 
@@ -47,8 +46,8 @@ export default function CandidaturesManagementScreen() {
   })
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['candidatures', listingId] })
-    queryClient.invalidateQueries({ queryKey: ['listings'] })
+    queryClient.invalidateQueries({ queryKey: orpc.candidature.key() })
+    queryClient.invalidateQueries({ queryKey: orpc.listing.key() })
   }
 
   const pending = candidatures.filter((c: any) => c.status === 'pending')

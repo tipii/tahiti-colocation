@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, and, asc, ne } from 'drizzle-orm'
 
 import { db } from '../db'
 import { images, listings, user } from '../db/schema'
 import { requireAuth } from '../lib/auth-middleware'
+import { logger } from '../lib/logger'
 import {
   generatePresignedUploadUrl,
   getObjectBuffer,
@@ -12,6 +13,8 @@ import {
   getPublicUrl,
 } from '../lib/r2'
 import { processImage } from '../lib/image-processing'
+
+const log = logger.child({ module: 'images' })
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/x-adobe-dng', 'image/dng']
 
@@ -165,6 +168,20 @@ imagesRouter.post('/upload', async (c) => {
     })
     .where(eq(images.id, imageId))
     .returning()
+
+  // For avatars: delete any prior avatar images for this user
+  if (entityType === 'avatar') {
+    const prior = await db
+      .select()
+      .from(images)
+      .where(and(eq(images.entityType, 'avatar'), eq(images.entityId, entityId), ne(images.id, imageId)))
+    if (prior.length > 0) {
+      const keys = prior.flatMap((img) => [img.originalKey, img.mediumKey, img.thumbnailKey].filter(Boolean) as string[])
+      await Promise.all([...new Set(keys)].map((k) => deleteObject(k).catch((e) => log.warn({ err: e, key: k }, 'r2 delete failed'))))
+      await db.delete(images).where(and(eq(images.entityType, 'avatar'), eq(images.entityId, entityId), ne(images.id, imageId)))
+      log.info({ userId: entityId, removed: prior.length }, 'replaced previous avatar(s)')
+    }
+  }
 
   return c.json({
     ...updated,

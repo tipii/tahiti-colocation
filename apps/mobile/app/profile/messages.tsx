@@ -17,14 +17,11 @@ export default function CandidaturesScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  const { data: candidatures = [], isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['my-candidatures'],
-    queryFn: () => client.candidature.mine(),
-  })
+  const { data: candidatures = [], isLoading, refetch, isRefetching } = useQuery(orpc.candidature.mine.queryOptions())
 
   const withdrawM = useMutation({
     mutationFn: (id: string) => client.candidature.withdraw({ id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-candidatures'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.candidature.key() }),
   })
 
   if (isLoading) return <View className="flex-1 items-center justify-center bg-background"><ActivityIndicator size="large" color="#FF6B35" /></View>

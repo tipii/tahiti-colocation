@@ -40,7 +40,7 @@ export default function ApplyScreen() {
     }),
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      queryClient.invalidateQueries({ queryKey: ['my-candidatures'] })
+      queryClient.invalidateQueries({ queryKey: orpc.candidature.key() })
       Alert.alert('Candidature envoyée !', "L'annonceur recevra votre demande.", [
         { text: 'OK', onPress: () => router.back() },
       ])

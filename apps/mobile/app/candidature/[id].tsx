@@ -79,7 +79,7 @@ export default function CandidatureDetailScreen() {
   const withdrawM = useMutation({
     mutationFn: () => client.candidature.withdraw({ id: id! }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['candidature'] })
+      queryClient.invalidateQueries({ queryKey: orpc.candidature.key() })
       router.back()
     },
   })

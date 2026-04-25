@@ -39,15 +39,19 @@ export default function ListingDetailScreen() {
 
   // Fetch user's candidature for this listing
   const { data: myCandidatures = [] } = useQuery({
-    queryKey: ['my-candidatures'],
-    queryFn: () => client.candidature.mine(),
+    ...orpc.candidature.mine.queryOptions(),
     enabled: !!session,
   })
   const myCandidature = myCandidatures.find((c: any) => c.listingId === id)
 
   const deleteM = useMutation({
     mutationFn: () => client.listing.delete({ id: listing!.id }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: orpc.listing.key() }); router.back() },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orpc.listing.key() })
+      queryClient.invalidateQueries({ queryKey: orpc.candidature.key() })
+      queryClient.invalidateQueries({ queryKey: orpc.favorite.key() })
+      router.back()
+    },
   })
 
 

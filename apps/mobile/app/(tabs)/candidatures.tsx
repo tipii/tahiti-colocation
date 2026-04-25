@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 
-import { client } from '@/lib/orpc'
+import { orpc, client } from '@/lib/orpc'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; textColor: string; icon: string }> = {
   pending: { label: 'En attente', color: 'bg-accent', textColor: 'text-accent-foreground', icon: 'clock' },
@@ -32,16 +32,13 @@ export default function CandidaturesScreen() {
   const queryClient = useQueryClient()
   const insets = useSafeAreaInsets()
 
-  const { data: candidatures = [], isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['my-candidatures'],
-    queryFn: () => client.candidature.mine(),
-  })
+  const { data: candidatures = [], isLoading, refetch, isRefetching } = useQuery(orpc.candidature.mine.queryOptions())
 
   const withdrawM = useMutation({
     mutationFn: (id: string) => client.candidature.withdraw({ id }),
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      queryClient.invalidateQueries({ queryKey: ['my-candidatures'] })
+      queryClient.invalidateQueries({ queryKey: orpc.candidature.key() })
     },
   })
 

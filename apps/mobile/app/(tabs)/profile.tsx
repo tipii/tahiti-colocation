@@ -33,8 +33,7 @@ export default function ProfileScreen() {
   const queryClient = useQueryClient()
 
   const { data: profile } = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: () => client.user.me(),
+    ...orpc.user.me.queryOptions(),
     enabled: !!session,
   })
 
@@ -45,7 +44,7 @@ export default function ProfileScreen() {
     mutationFn: (newMode: 'seeker' | 'provider') => client.user.setMode({ mode: newMode }),
     onSuccess: () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] })
+      queryClient.invalidateQueries({ queryKey: orpc.user.key() })
     },
   })
 
