@@ -1,7 +1,12 @@
 // Notification service — Brevo email + Expo Push.
 // Event dispatches log to stdout when credentials are missing.
 
+import { eq } from 'drizzle-orm'
+
+import { db } from '../db'
+import { user } from '../db/schema'
 import { logger } from './logger'
+import { shouldNotify, type NotificationEvent } from './notification-prefs'
 
 const log = logger.child({ module: 'notifications' })
 
@@ -50,25 +55,49 @@ async function sendEmail(payload: EmailPayload) {
   }
 }
 
+// Expo Push — relays to APNs/FCM. Free, no API key required for the basic path.
+// Optional EXPO_PUSH_ACCESS_TOKEN raises rate limits.
 async function sendPush(payload: PushPayload) {
-  // TODO: wire Expo Push API when EXPO_PUSH_ACCESS_TOKEN is available
-  if (!process.env.EXPO_PUSH_ACCESS_TOKEN) {
-    log.info({ token: payload.token.slice(0, 12), title: payload.title }, 'push:stub')
+  // Heuristic: Expo Push tokens look like ExponentPushToken[xxxxxxxx]
+  if (!payload.token.startsWith('ExponentPushToken[')) {
+    log.warn({ tokenPreview: payload.token.slice(0, 16) }, 'push: token not in Expo format, skipping')
     return
   }
-  // await fetch('https://exp.host/--/api/v2/push/send', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     Authorization: `Bearer ${process.env.EXPO_PUSH_ACCESS_TOKEN}`,
-  //   },
-  //   body: JSON.stringify({ to: payload.token, title: payload.title, body: payload.body, data: payload.data }),
-  // })
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      accept: 'application/json',
+      'accept-encoding': 'gzip, deflate',
+    }
+    if (process.env.EXPO_PUSH_ACCESS_TOKEN) {
+      headers.Authorization = `Bearer ${process.env.EXPO_PUSH_ACCESS_TOKEN}`
+    }
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        to: payload.token,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        sound: 'default',
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      log.error({ status: res.status, body, token: payload.token.slice(0, 16) }, 'expo push failed')
+      return
+    }
+    const json = (await res.json()) as { data?: { status?: string; message?: string } }
+    if (json.data?.status === 'error') {
+      log.error({ message: json.data.message, token: payload.token.slice(0, 16) }, 'expo push rejected')
+      return
+    }
+    log.info({ title: payload.title, token: payload.token.slice(0, 16) }, 'push sent')
+  } catch (err) {
+    log.error({ err, token: payload.token.slice(0, 16) }, 'expo push threw')
+  }
 }
-
-import { db } from '../db'
-import { user } from '../db/schema'
-import { eq } from 'drizzle-orm'
 
 async function recipientChannels(userId: string) {
   const [u] = await db
@@ -79,6 +108,24 @@ async function recipientChannels(userId: string) {
   return { email: u?.email ?? null, pushToken: u?.pushToken ?? null }
 }
 
+// Send to a user, gated by their notification prefs for that event.
+async function notify(args: {
+  userId: string
+  event: NotificationEvent
+  email?: { subject: string; html: string }
+  push?: { title: string; body: string; data?: Record<string, unknown> }
+}) {
+  const { email, pushToken } = await recipientChannels(args.userId)
+
+  if (args.email && email && (await shouldNotify(args.userId, args.event, 'email'))) {
+    await sendEmail({ to: email, ...args.email })
+  }
+  if (args.push && pushToken && (await shouldNotify(args.userId, args.event, 'push'))) {
+    await sendPush({ token: pushToken, ...args.push })
+  }
+}
+
+// Transactional emails — never gated by user prefs (security/account critical).
 export async function sendEmailVerificationEmail(args: { to: string; name?: string; url: string }) {
   const greeting = args.name ? `Bonjour ${args.name},` : 'Bonjour,'
   await sendEmail({
@@ -111,34 +158,47 @@ export async function sendPasswordResetEmail(args: { to: string; name?: string; 
 
 export async function dispatch(event: Event) {
   switch (event.type) {
-    case 'candidature.submitted': {
-      const { email } = await recipientChannels(event.providerId)
-      if (email) await sendEmail({ to: email, subject: 'Nouvelle candidature', html: `${event.candidateName} a postulé à « ${event.listingTitle} ».` })
+    case 'candidature.submitted':
+      await notify({
+        userId: event.providerId,
+        event: 'candidature.submitted',
+        email: { subject: 'Nouvelle candidature', html: `${event.candidateName} a postulé à « ${event.listingTitle} ».` },
+        push: { title: 'Nouvelle candidature', body: `${event.candidateName} — ${event.listingTitle}` },
+      })
       break
-    }
-    case 'candidature.accepted': {
-      const { email, pushToken } = await recipientChannels(event.candidateId)
-      if (email) await sendEmail({ to: email, subject: 'Candidature acceptée', html: `Vous êtes retenu·e pour « ${event.listingTitle} ». Contactez l'annonceur.` })
-      if (pushToken) await sendPush({ token: pushToken, title: 'Candidature acceptée', body: event.listingTitle })
+    case 'candidature.accepted':
+      await notify({
+        userId: event.candidateId,
+        event: 'candidature.accepted',
+        email: { subject: 'Candidature acceptée', html: `Tu es retenu·e pour « ${event.listingTitle} ». Contacte l'annonceur depuis l'app.` },
+        push: { title: 'Candidature acceptée', body: event.listingTitle },
+      })
       break
-    }
-    case 'candidature.finalized': {
-      const { email, pushToken } = await recipientChannels(event.candidateId)
-      if (email) await sendEmail({ to: email, subject: 'Vous avez été choisi·e', html: `Félicitations, vous avez été choisi·e pour « ${event.listingTitle} ».` })
-      if (pushToken) await sendPush({ token: pushToken, title: 'Vous avez été choisi·e 🌴', body: event.listingTitle })
+    case 'candidature.finalized':
+      await notify({
+        userId: event.candidateId,
+        event: 'candidature.finalized',
+        email: { subject: 'Tu as été choisi·e', html: `Félicitations, tu as été choisi·e pour « ${event.listingTitle} » 🌴` },
+        push: { title: 'Tu as été choisi·e 🌴', body: event.listingTitle },
+      })
       break
-    }
     case 'candidature.rejected': {
-      const { email, pushToken } = await recipientChannels(event.candidateId)
-      const body = event.rejectionMessage ?? `Votre candidature pour « ${event.listingTitle} » n'a pas été retenue.`
-      if (email) await sendEmail({ to: email, subject: 'Candidature non retenue', html: body })
-      if (pushToken) await sendPush({ token: pushToken, title: 'Candidature non retenue', body: event.listingTitle })
+      const body = event.rejectionMessage ?? `Ta candidature pour « ${event.listingTitle} » n'a pas été retenue.`
+      await notify({
+        userId: event.candidateId,
+        event: 'candidature.rejected',
+        email: { subject: 'Candidature non retenue', html: body },
+        push: { title: 'Candidature non retenue', body: event.listingTitle },
+      })
       break
     }
-    case 'candidature.withdrawn': {
-      const { email } = await recipientChannels(event.providerId)
-      if (email) await sendEmail({ to: email, subject: 'Candidature retirée', html: `${event.candidateName} a retiré sa candidature pour « ${event.listingTitle} ».` })
+    case 'candidature.withdrawn':
+      await notify({
+        userId: event.providerId,
+        event: 'candidature.withdrawn',
+        email: { subject: 'Candidature retirée', html: `${event.candidateName} a retiré sa candidature pour « ${event.listingTitle} ».` },
+        push: { title: 'Candidature retirée', body: `${event.candidateName} — ${event.listingTitle}` },
+      })
       break
-    }
   }
 }

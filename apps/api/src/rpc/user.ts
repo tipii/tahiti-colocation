@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { candidatures, favorites, images, listings, user } from '../db/schema'
 import { logger } from '../lib/logger'
+import { getPrefsMap, setGroupChannel } from '../lib/notification-prefs'
 import { deleteObject } from '../lib/r2'
 import { authed } from './base'
 
@@ -74,6 +75,14 @@ export const setMode = authed.user.setMode.handler(async ({ input, context }) =>
 export const registerPushToken = authed.user.registerPushToken.handler(async ({ input, context }) => {
   await db.update(user).set({ pushToken: input.token }).where(eq(user.id, context.user.id))
   return { success: true }
+})
+
+export const getNotificationPrefs = authed.user.getNotificationPrefs.handler(async ({ context }) => {
+  return getPrefsMap(context.user.id)
+})
+
+export const updateNotificationPrefs = authed.user.updateNotificationPrefs.handler(async ({ input, context }) => {
+  return setGroupChannel(context.user.id, input.group, input.channel, input.enabled)
 })
 
 export const exportData = authed.user.exportData.handler(async ({ context }) => {

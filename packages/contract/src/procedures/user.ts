@@ -4,6 +4,23 @@ import { OCCUPATIONS, SMOKER_CHOICES, PET_CHOICES, SCHEDULE_CHOICES, LANGUAGE_CH
 
 export const USER_MODES = ['seeker', 'provider'] as const
 
+export const NOTIFICATION_EVENTS = [
+  'candidature.submitted',
+  'candidature.accepted',
+  'candidature.finalized',
+  'candidature.rejected',
+  'candidature.withdrawn',
+] as const
+
+export const NOTIFICATION_GROUPS = ['seeker', 'provider'] as const
+
+const prefValueSchema = z.object({
+  email: z.boolean(),
+  push: z.boolean(),
+})
+
+export const notificationPrefsSchema = z.record(z.enum(NOTIFICATION_EVENTS), prefValueSchema)
+
 const profileSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -54,6 +71,14 @@ export const userContract = {
   registerPushToken: oc
     .input(z.object({ token: z.string() }))
     .output(z.object({ success: z.boolean() })),
+  getNotificationPrefs: oc.output(notificationPrefsSchema),
+  updateNotificationPrefs: oc
+    .input(z.object({
+      group: z.enum(NOTIFICATION_GROUPS),
+      channel: z.enum(['email', 'push']),
+      enabled: z.boolean(),
+    }))
+    .output(notificationPrefsSchema),
   exportData: oc.output(z.object({
     user: z.unknown(),
     listings: z.array(z.unknown()),

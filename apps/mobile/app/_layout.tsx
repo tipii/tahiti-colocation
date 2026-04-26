@@ -5,6 +5,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
+import * as Notifications from 'expo-notifications'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
@@ -14,6 +15,20 @@ import 'react-native-reanimated'
 
 import { useColorScheme } from '@/components/useColorScheme'
 import { authClient } from '@/lib/auth'
+import { syncPushToken } from '@/lib/push'
+
+// Foreground handler — when a push arrives while the app is open, the OS by default
+// suppresses it (assumption: the app's UI already shows the relevant info).
+// We override to show a banner anyway, which feels more native to users.
+// Set this once at module load, before any component renders.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+})
 
 export { ErrorBoundary } from 'expo-router'
 
@@ -86,6 +101,15 @@ function RootLayoutNav() {
       router.replace('/(tabs)')
     }
   }, [session, isPending, segments])
+
+  // Once the user is logged in, ask for push permission + sync token to backend.
+  // Idempotent: getExpoPushTokenAsync returns the same token on subsequent calls
+  // for the same device + project, so calling on every login is fine.
+  useEffect(() => {
+    if (session) {
+      syncPushToken().catch((e) => console.warn('[push] sync failed at top level', e))
+    }
+  }, [session])
 
   const warmTheme = {
     ...DefaultTheme,

@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { date, index, integer, jsonb, pgTable, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
+import { date, index, integer, jsonb, pgTable, primaryKey, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
 import type {
   ISLANDS,
   DURATION_TYPES,
@@ -264,3 +264,21 @@ export const candidatures = pgTable(
   ],
 )
 
+export const notificationPrefs = pgTable(
+  'notification_prefs',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    eventType: varchar('event_type', { length: 50 }).notNull(),
+    emailEnabled: boolean('email_enabled').notNull(),
+    pushEnabled: boolean('push_enabled').notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.eventType] }),
+  ],
+)

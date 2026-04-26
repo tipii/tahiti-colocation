@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { Feather } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
@@ -9,11 +9,51 @@ import * as Sharing from 'expo-sharing'
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
 
+// Mapping mirrors apps/api/src/lib/notification-prefs.ts (events per UI group)
+const SEEKER_EVENTS = ['candidature.accepted', 'candidature.finalized', 'candidature.rejected'] as const
+const PROVIDER_EVENTS = ['candidature.submitted', 'candidature.withdrawn'] as const
+
 export default function SettingsScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { data: profile } = useQuery(orpc.user.me.queryOptions())
   const avatarUrl = (profile as any)?.avatar || (profile as any)?.image
+
+  const { data: prefs } = useQuery(orpc.user.getNotificationPrefs.queryOptions())
+
+  const updatePrefM = useMutation({
+    mutationFn: (input: { group: 'seeker' | 'provider'; channel: 'email' | 'push'; enabled: boolean }) =>
+      client.user.updateNotificationPrefs(input),
+    // Optimistic: flip immediately, server confirms after.
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: orpc.user.getNotificationPrefs.queryKey() })
+      const previous = queryClient.getQueryData(orpc.user.getNotificationPrefs.queryKey())
+      queryClient.setQueryData(orpc.user.getNotificationPrefs.queryKey(), (old: any) => {
+        if (!old) return old
+        const events = input.group === 'seeker' ? SEEKER_EVENTS : PROVIDER_EVENTS
+        const next = { ...old }
+        for (const e of events) {
+          next[e] = { ...next[e], [input.channel]: input.enabled }
+        }
+        return next
+      })
+      return { previous }
+    },
+    onError: (_err, _input, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(orpc.user.getNotificationPrefs.queryKey(), ctx.previous)
+      Alert.alert('Erreur', 'Impossible de mettre à jour la préférence')
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: orpc.user.key() })
+    },
+  })
+
+  // Group state: ON if every event in the group has the channel enabled.
+  const groupValue = (group: 'seeker' | 'provider', channel: 'email' | 'push'): boolean => {
+    if (!prefs) return false
+    const events = group === 'seeker' ? SEEKER_EVENTS : PROVIDER_EVENTS
+    return events.every((e) => prefs[e]?.[channel] ?? false)
+  }
 
   const resendM = useMutation({
     mutationFn: () => authClient.sendVerificationEmail({ email: profile!.email }),
@@ -89,6 +129,55 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
       )}
+
+      {/* Notifications */}
+      <View className="mt-8 gap-3">
+        <Text className="text-xs font-semibold uppercase text-muted-foreground">Notifications</Text>
+
+        <View className="rounded-card bg-card p-4">
+          <Text className="text-sm font-semibold text-foreground">Quand je postule</Text>
+          <Text className="mt-1 text-xs text-muted-foreground">Acceptation, sélection finale, refus.</Text>
+          <View className="mt-3 flex-row items-center justify-between py-1">
+            <Text className="text-sm text-foreground">Notifications push</Text>
+            <Switch
+              value={groupValue('seeker', 'push')}
+              onValueChange={(v) => updatePrefM.mutate({ group: 'seeker', channel: 'push', enabled: v })}
+              trackColor={{ true: '#FF6B35' }}
+            />
+          </View>
+          <View className="flex-row items-center justify-between py-1">
+            <Text className="text-sm text-foreground">Emails</Text>
+            <Switch
+              value={groupValue('seeker', 'email')}
+              onValueChange={(v) => updatePrefM.mutate({ group: 'seeker', channel: 'email', enabled: v })}
+              trackColor={{ true: '#FF6B35' }}
+            />
+          </View>
+        </View>
+
+        <View className="rounded-card bg-card p-4">
+          <Text className="text-sm font-semibold text-foreground">Quand je propose une coloc</Text>
+          <Text className="mt-1 text-xs text-muted-foreground">Nouvelles candidatures, retraits.</Text>
+          <View className="mt-3 flex-row items-center justify-between py-1">
+            <Text className="text-sm text-foreground">Notifications push</Text>
+            <Switch
+              value={groupValue('provider', 'push')}
+              onValueChange={(v) => updatePrefM.mutate({ group: 'provider', channel: 'push', enabled: v })}
+              trackColor={{ true: '#FF6B35' }}
+            />
+          </View>
+          <View className="flex-row items-center justify-between py-1">
+            <Text className="text-sm text-foreground">Emails</Text>
+            <Switch
+              value={groupValue('provider', 'email')}
+              onValueChange={(v) => updatePrefM.mutate({ group: 'provider', channel: 'email', enabled: v })}
+              trackColor={{ true: '#FF6B35' }}
+            />
+          </View>
+        </View>
+
+        <Text className="text-xs text-muted-foreground">Les emails de sécurité (mot de passe, vérification) ne sont pas configurables.</Text>
+      </View>
 
       <View className="mt-8 gap-3">
         <Text className="text-xs font-semibold uppercase text-muted-foreground">Mes données</Text>
