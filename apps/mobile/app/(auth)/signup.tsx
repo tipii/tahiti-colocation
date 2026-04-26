@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +14,8 @@ import {
 import { Link, useRouter } from 'expo-router'
 
 import { authClient } from '@/lib/auth'
+
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://dev.theop.dev'
 
 export default function SignupScreen() {
   const router = useRouter()
@@ -118,6 +121,13 @@ export default function SignupScreen() {
         >
           <Text className="text-base font-semibold text-white">S'inscrire avec Facebook</Text>
         </Pressable>
+
+        <Text className="mt-6 text-center text-xs text-muted-foreground">
+          En créant un compte, tu acceptes nos{' '}
+          <Text className="underline" onPress={() => Linking.openURL(`${WEB_URL}/terms`)}>conditions</Text>
+          {' '}et notre{' '}
+          <Text className="underline" onPress={() => Linking.openURL(`${WEB_URL}/privacy`)}>politique de confidentialité</Text>.
+        </Text>
 
         <View className="mt-6 flex-row justify-center">
           <Text className="text-sm text-muted-foreground">Deja un compte ? </Text>

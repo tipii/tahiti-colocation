@@ -14,7 +14,8 @@ See [`LAUNCH.md`](./LAUNCH.md) for the pre-launch punch list, [`RENAME.md`](./RE
 | API (direct, mobile only) | `api.coolive.app` | Hono; mobile hits directly |
 | Image CDN (R2) | `img.coolive.app` | Cloudflare R2 custom domain |
 | Transactional email | `mail.coolive.app` | Resend-verified subdomain (DKIM/SPF/DMARC) |
-| Support email | `hello@coolive.app` | Inbox or forwarder to your personal |
+| Contact email | `hello@tarima.dev` | Tarima is the publisher of Coolive |
+| Sender email (FROM) | `hello@coolive.app` | brand consistency in transactional emails |
 | Staging | `dev.theop.dev` | Keep as-is for now, re-parent later if wanted |
 
 Note: even though the web proxies `/api`, mobile uses `api.coolive.app` directly (avoids an extra hop).

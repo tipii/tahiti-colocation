@@ -98,6 +98,13 @@ export default function SignupPage() {
           S'inscrire avec Facebook
         </button>
 
+        <p className="text-center text-xs text-muted-foreground">
+          En créant un compte, tu acceptes nos{' '}
+          <Link href="/terms" className="underline hover:text-primary">conditions d&apos;utilisation</Link>{' '}
+          et notre{' '}
+          <Link href="/privacy" className="underline hover:text-primary">politique de confidentialité</Link>.
+        </p>
+
         <p className="text-center text-sm text-muted-foreground">
           Deja un compte ?{' '}
           <Link href="/login" className="font-medium text-primary hover:underline">Se connecter</Link>

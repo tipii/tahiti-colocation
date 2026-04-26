@@ -92,7 +92,8 @@ Gradient (hero/splash): `#FF6B35 → #0D9488` (sunset → lagoon).
 - Instagram: `@coolive.pf` (primary consumer channel)
 - Facebook page: *Coolive* (Facebook is huge in PF; do not skip)
 - TikTok: secondary, launch once content cadence is stable
-- Email: `hello@coolive.app`, `contact@coolive.app`
+- Contact email: `hello@tarima.dev` (Coolive is published by Tarima)
+- Sender (transactional): `hello@coolive.app` for brand consistency in emails
 
 ## App Store / Play Store listing
 

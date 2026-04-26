@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Geist, Geist_Mono } from 'next/font/google'
 
 import { Header } from '@/components/header'
@@ -31,7 +32,20 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           <Header />
-          {children}
+          <div className="min-h-[calc(100vh-65px)]">{children}</div>
+          <footer className="mt-12 border-t border-border/50 px-6 py-6 text-xs text-muted-foreground">
+            <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+              <span>
+                © {new Date().getFullYear()} Coolive · Made with ♥ by{' '}
+                <a href="https://tarima.dev" target="_blank" rel="noreferrer" className="hover:text-primary">tarima.dev</a>
+              </span>
+              <nav className="flex gap-4">
+                <Link href="/privacy" className="hover:text-primary">Confidentialité</Link>
+                <Link href="/terms" className="hover:text-primary">Conditions</Link>
+                <a href="mailto:hello@tarima.dev" className="hover:text-primary">Contact</a>
+              </nav>
+            </div>
+          </footer>
         </Providers>
       </body>
     </html>
