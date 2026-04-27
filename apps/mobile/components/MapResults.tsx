@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
-import { Camera, GeoJSONSource, Layer, Map } from '@maplibre/maplibre-react-native'
+import { Camera, GeoJSONSource, Images, Layer, Map } from '@maplibre/maplibre-react-native'
 import { Feather } from '@expo/vector-icons'
 
 import { client } from '@/lib/orpc'
@@ -12,6 +12,13 @@ import { ListingCard } from '@/components/ListingCard'
 // Alternatives: 'positron' (minimal grayscale), 'bright' (more colorful), '3d' (extruded buildings).
 // For prod scale: swap to MapTiler / Stadia paid plans or self-hosted Protomaps PMTiles on R2.
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
+
+// Pre-rendered pill PNGs for the price badges. Stretched horizontally by
+// MapLibre via `iconTextFit: 'both'` to fit the price string.
+const PILL_IMAGES = {
+  'pill-orange': require('@/assets/images/pill-orange.png'),
+  'pill-teal': require('@/assets/images/pill-teal.png'),
+} as const
 
 const TAHITI_CENTER: [number, number] = [-149.45, -17.65]
 
@@ -88,6 +95,7 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
     <View style={{ flex: 1 }}>
       <Map mapStyle={MAP_STYLE_URL} style={{ flex: 1 }}>
         <Camera initialViewState={initialViewState} />
+        <Images images={PILL_IMAGES} />
         <GeoJSONSource
           id="listings-source"
           data={featureCollection}
@@ -97,30 +105,21 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
           }}
         >
           <Layer
-            id="listings-bg"
-            type="circle"
-            style={{
-              circleRadius: 18,
-              circleColor: ['case', ['==', ['get', 'selected'], 1], '#0D9488', '#FF6B35'],
-              circleStrokeWidth: 2,
-              circleStrokeColor: '#FFFFFF',
-              circlePitchAlignment: 'map',
-              circleSortKey: ['get', 'sortKey'],
-            }}
-          />
-          <Layer
-            id="listings-label"
+            id="listings-pill"
             type="symbol"
             style={{
+              iconImage: ['case', ['==', ['get', 'selected'], 1], 'pill-teal', 'pill-orange'],
+              iconTextFit: 'both',
+              iconTextFitPadding: [3, 8, 3, 8],
+              iconAllowOverlap: true,
+              iconIgnorePlacement: false,
               textField: ['get', 'label'],
-              textSize: 12,
               textFont: ['Noto Sans Bold'],
+              textSize: 12,
               textColor: '#FFFFFF',
-              // Off → MapLibre hides labels that collide with already-placed ones.
-              // Circles still render (so the listing is visible) but only readable
-              // text is shown at any given zoom. Sort key gives priority order.
-              textAllowOverlap: false,
+              textAllowOverlap: true,
               textIgnorePlacement: false,
+              // Higher sort key draws on top. Selected pin always wins.
               symbolSortKey: ['-', 0, ['get', 'sortKey']],
             }}
           />
