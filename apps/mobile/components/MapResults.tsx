@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
-import { Image, Pressable, Text, View } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useCallback, useMemo, useState } from 'react'
+import { Modal, Pressable, Text, View } from 'react-native'
+import { useFocusEffect } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { Camera, Map, Marker } from '@maplibre/maplibre-react-native'
 import type { StyleSpecification } from '@maplibre/maplibre-react-native'
 import { Feather } from '@expo/vector-icons'
 
 import { client } from '@/lib/orpc'
+import { ListingCard } from '@/components/ListingCard'
 
 // OSM raster tiles. Acceptable for dev/early stage. Before public launch, swap
 // to a self-hosted Protomaps file on R2 or a paid tile provider — OSMF policy
@@ -28,22 +29,13 @@ const OSM_STYLE: StyleSpecification = {
 
 const TAHITI_CENTER: [number, number] = [-149.45, -17.65]
 
-type Listing = {
-  id: string
-  slug: string
-  title: string
-  price: number
-  city: string
-  region: string
-  regionLabel?: string
-  latitude: string | null
-  longitude: string | null
-  images?: { thumbnailUrl: string | null }[]
-}
+type ListingWithCoords = NonNullable<Awaited<ReturnType<typeof client.listing.list>>['data']>[number]
 
 export function MapResults({ input, bottomInset = 80 }: { input: Record<string, unknown>; bottomInset?: number }) {
-  const router = useRouter()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  // Clear selection when leaving the screen so the modal isn't still open on return.
+  useFocusEffect(useCallback(() => () => setSelectedId(null), []))
 
   // limit caps at 50 in the contract — fine for v1 (PF has ~30 seeded listings).
   // When density grows, switch to viewport-bounded queries (refetch on map move).
@@ -53,8 +45,8 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
     staleTime: 30 * 1000,
   })
 
-  const listings: Listing[] = useMemo(
-    () => (data?.data ?? []).filter((l) => l.latitude && l.longitude) as Listing[],
+  const listings: ListingWithCoords[] = useMemo(
+    () => (data?.data ?? []).filter((l) => l.latitude && l.longitude),
     [data],
   )
 
@@ -114,44 +106,35 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
         </View>
       )}
 
-      {selected && (
+      <Modal
+        visible={!!selected}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setSelectedId(null)}
+      >
         <Pressable
-          style={{ bottom: bottomInset }}
-          className="absolute left-4 right-4 flex-row items-center gap-3 rounded-card bg-card p-3 shadow-lg"
-          onPress={() => router.push(`/listing/${selected.slug}` as any)}
-          accessibilityLabel={`Voir l'annonce ${selected.title}`}
+          className="flex-1 items-center justify-center bg-black/50 p-6"
+          onPress={() => setSelectedId(null)}
+          accessibilityLabel="Fermer"
         >
-          {selected.images?.[0]?.thumbnailUrl ? (
-            <Image
-              source={{ uri: selected.images[0].thumbnailUrl }}
-              style={{ width: 64, height: 64, borderRadius: 8 }}
-            />
-          ) : (
-            <View style={{ width: 64, height: 64, borderRadius: 8 }} className="bg-muted" />
+          {selected && (
+            <View className="w-full max-w-md" pointerEvents="box-none">
+              <ListingCard listing={selected as any} />
+              <Pressable
+                className="mt-3 self-center rounded-pill bg-card px-5 py-2 shadow"
+                onPress={() => setSelectedId(null)}
+                accessibilityLabel="Fermer"
+              >
+                <View className="flex-row items-center gap-1.5">
+                  <Feather name="x" size={14} color="#8B7E74" />
+                  <Text className="text-sm font-medium text-foreground">Fermer</Text>
+                </View>
+              </Pressable>
+            </View>
           )}
-          <View className="flex-1">
-            <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
-              {selected.title}
-            </Text>
-            <Text className="mt-0.5 text-xs text-muted-foreground" numberOfLines={1}>
-              {selected.city}, {selected.regionLabel ?? selected.region}
-            </Text>
-            <Text className="mt-1 text-sm font-bold text-primary">
-              {selected.price.toLocaleString('fr-FR')} XPF/mois
-            </Text>
-          </View>
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation?.()
-              setSelectedId(null)
-            }}
-            hitSlop={8}
-            accessibilityLabel="Fermer"
-          >
-            <Feather name="x" size={20} color="#8B7E74" />
-          </Pressable>
         </Pressable>
-      )}
+      </Modal>
     </View>
   )
 }
