@@ -12,6 +12,7 @@ import type { ListingType, RoomType } from '@coloc/shared/constants'
 import { orpc, client } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
+import { MapResults } from '@/components/MapResults'
 
 function useDebounce(value: string, delay = 500) {
   const [debounced, setDebounced] = useState(value)
@@ -47,6 +48,7 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 export default function SearchScreen() {
   const insets = useSafeAreaInsets()
   const bottomSheetRef = useRef<BottomSheet>(null)
+  const [view, setView] = useState<'list' | 'map'>('list')
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<string | null>(null)
   const [listingType, setListingType] = useState<string | null>(null)
@@ -126,12 +128,33 @@ export default function SearchScreen() {
             </Pressable>
           )}
         </View>
-        <Text className="mt-2 text-sm text-muted-foreground">
-          {isLoading ? 'Recherche...' : `${total} annonce${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
-        </Text>
+        <View className="mt-2 flex-row items-center justify-between">
+          <Text className="text-sm text-muted-foreground">
+            {isLoading ? 'Recherche...' : `${total} annonce${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
+          </Text>
+          <View className="flex-row rounded-pill border border-border bg-card p-0.5">
+            {(['list', 'map'] as const).map((v) => (
+              <Pressable
+                key={v}
+                className={`flex-row items-center gap-1 rounded-pill px-3 py-1.5 ${view === v ? 'bg-primary' : ''}`}
+                onPress={() => { Haptics.selectionAsync(); setView(v) }}
+                accessibilityLabel={v === 'list' ? 'Vue liste' : 'Vue carte'}
+                accessibilityState={{ selected: view === v }}
+              >
+                <Feather name={v === 'list' ? 'list' : 'map'} size={13} color={view === v ? '#fff' : '#8B7E74'} />
+                <Text className={`text-xs font-medium ${view === v ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  {v === 'list' ? 'Liste' : 'Carte'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </View>
 
       {/* Results */}
+      {view === 'map' ? (
+        <MapResults input={input} bottomInset={80} />
+      ) : (
       <FlatList
         data={isLoading ? [] : listings}
         keyExtractor={(item) => item.id}
@@ -165,6 +188,7 @@ export default function SearchScreen() {
           ) : null
         }
       />
+      )}
 
       {/* Bottom Sheet Filters */}
       <BottomSheet

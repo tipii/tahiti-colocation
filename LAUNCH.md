@@ -78,6 +78,11 @@ Missing pieces before store submission split into three priorities below.
 - [ ] Managed Postgres (Neon, Supabase, or Coolify managed) instead of docker-compose Postgres — need backups + PITR
 - [ ] Daily DB backup verified (restore dry-run)
 
+### Map tiles
+
+- [ ] **Swap OSM raster tiles to a permitted tile source.** Search-tab map currently fetches `tile.openstreetmap.org` directly; OSMF policy forbids high-traffic apps using their public servers. Options: MapTiler free (100k req/mo), Stadia free (200k req/mo non-commercial), or self-host a Protomaps `.pmtiles` PF extract on R2 (free egress via Cloudflare). Tile URL is the only change — no native rebuild needed. See `apps/mobile/components/MapResults.tsx` `OSM_STYLE` constant.
+- [ ] **Provider sets listing coordinates on create/edit.** Currently lat/lng are seeded server-side from city centroid + ±300m jitter; new listings created via the app have `null` coords. Add a map picker to the listing form so the provider drops a pin on their general area, then jitter server-side before persist (precise coords never reach the DB).
+
 ### CI / quality
 
 - [ ] **GitHub Actions**: typecheck + lint + build on every PR
