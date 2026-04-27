@@ -71,7 +71,9 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
     [listings, selectedId],
   )
 
-  const initialViewState = useMemo(() => {
+  // Reactive camera target — recomputes (and animates) whenever the listings
+  // set changes, e.g. after the user tightens the region/city filter.
+  const cameraStop = useMemo(() => {
     if (listings.length === 0) {
       return { center: TAHITI_CENTER, zoom: 7 } as const
     }
@@ -84,7 +86,11 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
       if (lng < minLng) minLng = lng
       if (lng > maxLng) maxLng = lng
     }
-    // Bounds [west, south, east, north]. Padding keeps pins off the edges.
+    // Single-pin case: use a center+zoom stop so the camera doesn't try to
+    // fit a zero-area bounding box.
+    if (minLat === maxLat && minLng === maxLng) {
+      return { center: [minLng, minLat] as [number, number], zoom: 13 } as const
+    }
     return {
       bounds: [minLng, minLat, maxLng, maxLat] as [number, number, number, number],
       padding: { top: 60, bottom: bottomInset + 40, left: 40, right: 40 },
@@ -94,7 +100,7 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
   return (
     <View style={{ flex: 1 }}>
       <Map mapStyle={MAP_STYLE_URL} style={{ flex: 1 }}>
-        <Camera initialViewState={initialViewState} />
+        <Camera {...cameraStop} duration={500} />
         <Images images={PILL_IMAGES} />
         <GeoJSONSource
           id="listings-source"
