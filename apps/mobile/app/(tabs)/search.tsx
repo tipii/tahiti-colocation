@@ -13,6 +13,7 @@ import { orpc, client } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
 import { MapResults } from '@/components/MapResults'
+import { Slider } from '@/components/Slider'
 
 function useDebounce(value: string, delay = 500) {
   const [debounced, setDebounced] = useState(value)
@@ -277,19 +278,19 @@ export default function SearchScreen() {
             </FilterSection>
           )}
 
-          {/* Radius — only meaningful with a city centroid */}
+          {/* Radius — only meaningful with a city centroid; 0 = exact city match */}
           {city && (
-            <FilterSection title="Rayon autour de la commune">
-              <View className="flex-row flex-wrap gap-2">
-                <Chip label="Aucun" active={!radiusKm} onPress={() => setRadiusKm(null)} />
-                {[3, 5, 10, 20, 30].map((km) => (
-                  <Chip
-                    key={km}
-                    label={`${km} km`}
-                    active={radiusKm === km}
-                    onPress={() => setRadiusKm(radiusKm === km ? null : km)}
-                  />
-                ))}
+            <FilterSection
+              title={`Rayon : ${radiusKm ? `${radiusKm} km` : 'aucun (commune exacte)'}`}
+            >
+              <View className="px-1.5">
+                <Slider
+                  min={0}
+                  max={30}
+                  step={1}
+                  value={radiusKm ?? 0}
+                  onChange={(v) => setRadiusKm(v > 0 ? v : null)}
+                />
               </View>
             </FilterSection>
           )}

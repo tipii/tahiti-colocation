@@ -22,6 +22,39 @@ const PILL_IMAGES = {
 
 const TAHITI_CENTER: [number, number] = [-149.45, -17.65]
 
+// Project a destination point given a center, distance (km) and bearing (deg)
+// using the spherical Earth model. Used to build the radius circle polygon.
+function destination(lat: number, lng: number, distanceKm: number, bearingDeg: number): [number, number] {
+  const R = 6371
+  const phi1 = (lat * Math.PI) / 180
+  const lambda1 = (lng * Math.PI) / 180
+  const theta = (bearingDeg * Math.PI) / 180
+  const delta = distanceKm / R
+  const phi2 = Math.asin(
+    Math.sin(phi1) * Math.cos(delta) + Math.cos(phi1) * Math.sin(delta) * Math.cos(theta),
+  )
+  const lambda2 = lambda1 + Math.atan2(
+    Math.sin(theta) * Math.sin(delta) * Math.cos(phi1),
+    Math.cos(delta) - Math.sin(phi1) * Math.sin(phi2),
+  )
+  return [(lambda2 * 180) / Math.PI, (phi2 * 180) / Math.PI]
+}
+
+function circlePolygon(lat: number, lng: number, radiusKm: number, vertices = 64) {
+  const coords: [number, number][] = []
+  for (let i = 0; i <= vertices; i++) {
+    coords.push(destination(lat, lng, radiusKm, (i * 360) / vertices))
+  }
+  return {
+    type: 'FeatureCollection' as const,
+    features: [{
+      type: 'Feature' as const,
+      properties: {},
+      geometry: { type: 'Polygon' as const, coordinates: [coords] },
+    }],
+  }
+}
+
 type ListingWithCoords = NonNullable<Awaited<ReturnType<typeof client.listing.list>>['data']>[number]
 
 export function MapResults({ input, bottomInset = 80 }: { input: Record<string, unknown>; bottomInset?: number }) {
@@ -44,6 +77,15 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
   )
 
   const selected = listings.find((l) => l.id === selectedId)
+
+  // Visible radius ring around the search center, when the user has set both.
+  const radiusFC = useMemo(() => {
+    const centerLat = typeof input.centerLat === 'number' ? input.centerLat : null
+    const centerLng = typeof input.centerLng === 'number' ? input.centerLng : null
+    const km = typeof input.radiusKm === 'number' ? input.radiusKm : null
+    if (centerLat == null || centerLng == null || !km) return null
+    return circlePolygon(centerLat, centerLng, km)
+  }, [input.centerLat, input.centerLng, input.radiusKm])
 
   const featureCollection = useMemo(
     () => ({
@@ -72,8 +114,24 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
   )
 
   // Reactive camera target — recomputes (and animates) whenever the listings
-  // set changes, e.g. after the user tightens the region/city filter.
+  // set or the search radius changes.
   const cameraStop = useMemo(() => {
+    const padding = { top: 60, bottom: bottomInset + 40, left: 40, right: 40 }
+
+    // When a radius is active, fit the whole ring so the user sees the
+    // search area, not just the pins inside it.
+    if (radiusFC) {
+      const ring = radiusFC.features[0]!.geometry.coordinates[0]!
+      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity
+      for (const [lng, lat] of ring) {
+        if (lat < minLat) minLat = lat
+        if (lat > maxLat) maxLat = lat
+        if (lng < minLng) minLng = lng
+        if (lng > maxLng) maxLng = lng
+      }
+      return { bounds: [minLng, minLat, maxLng, maxLat] as [number, number, number, number], padding }
+    }
+
     if (listings.length === 0) {
       return { center: TAHITI_CENTER, zoom: 7 } as const
     }
@@ -86,22 +144,31 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
       if (lng < minLng) minLng = lng
       if (lng > maxLng) maxLng = lng
     }
-    // Single-pin case: use a center+zoom stop so the camera doesn't try to
-    // fit a zero-area bounding box.
     if (minLat === maxLat && minLng === maxLng) {
       return { center: [minLng, minLat] as [number, number], zoom: 13 } as const
     }
-    return {
-      bounds: [minLng, minLat, maxLng, maxLat] as [number, number, number, number],
-      padding: { top: 60, bottom: bottomInset + 40, left: 40, right: 40 },
-    }
-  }, [listings, bottomInset])
+    return { bounds: [minLng, minLat, maxLng, maxLat] as [number, number, number, number], padding }
+  }, [radiusFC, listings, bottomInset])
 
   return (
     <View style={{ flex: 1 }}>
       <Map mapStyle={MAP_STYLE_URL} style={{ flex: 1 }}>
         <Camera {...cameraStop} duration={500} />
         <Images images={PILL_IMAGES} />
+        {radiusFC && (
+          <GeoJSONSource id="radius-source" data={radiusFC}>
+            <Layer
+              id="radius-fill"
+              type="fill"
+              style={{ fillColor: '#FF6B35', fillOpacity: 0.12 }}
+            />
+            <Layer
+              id="radius-outline"
+              type="line"
+              style={{ lineColor: '#FF6B35', lineWidth: 2, lineOpacity: 0.6 }}
+            />
+          </GeoJSONSource>
+        )}
         <GeoJSONSource
           id="listings-source"
           data={featureCollection}
