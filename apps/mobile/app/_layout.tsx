@@ -111,6 +111,28 @@ function RootLayoutNav() {
     }
   }, [session])
 
+  // Notification tap → navigate to data.route if provided.
+  // Two paths:
+  //  - app open: response listener fires immediately on tap
+  //  - app cold-started by tapping the notification: getLastNotificationResponseAsync
+  //    returns the tap that launched it
+  useEffect(() => {
+    const handleTap = (route: unknown) => {
+      if (typeof route === 'string' && route.startsWith('/')) {
+        router.push(route as any)
+      }
+    }
+
+    Notifications.getLastNotificationResponseAsync().then((res) => {
+      if (res) handleTap((res.notification.request.content.data as any)?.route)
+    })
+
+    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
+      handleTap((res.notification.request.content.data as any)?.route)
+    })
+    return () => sub.remove()
+  }, [router])
+
   const warmTheme = {
     ...DefaultTheme,
     colors: {

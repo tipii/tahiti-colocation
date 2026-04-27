@@ -56,19 +56,43 @@ export const auth: any = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      // Google verifies emails before allowing them on accounts
+      mapProfileToUser: (profile: { email: string; name: string; picture?: string }) => ({
+        email: profile.email,
+        name: profile.name,
+        image: profile.picture,
+        emailVerified: true,
+      }),
     },
     apple: {
       clientId: process.env.APPLE_CLIENT_ID ?? '',
       clientSecret: process.env.APPLE_CLIENT_SECRET ?? '',
+      // Apple guarantees verified emails (real or relay)
+      mapProfileToUser: (profile: { email?: string; name?: string }) => ({
+        email: profile.email,
+        name: profile.name ?? profile.email?.split('@')[0],
+        emailVerified: !!profile.email,
+      }),
     },
     facebook: {
       clientId: process.env.FACEBOOK_CLIENT_ID ?? '',
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? '',
       redirectURI: process.env.FACEBOOK_REDIRECT_URI,
+      // Facebook verifies emails before linking them on profiles
+      mapProfileToUser: (profile: { email?: string; name: string; picture?: { data?: { url?: string } } }) => ({
+        email: profile.email,
+        name: profile.name,
+        image: profile.picture?.data?.url,
+        emailVerified: !!profile.email,
+      }),
     },
   },
   account: {
     skipStateCookieCheck: true,
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['google', 'apple', 'facebook'],
+    },
   },
   user: {
     additionalFields: {

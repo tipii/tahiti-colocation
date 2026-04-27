@@ -15,11 +15,11 @@ const EMAIL_FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS ?? 'hello@coolive.app'
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME ?? 'Coolive'
 
 type Event =
-  | { type: 'candidature.submitted'; providerId: string; candidateName: string; listingTitle: string }
-  | { type: 'candidature.accepted'; candidateId: string; listingTitle: string }
-  | { type: 'candidature.finalized'; candidateId: string; listingTitle: string }
-  | { type: 'candidature.rejected'; candidateId: string; listingTitle: string; rejectionMessage: string | null }
-  | { type: 'candidature.withdrawn'; providerId: string; candidateName: string; listingTitle: string }
+  | { type: 'candidature.submitted'; providerId: string; candidateName: string; listingTitle: string; listingId: string }
+  | { type: 'candidature.accepted'; candidateId: string; listingTitle: string; candidatureId: string }
+  | { type: 'candidature.finalized'; candidateId: string; listingTitle: string; candidatureId: string }
+  | { type: 'candidature.rejected'; candidateId: string; listingTitle: string; rejectionMessage: string | null; candidatureId: string }
+  | { type: 'candidature.withdrawn'; providerId: string; candidateName: string; listingTitle: string; listingId: string }
 
 type EmailPayload = { to: string; subject: string; html: string }
 type PushPayload = { token: string; title: string; body: string; data?: Record<string, unknown> }
@@ -163,7 +163,11 @@ export async function dispatch(event: Event) {
         userId: event.providerId,
         event: 'candidature.submitted',
         email: { subject: 'Nouvelle candidature', html: `${event.candidateName} a postulé à « ${event.listingTitle} ».` },
-        push: { title: 'Nouvelle candidature', body: `${event.candidateName} — ${event.listingTitle}` },
+        push: {
+          title: 'Nouvelle candidature',
+          body: `${event.candidateName} — ${event.listingTitle}`,
+          data: { route: `/listing/candidatures/${event.listingId}` },
+        },
       })
       break
     case 'candidature.accepted':
@@ -171,7 +175,11 @@ export async function dispatch(event: Event) {
         userId: event.candidateId,
         event: 'candidature.accepted',
         email: { subject: 'Candidature acceptée', html: `Tu es retenu·e pour « ${event.listingTitle} ». Contacte l'annonceur depuis l'app.` },
-        push: { title: 'Candidature acceptée', body: event.listingTitle },
+        push: {
+          title: 'Candidature acceptée',
+          body: event.listingTitle,
+          data: { route: `/candidature/${event.candidatureId}` },
+        },
       })
       break
     case 'candidature.finalized':
@@ -179,7 +187,11 @@ export async function dispatch(event: Event) {
         userId: event.candidateId,
         event: 'candidature.finalized',
         email: { subject: 'Tu as été choisi·e', html: `Félicitations, tu as été choisi·e pour « ${event.listingTitle} » 🌴` },
-        push: { title: 'Tu as été choisi·e 🌴', body: event.listingTitle },
+        push: {
+          title: 'Tu as été choisi·e 🌴',
+          body: event.listingTitle,
+          data: { route: `/candidature/${event.candidatureId}` },
+        },
       })
       break
     case 'candidature.rejected': {
@@ -188,7 +200,11 @@ export async function dispatch(event: Event) {
         userId: event.candidateId,
         event: 'candidature.rejected',
         email: { subject: 'Candidature non retenue', html: body },
-        push: { title: 'Candidature non retenue', body: event.listingTitle },
+        push: {
+          title: 'Candidature non retenue',
+          body: event.listingTitle,
+          data: { route: `/candidature/${event.candidatureId}` },
+        },
       })
       break
     }
@@ -197,7 +213,11 @@ export async function dispatch(event: Event) {
         userId: event.providerId,
         event: 'candidature.withdrawn',
         email: { subject: 'Candidature retirée', html: `${event.candidateName} a retiré sa candidature pour « ${event.listingTitle} ».` },
-        push: { title: 'Candidature retirée', body: `${event.candidateName} — ${event.listingTitle}` },
+        push: {
+          title: 'Candidature retirée',
+          body: `${event.candidateName} — ${event.listingTitle}`,
+          data: { route: `/listing/candidatures/${event.listingId}` },
+        },
       })
       break
   }
