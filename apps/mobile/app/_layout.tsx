@@ -2,9 +2,10 @@ import '../globals.css'
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
+import * as Notifications from 'expo-notifications'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
@@ -14,6 +15,21 @@ import 'react-native-reanimated'
 
 import { useColorScheme } from '@/components/useColorScheme'
 import { authClient } from '@/lib/auth'
+import { orpc } from '@/lib/orpc'
+import { syncPushToken } from '@/lib/push'
+
+// Foreground handler — when a push arrives while the app is open, the OS by default
+// suppresses it (assumption: the app's UI already shows the relevant info).
+// We override to show a banner anyway, which feels more native to users.
+// Set this once at module load, before any component renders.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+})
 
 export { ErrorBoundary } from 'expo-router'
 
@@ -74,6 +90,7 @@ function RootLayoutNav() {
   const { data: session, isPending } = authClient.useSession()
   const segments = useSegments()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (isPending) return
@@ -86,6 +103,39 @@ function RootLayoutNav() {
       router.replace('/(tabs)')
     }
   }, [session, isPending, segments])
+
+  // Once the user is logged in, ask for push permission + sync token to backend.
+  // Idempotent: getExpoPushTokenAsync returns the same token on subsequent calls
+  // for the same device + project, so calling on every login is fine.
+  useEffect(() => {
+    if (session) {
+      syncPushToken().catch(() => {})
+      // Prefetch candidatures so listing cards + detail screens can show status without flicker
+      queryClient.prefetchQuery(orpc.candidature.mine.queryOptions())
+    }
+  }, [session, queryClient])
+
+  // Notification tap → navigate to data.route if provided.
+  // Two paths:
+  //  - app open: response listener fires immediately on tap
+  //  - app cold-started by tapping the notification: getLastNotificationResponseAsync
+  //    returns the tap that launched it
+  useEffect(() => {
+    const handleTap = (route: unknown) => {
+      if (typeof route === 'string' && route.startsWith('/')) {
+        router.push(route as any)
+      }
+    }
+
+    Notifications.getLastNotificationResponseAsync().then((res) => {
+      if (res) handleTap((res.notification.request.content.data as any)?.route)
+    })
+
+    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
+      handleTap((res.notification.request.content.data as any)?.route)
+    })
+    return () => sub.remove()
+  }, [router])
 
   const warmTheme = {
     ...DefaultTheme,

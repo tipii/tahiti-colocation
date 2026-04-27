@@ -95,6 +95,7 @@ Missing pieces before store submission split into three priorities below.
 - [ ] Saved search alerts
 - [ ] iOS Universal Links + Android App Links (deep linking from web)
 - [ ] Payment integration if monetizing later
+- [ ] Multi-device push tokens (currently one `user.pushToken` per user — installing on a second device overwrites the first; migrate to a `user_devices` table when this becomes a real complaint)
 
 ---
 

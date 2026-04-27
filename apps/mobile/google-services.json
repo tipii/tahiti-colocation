@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "707314545",
+    "project_id": "coolive-64c4e",
+    "storage_bucket": "coolive-64c4e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:707314545:android:3eab17b7bff8560d0aacd0",
+        "android_client_info": {
+          "package_name": "app.coolive.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4uk1sFuQoKwgxCSr5ApQFNQwQ7LBwLKI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

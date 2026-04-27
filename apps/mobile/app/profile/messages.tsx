@@ -4,14 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 
 import { orpc, client } from '@/lib/orpc'
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; textColor: string; icon: string }> = {
-  pending: { label: 'En attente', color: 'bg-accent', textColor: 'text-accent-foreground', icon: 'clock' },
-  accepted: { label: 'Acceptée', color: 'bg-secondary', textColor: 'text-secondary-foreground', icon: 'check-circle' },
-  finalized: { label: 'Retenue', color: 'bg-primary', textColor: 'text-primary-foreground', icon: 'award' },
-  rejected: { label: 'Non retenue', color: 'bg-muted', textColor: 'text-muted-foreground', icon: 'x-circle' },
-  withdrawn: { label: 'Retirée', color: 'bg-muted', textColor: 'text-muted-foreground', icon: 'corner-down-left' },
-}
+import { CandidatureBadge } from '@/components/CandidatureStatus'
 
 export default function CandidaturesScreen() {
   const router = useRouter()
@@ -36,17 +29,13 @@ export default function CandidaturesScreen() {
         contentContainerStyle={{ padding: 24 }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item }) => {
-          const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.pending
           return (
             <View className="rounded-card bg-card p-4 shadow-sm">
-              <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center justify-between gap-2">
                 <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={1}>
                   {item.listingTitle ?? 'Annonce'}
                 </Text>
-                <View className={`flex-row items-center gap-1 rounded-pill px-2.5 py-0.5 ${config.color}`}>
-                  <Feather name={config.icon as any} size={12} color={item.status === 'finalized' ? '#fff' : undefined} />
-                  <Text className={`text-xs font-medium ${config.textColor}`}>{config.label}</Text>
-                </View>
+                <CandidatureBadge status={item.status} withIcon />
               </View>
 
               {item.message && (

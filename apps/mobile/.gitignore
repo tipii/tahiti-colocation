@@ -33,6 +33,15 @@ yarn-error.*
 # local env files
 .env*.local
 
+# google-services.json + GoogleService-Info.plist are NOT secret per Google docs.
+# They contain restricted API keys + project IDs and are bundled into every APK.
+# We commit them so EAS Build (which only uploads git-tracked files) can find them.
+#
+# The TRULY sensitive file is the service account key (Firebase Admin SDK).
+# It contains a private key and grants full Firebase server access — never commit.
+*-firebase-adminsdk-*.json
+*service-account*.json
+
 # typescript
 *.tsbuildinfo
 

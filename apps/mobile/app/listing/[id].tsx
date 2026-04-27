@@ -13,6 +13,8 @@ import { Feather } from '@expo/vector-icons'
 import { authClient } from '@/lib/auth'
 import { orpc, client } from '@/lib/orpc'
 import { FavoriteButton } from '@/components/FavoriteButton'
+import { getStatusMeta } from '@/components/CandidatureStatus'
+import { ListingStatusBadge } from '@/components/ListingStatus'
 
 const AMENITY_CONFIG: { key: string; icon: string; label: string }[] = [
   { key: 'privateBathroom', icon: 'droplet', label: 'Salle de bain\nprivée' },
@@ -37,12 +39,16 @@ export default function ListingDetailScreen() {
     orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
   )
 
-  // Fetch user's candidature for this listing
+  // Fetch user's candidature for this listing.
+  // Note: `id` from the URL can be a slug (when navigated from a card) or a UUID.
+  // Match against the loaded listing's actual UUID once available.
   const { data: myCandidatures = [] } = useQuery({
     ...orpc.candidature.mine.queryOptions(),
     enabled: !!session,
   })
-  const myCandidature = myCandidatures.find((c: any) => c.listingId === id)
+  const myCandidature = listing
+    ? myCandidatures.find((c: any) => c.listingId === listing.id)
+    : undefined
 
   const deleteM = useMutation({
     mutationFn: () => client.listing.delete({ id: listing!.id }),
@@ -167,6 +173,25 @@ export default function ListingDetailScreen() {
       </View>
 
       <View className="px-6 py-5 gap-6">
+        {myCandidature && (() => {
+          const meta = getStatusMeta(myCandidature.status)
+          return (
+            <Pressable
+              className={`flex-row items-center gap-3 rounded-card p-3 ${meta.bannerBg}`}
+              onPress={() => router.push(`/candidature/${myCandidature.id}` as any)}
+              accessibilityRole="link"
+              accessibilityLabel="Voir ma candidature"
+            >
+              <Feather name={meta.icon} size={18} color={meta.iconColor} />
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-foreground">Tu as postulé</Text>
+                <Text className="mt-0.5 text-xs text-muted-foreground">{meta.longLabel}</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#8B7E74" />
+            </Pressable>
+          )
+        })()}
+
         <View>
           <View className="flex-row items-center gap-2">
             <View className="rounded-pill bg-accent px-3 py-1">
@@ -174,11 +199,7 @@ export default function ListingDetailScreen() {
                 {DURATION_LABELS[listing.durationType as DurationType]}
               </Text>
             </View>
-            {listing.status === 'draft' && (
-              <View className="rounded-pill bg-muted px-3 py-1">
-                <Text className="text-xs font-semibold text-muted-foreground">Brouillon</Text>
-              </View>
-            )}
+            {listing.status !== 'published' && <ListingStatusBadge status={listing.status} />}
           </View>
           <Text className="mt-3 text-2xl font-bold text-foreground">{listing.title}</Text>
           <View className="mt-2 flex-row items-center gap-1.5">

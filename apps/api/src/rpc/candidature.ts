@@ -119,6 +119,7 @@ export const apply = authed.candidature.apply.handler(async ({ input, context })
     providerId: listing.authorId,
     candidateName: candidate.name,
     listingTitle: listing.title,
+    listingId: listing.id,
   }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(created!)
@@ -143,6 +144,7 @@ export const withdraw = authed.candidature.withdraw.handler(async ({ input, cont
       providerId: listing.authorId,
       candidateName: context.user.name,
       listingTitle: listing.title,
+      listingId: listing.id,
     }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
   }
 
@@ -179,6 +181,7 @@ export const accept = authed.candidature.accept.handler(async ({ input, context 
     type: 'candidature.accepted',
     candidateId: c.userId,
     listingTitle: listing.title,
+    candidatureId: c.id,
   }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(updated!)
@@ -203,6 +206,7 @@ export const reject = authed.candidature.reject.handler(async ({ input, context 
     candidateId: c.userId,
     listingTitle: listing.title,
     rejectionMessage: input.rejectionMessage ?? null,
+    candidatureId: c.id,
   }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(updated!)
@@ -243,6 +247,7 @@ export const finalize = authed.candidature.finalize.handler(async ({ input, cont
       candidateId: other.userId,
       listingTitle: listing.title,
       rejectionMessage: input.rejectionMessage ?? null,
+      candidatureId: other.id,
     }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
   }
 
@@ -252,6 +257,7 @@ export const finalize = authed.candidature.finalize.handler(async ({ input, cont
     type: 'candidature.finalized',
     candidateId: chosen.userId,
     listingTitle: listing.title,
+    candidatureId: chosen.id,
   }).catch((e) => log.error({ err: e }, 'notification dispatch failed'))
 
   return enrichCandidature(updated!)

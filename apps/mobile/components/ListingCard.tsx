@@ -2,10 +2,14 @@ import { Pressable, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
+import { useQuery } from '@tanstack/react-query'
 import type { Listing } from '@coloc/shared/types'
 import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { DurationType, RoomType } from '@coloc/shared/constants'
 
+import { authClient } from '@/lib/auth'
+import { orpc } from '@/lib/orpc'
+import { CandidatureBadge } from '@/components/CandidatureStatus'
 import { FavoriteButton } from '@/components/FavoriteButton'
 
 const AMENITY_ICONS: [string, string, string][] = [
@@ -25,10 +29,18 @@ function colocLabel(roommateCount: number, roomType: RoomType): string {
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const router = useRouter()
+  const { data: session } = authClient.useSession()
   const firstImage = listing.images?.[0]
   const durationLabel = DURATION_LABELS[listing.durationType as DurationType]
   const roomLabel = ROOM_TYPE_LABELS[listing.roomType as RoomType]
   const activeAmenities = AMENITY_ICONS.filter(([key]) => (listing as any)[key])
+
+  // Pull from the same cache as listing/[id] and the candidatures tab — single fetch shared via TanStack Query
+  const { data: myCandidatures = [] } = useQuery({
+    ...orpc.candidature.mine.queryOptions(),
+    enabled: !!session,
+  })
+  const myCandidature = myCandidatures.find((c: any) => c.listingId === listing.id)
   return (
     <Pressable
       className="overflow-hidden rounded-card bg-card shadow-sm"
@@ -55,8 +67,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
             {listing.price.toLocaleString('fr-FR')} XPF/mois
           </Text>
         </View>
-        <View className="absolute top-3 left-3 rounded-pill bg-white/90 px-2.5 py-1" accessibilityElementsHidden>
-          <Text className="text-xs font-medium text-foreground">{durationLabel}</Text>
+        <View className="absolute top-3 left-3 flex-row gap-1.5" accessibilityElementsHidden>
+          <View className="rounded-pill bg-white/90 px-2.5 py-1">
+            <Text className="text-xs font-medium text-foreground">{durationLabel}</Text>
+          </View>
+          {myCandidature && <CandidatureBadge status={myCandidature.status} />}
         </View>
         <View className="absolute top-3 right-3">
           <FavoriteButton listingId={listing.id} size={18} className="h-8 w-8" />

@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "app.coolive.mobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#FFF8F0",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

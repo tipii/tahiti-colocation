@@ -7,14 +7,7 @@ import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 
 import { orpc, client } from '@/lib/orpc'
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; textColor: string; icon: string }> = {
-  pending: { label: 'En attente', color: 'bg-accent', textColor: 'text-accent-foreground', icon: 'clock' },
-  accepted: { label: 'Acceptée', color: 'bg-secondary', textColor: 'text-secondary-foreground', icon: 'check-circle' },
-  finalized: { label: 'Retenue', color: 'bg-primary', textColor: 'text-primary-foreground', icon: 'award' },
-  rejected: { label: 'Non retenue', color: 'bg-muted', textColor: 'text-muted-foreground', icon: 'x-circle' },
-  withdrawn: { label: 'Retirée', color: 'bg-muted', textColor: 'text-muted-foreground', icon: 'corner-down-left' },
-}
+import { CandidatureBadge, getStatusMeta } from '@/components/CandidatureStatus'
 
 function timeAgo(date: Date): string {
   const diff = Date.now() - new Date(date).getTime()
@@ -60,7 +53,7 @@ export default function CandidaturesScreen() {
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 60 }}
         ItemSeparatorComponent={() => <View className="h-4" />}
         renderItem={({ item }) => {
-          const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.pending
+          const meta = getStatusMeta(item.status)
           const c = item as any
           const isActive = item.status === 'pending' || item.status === 'accepted' || item.status === 'finalized'
 
@@ -68,7 +61,7 @@ export default function CandidaturesScreen() {
             <Pressable
               className={`overflow-hidden rounded-card bg-card shadow-sm ${!isActive ? 'opacity-60' : ''}`}
               onPress={() => router.push(`/listing/${item.listingId}` as any)}
-              accessibilityLabel={`Candidature ${config.label} pour ${c.listingTitle}`}
+              accessibilityLabel={`Candidature ${meta.label} pour ${c.listingTitle}`}
             >
               {/* Image */}
               <View className="relative">
@@ -84,9 +77,8 @@ export default function CandidaturesScreen() {
                   </View>
                 )}
                 {/* Status badge on image */}
-                <View className={`absolute top-3 left-3 flex-row items-center gap-1.5 rounded-pill px-3 py-1 ${config.color}`}>
-                  <Feather name={config.icon as any} size={12} color={item.status === 'finalized' ? '#fff' : undefined} />
-                  <Text className={`text-xs font-semibold ${config.textColor}`}>{config.label}</Text>
+                <View className="absolute top-3 left-3">
+                  <CandidatureBadge status={item.status} withIcon />
                 </View>
                 {/* Time badge */}
                 <View className="absolute top-3 right-3 rounded-pill bg-black/50 px-2.5 py-1">

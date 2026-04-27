@@ -1,18 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native'
+import { Image } from 'expo-image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
 
 import { authClient } from '@/lib/auth'
 import { client, orpc } from '@/lib/orpc'
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'En attente', color: 'bg-accent' },
-  accepted: { label: 'Acceptée', color: 'bg-secondary' },
-  finalized: { label: 'Retenue', color: 'bg-primary' },
-  rejected: { label: 'Non retenue', color: 'bg-muted' },
-  withdrawn: { label: 'Retirée', color: 'bg-muted' },
-}
+import { CandidatureBadge } from '@/components/CandidatureStatus'
 
 function normalizePhone(phone: string | null): string | null {
   if (!phone) return null
@@ -87,20 +81,34 @@ export default function CandidatureDetailScreen() {
   if (isLoading) return <View className="flex-1 items-center justify-center bg-background"><ActivityIndicator size="large" color="#FF6B35" /></View>
   if (!candidature) return <View className="flex-1 items-center justify-center bg-background"><Text className="text-muted-foreground">Candidature introuvable</Text></View>
 
-  const status = STATUS_LABELS[candidature.status] ?? STATUS_LABELS.pending
   const contactVisible = candidature.status === 'accepted' || candidature.status === 'finalized'
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerStyle={{ padding: 24, gap: 16 }}>
-      <View>
-        <Text className="text-xl font-bold text-foreground">{candidature.listingTitle ?? 'Annonce'}</Text>
-        {candidature.listingCommune && (
-          <Text className="mt-1 text-sm text-muted-foreground">{candidature.listingCommune}, {candidature.listingIsland}</Text>
+      <Pressable
+        className="flex-row items-center gap-3 overflow-hidden rounded-card bg-card p-3 shadow-sm"
+        onPress={() => router.push(`/listing/${candidature.listingId}` as any)}
+        accessibilityRole="link"
+        accessibilityLabel="Ouvrir l'annonce"
+      >
+        {candidature.listingImage ? (
+          <Image source={{ uri: candidature.listingImage }} style={{ width: 64, height: 64, borderRadius: 8 }} contentFit="cover" />
+        ) : (
+          <View className="h-16 w-16 items-center justify-center rounded-md bg-muted">
+            <Feather name="home" size={24} color="#8B7E74" />
+          </View>
         )}
-        <View className={`mt-2 self-start rounded-pill px-3 py-1 ${status.color}`}>
-          <Text className="text-xs font-semibold text-foreground">{status.label}</Text>
+        <View className="flex-1">
+          <Text className="text-base font-semibold text-foreground" numberOfLines={1}>{candidature.listingTitle ?? 'Annonce'}</Text>
+          {candidature.listingCommune && (
+            <Text className="mt-0.5 text-xs text-muted-foreground" numberOfLines={1}>{candidature.listingCommune}, {candidature.listingIsland}</Text>
+          )}
+          <View className="mt-1.5">
+            <CandidatureBadge status={candidature.status} />
+          </View>
         </View>
-      </View>
+        <Feather name="chevron-right" size={18} color="#8B7E74" />
+      </Pressable>
 
       {candidature.message && (
         <View className="rounded-card bg-card p-4 shadow-sm">
