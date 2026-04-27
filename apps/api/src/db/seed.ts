@@ -46,6 +46,63 @@ const CITIES_BY_REGION: Record<string, string[]> = {
   'nuku-hiva': ['Taiohae', 'Hatiheu'],
 }
 
+// Approximate centroids per city (lat, lng). Used to seed listing coords.
+// Values come from public city-level lookups; precise to ~city-block level.
+// Listings then get a ±300m jitter so the map pin never reveals the exact address.
+const CITY_CENTROIDS: Record<string, [number, number]> = {
+  // Tahiti
+  Papeete: [-17.5325, -149.5665],
+  Punaauia: [-17.6242, -149.6075],
+  Faaa: [-17.5573, -149.6110],
+  Pirae: [-17.5246, -149.5374],
+  Arue: [-17.5172, -149.5113],
+  Mahina: [-17.5040, -149.4760],
+  Paea: [-17.6878, -149.5811],
+  Papara: [-17.7510, -149.5470],
+  Taravao: [-17.7351, -149.3146],
+  // Moorea
+  Afareaitu: [-17.5570, -149.7989],
+  Haapiti: [-17.5540, -149.8730],
+  Paopao: [-17.5141, -149.8262],
+  Teavaro: [-17.4896, -149.7714],
+  // Bora Bora
+  Vaitape: [-16.5097, -151.7472],
+  Anau: [-16.4910, -151.7220],
+  Faanui: [-16.4820, -151.7610],
+  // Huahine
+  Fare: [-16.7167, -151.0333],
+  Maeva: [-16.7239, -151.0114],
+  Fitii: [-16.7790, -151.0220],
+  // Raiatea
+  Uturoa: [-16.7311, -151.4467],
+  Avera: [-16.7822, -151.4367],
+  Opoa: [-16.8350, -151.3730],
+  // Rangiroa
+  Avatoru: [-14.9497, -147.7000],
+  Tiputa: [-14.9756, -147.6217],
+  // Fakarava
+  Rotoava: [-16.0578, -145.6217],
+  Tetamanu: [-16.4840, -145.4470],
+  // Nuku Hiva
+  Taiohae: [-8.9112, -140.0995],
+  Hatiheu: [-8.8170, -140.0930],
+}
+
+// Returns lat/lng strings (the column type is text) jittered by up to ~300m.
+// 1 degree of latitude ≈ 111km, so 300m ≈ 0.0027 degrees.
+function jitterCoords(city: string): { latitude: string | null; longitude: string | null } {
+  const centroid = CITY_CENTROIDS[city]
+  if (!centroid) return { latitude: null, longitude: null }
+  const [lat, lng] = centroid
+  const dLat = (Math.random() - 0.5) * 0.0054 // ~±300m
+  // Longitude degrees shrink by cos(lat); at -17° ≈ 0.956
+  const dLng = ((Math.random() - 0.5) * 0.0054) / Math.cos((lat * Math.PI) / 180)
+  return {
+    latitude: (lat + dLat).toFixed(6),
+    longitude: (lng + dLng).toFixed(6),
+  }
+}
+
 const USERS = [
   { name: 'Hinano Tetuanui', email: 'hinano@coloc.pf' },
   { name: 'Maui Teriitahi', email: 'maui@coloc.pf' },
@@ -188,6 +245,7 @@ async function seed() {
     const authorId = pick(providerIds)
     const listingType = pick(LISTING_TYPES)
     const price = pick([45000, 55000, 65000, 75000, 80000, 95000, 110000, 120000, 150000, 180000])
+    const { latitude, longitude } = jitterCoords(city)
 
     await db.insert(schema.listings).values({
       title,
@@ -202,6 +260,8 @@ async function seed() {
       country: 'PF',
       region,
       city,
+      latitude,
+      longitude,
       roomType: pick(ROOM_TYPES),
       roommateCount: pick([0, 1, 1, 2, 2, 3]),
       privateBathroom: Math.random() > 0.5,
