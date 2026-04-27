@@ -74,11 +74,7 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
 
   return (
     <View style={{ flex: 1 }}>
-      <Map
-        mapStyle={OSM_STYLE}
-        style={{ flex: 1 }}
-        onPress={() => setSelectedId(null)}
-      >
+      <Map mapStyle={OSM_STYLE} style={{ flex: 1 }}>
         <Camera initialViewState={initialViewState} />
         {listings.map((l) => (
           <Marker
