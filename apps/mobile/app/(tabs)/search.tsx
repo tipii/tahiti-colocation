@@ -152,7 +152,7 @@ export default function SearchScreen() {
             {isLoading ? 'Recherche...' : `${total} annonce${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
           </Text>
           <View className="flex-row rounded-pill border border-border bg-card p-0.5">
-            {(['list', 'map'] as const).map((v) => (
+            {(['map', 'list'] as const).map((v) => (
               <Pressable
                 key={v}
                 className={`flex-row items-center gap-1 rounded-pill px-3 py-1.5 ${view === v ? 'bg-primary' : ''}`}
