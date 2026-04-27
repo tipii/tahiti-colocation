@@ -92,10 +92,10 @@ export default function CandidaturesScreen() {
                   {c.listingTitle ?? 'Annonce'}
                 </Text>
 
-                {c.listingCommune && (
+                {c.listingCity && (
                   <View className="mt-1 flex-row items-center gap-1">
                     <Feather name="map-pin" size={13} color="#0D9488" />
-                    <Text className="text-sm text-muted-foreground">{c.listingCommune}, {c.listingIsland}</Text>
+                    <Text className="text-sm text-muted-foreground">{c.listingCity}, {c.listingRegionLabel ?? c.listingRegion}</Text>
                   </View>
                 )}
 

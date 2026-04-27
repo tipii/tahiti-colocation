@@ -1,7 +1,7 @@
 import { eq, and, sql, desc, ne } from 'drizzle-orm'
 
 import { db } from '../db'
-import { candidatures, listings, user } from '../db/schema'
+import { candidatures, countries, listings, regions, user } from '../db/schema'
 import { logger } from '../lib/logger'
 import { dispatch } from '../lib/notifications'
 import { authed } from './base'
@@ -58,13 +58,25 @@ async function enrichCandidature(c: typeof candidatures.$inferSelect, includeUse
 
   if (includeListingTitle) {
     const [l] = await db
-      .select({ title: listings.title, commune: listings.commune, island: listings.island })
+      .select({ title: listings.title, city: listings.city, region: listings.region, country: listings.country })
       .from(listings)
       .where(eq(listings.id, c.listingId))
       .limit(1)
     result.listingTitle = l?.title
-    result.listingCommune = l?.commune
-    result.listingIsland = l?.island
+    result.listingCity = l?.city
+    result.listingRegion = l?.region
+    result.listingCountry = l?.country
+
+    if (l?.country && l?.region) {
+      const [cn] = await db.select({ label: countries.label }).from(countries).where(eq(countries.code, l.country)).limit(1)
+      const [rg] = await db
+        .select({ label: regions.label })
+        .from(regions)
+        .where(and(eq(regions.countryCode, l.country), eq(regions.code, l.region)))
+        .limit(1)
+      result.listingCountryLabel = cn?.label ?? l.country
+      result.listingRegionLabel = rg?.label ?? l.region
+    }
 
     const { images } = await import('../db/schema')
     const { asc } = await import('drizzle-orm')

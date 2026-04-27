@@ -48,7 +48,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
 
           <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="h-3.5 w-3.5 text-secondary" />
-            {listing.commune}, {listing.island}
+            {listing.city}, {listing.regionLabel ?? listing.region}
           </p>
 
           {/* Coloc makeup */}

@@ -3,8 +3,8 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressa
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, Island, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import type { ListingType, RoomType } from '@coloc/shared/constants'
 import type { Image as ImageType } from '@coloc/shared/types'
 
 import { orpc, client } from '@/lib/orpc'
@@ -31,8 +31,8 @@ export default function EditListingScreen() {
       listingType: 'colocation' as ListingType,
       availableFrom: '',
       availableTo: '',
-      island: 'Tahiti' as Island,
-      commune: '',
+      region: 'tahiti',
+      city: '',
       roomType: 'single' as RoomType,
       roommateCount: '1',
       privateBathroom: false,
@@ -45,6 +45,11 @@ export default function EditListingScreen() {
     },
   })
 
+  const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
+    input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
+
   const { isLoading } = useQuery({
     ...orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
     enabled: !!id,
@@ -56,8 +61,8 @@ export default function EditListingScreen() {
         form.setFieldValue('listingType', l.listingType)
         form.setFieldValue('availableFrom', new Date(l.availableFrom).toISOString().split('T')[0])
         form.setFieldValue('availableTo', l.availableTo ? new Date(l.availableTo).toISOString().split('T')[0] : '')
-        form.setFieldValue('island', l.island)
-        form.setFieldValue('commune', l.commune)
+        form.setFieldValue('region', l.region)
+        form.setFieldValue('city', l.city)
         form.setFieldValue('roomType', l.roomType)
         form.setFieldValue('roommateCount', String(l.roommateCount))
         form.setFieldValue('privateBathroom', l.privateBathroom)
@@ -93,7 +98,7 @@ export default function EditListingScreen() {
         id: id!, title: v.title, description: v.description, price: Number(v.price),
         listingType: v.listingType, availableFrom: new Date(v.availableFrom),
         availableTo: v.availableTo ? new Date(v.availableTo) : null,
-        island: v.island, commune: v.commune, roomType: v.roomType,
+        region: v.region, city: v.city, roomType: v.roomType,
         roommateCount: Number(v.roommateCount),
         privateBathroom: v.privateBathroom, privateToilets: v.privateToilets,
         pool: v.pool, parking: v.parking, airConditioning: v.airConditioning,
@@ -139,8 +144,8 @@ export default function EditListingScreen() {
           <form.Field name="availableTo">{(f) => <DateField label="Jusqu'au (optionnel)" value={f.state.value} onChange={f.handleChange} placeholder="Pas de date de fin" />}</form.Field>
 
           <SectionTitle>Localisation</SectionTitle>
-          <form.Field name="island">{(f) => <ScrollView horizontal showsHorizontalScrollIndicator={false}><View className="flex-row gap-2">{ISLANDS.map((i) => <Pressable key={i} className={`rounded-pill px-4 py-2 ${f.state.value === i ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(i)}><Text className={`text-sm ${f.state.value === i ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{i}</Text></Pressable>)}</View></ScrollView>}</form.Field>
-          <form.Field name="commune">{(f) => <TextInput className="mt-3 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Commune" placeholderTextColor="#8B7E74" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
+          <form.Field name="region">{(f) => <ScrollView horizontal showsHorizontalScrollIndicator={false}><View className="flex-row gap-2">{regionOptions.map((r) => <Pressable key={r.code} className={`rounded-pill px-4 py-2 ${f.state.value === r.code ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(r.code)}><Text className={`text-sm ${f.state.value === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{r.label}</Text></Pressable>)}</View></ScrollView>}</form.Field>
+          <form.Field name="city">{(f) => <TextInput className="mt-3 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Commune" placeholderTextColor="#8B7E74" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
 
           <SectionTitle>Logement</SectionTitle>
           <form.Field name="roomType">{(f) => <View className="flex-row gap-2">{ROOM_TYPES.map((rt) => <Pressable key={rt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === rt ? 'bg-secondary' : 'bg-muted'}`} onPress={() => f.handleChange(rt)}><Text className={`text-sm font-medium ${f.state.value === rt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>{ROOM_TYPE_LABELS[rt]}</Text></Pressable>)}</View>}</form.Field>

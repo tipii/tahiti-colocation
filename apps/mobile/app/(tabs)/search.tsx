@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ActivityIndicator } from 'react-native'
 import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
-import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, Island, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import type { ListingType, RoomType } from '@coloc/shared/constants'
 
 import { orpc, client } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
@@ -48,7 +48,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets()
   const bottomSheetRef = useRef<BottomSheet>(null)
   const [search, setSearch] = useState('')
-  const [island, setIsland] = useState<string | null>(null)
+  const [region, setRegion] = useState<string | null>(null)
   const [listingType, setListingType] = useState<string | null>(null)
   const [roomType, setRoomType] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
@@ -62,14 +62,19 @@ export default function SearchScreen() {
   const debouncedMin = useDebounce(minPrice)
   const debouncedMax = useDebounce(maxPrice)
 
+  const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
+    input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
+
   const snapPoints = useMemo(() => ['7%', '55%', '85%'], [])
   const [sheetIndex, setSheetIndex] = useState(0)
 
-  const activeFilterCount = [island, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
+  const activeFilterCount = [region, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
 
   const input = {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
-    ...(island ? { island: island as Island } : {}),
+    ...(region ? { region } : {}),
     ...(listingType ? { listingType: listingType as ListingType } : {}),
     ...(roomType ? { roomType: roomType as RoomType } : {}),
     ...(debouncedMin ? { minPrice: Number(debouncedMin) } : {}),
@@ -95,7 +100,7 @@ export default function SearchScreen() {
 
   const resetFilters = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    setSearch(''); setIsland(null); setListingType(null); setRoomType(null)
+    setSearch(''); setRegion(null); setListingType(null); setRoomType(null)
     setMinPrice(''); setMaxPrice('')
     setPool(false); setParking(false); setAirConditioning(false); setPetsAccepted(false)
   }
@@ -192,13 +197,13 @@ export default function SearchScreen() {
         </Pressable>
 
         <BottomSheetScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40, gap: 24 }}>
-          {/* Island */}
+          {/* Region */}
           <FilterSection title="Île">
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2">
-                <Chip label="Toutes" active={!island} onPress={() => setIsland(null)} />
-                {ISLANDS.filter((i) => i !== 'Other').map((i) => (
-                  <Chip key={i} label={i} active={island === i} onPress={() => setIsland(island === i ? null : i)} />
+                <Chip label="Toutes" active={!region} onPress={() => setRegion(null)} />
+                {regionOptions.filter((r) => r.code !== 'other').map((r) => (
+                  <Chip key={r.code} label={r.label} active={region === r.code} onPress={() => setRegion(region === r.code ? null : r.code)} />
                 ))}
               </View>
             </ScrollView>

@@ -16,8 +16,8 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, Island, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import type { ListingType, RoomType } from '@coloc/shared/constants'
 
 import * as Haptics from 'expo-haptics'
 import { authClient } from '@/lib/auth'
@@ -39,6 +39,11 @@ export default function CreateListingScreen() {
   const { data: profile } = useQuery(orpc.user.me.queryOptions())
   const emailVerified = !!profile?.emailVerified
 
+  const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
+    input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
+
   const resendM = useMutation({
     mutationFn: () => authClient.sendVerificationEmail({ email: profile!.email }),
     onSuccess: () => Alert.alert('Email envoyé', 'Vérifie ta boîte mail (et le dossier spam).'),
@@ -53,8 +58,8 @@ export default function CreateListingScreen() {
       listingType: 'colocation' as ListingType,
       availableFrom: '',
       availableTo: '',
-      island: 'Tahiti' as Island,
-      commune: '',
+      region: 'tahiti',
+      city: '',
       roomType: 'single' as RoomType,
       roommateCount: '1',
       privateBathroom: false,
@@ -76,8 +81,8 @@ export default function CreateListingScreen() {
         listingType: v.listingType,
         availableFrom: new Date(v.availableFrom),
         availableTo: v.availableTo ? new Date(v.availableTo) : null,
-        island: v.island,
-        commune: v.commune,
+        region: v.region,
+        city: v.city,
         roomType: v.roomType,
         roommateCount: Number(v.roommateCount),
         privateBathroom: v.privateBathroom,
@@ -116,7 +121,7 @@ export default function CreateListingScreen() {
     if (!v.title) errors.push('Titre')
     if (!v.description) errors.push('Description')
     if (!v.price) errors.push('Prix')
-    if (!v.commune) errors.push('Commune')
+    if (!v.city) errors.push('Commune')
     if (!v.availableFrom) errors.push('Date de disponibilité')
     setValidationErrors(errors)
     if (errors.length > 0) {
@@ -195,20 +200,20 @@ export default function CreateListingScreen() {
 
           {/* Location */}
           <SectionTitle>Localisation</SectionTitle>
-          <form.Field name="island">
+          <form.Field name="region">
             {(f) => (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View className="flex-row gap-2">
-                  {ISLANDS.map((i) => (
-                    <Pressable key={i} className={`rounded-pill px-4 py-2 ${f.state.value === i ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(i)}>
-                      <Text className={`text-sm ${f.state.value === i ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{i}</Text>
+                  {regionOptions.map((r) => (
+                    <Pressable key={r.code} className={`rounded-pill px-4 py-2 ${f.state.value === r.code ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(r.code)}>
+                      <Text className={`text-sm ${f.state.value === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{r.label}</Text>
                     </Pressable>
                   ))}
                 </View>
               </ScrollView>
             )}
           </form.Field>
-          <form.Field name="commune">
+          <form.Field name="city">
             {(f) => <TextInput className="mt-3 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Commune" placeholderTextColor="#8B7E74" value={f.state.value} onChangeText={f.handleChange} />}
           </form.Field>
 

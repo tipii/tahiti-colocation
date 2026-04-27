@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import * as schema from './schema'
 import { auth } from '../lib/auth'
 
@@ -28,20 +28,22 @@ function futureDate(daysMin: number, daysMax: number) {
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
-const ISLANDS = ['Tahiti', 'Moorea', 'Bora Bora', 'Huahine', 'Raiatea', 'Rangiroa', 'Fakarava', 'Nuku Hiva'] as const
+// Region slugs — must match `regions.code` rows seeded below.
+const REGIONS = ['tahiti', 'moorea', 'bora-bora', 'huahine', 'raiatea', 'rangiroa', 'fakarava', 'nuku-hiva'] as const
 // 80% colocations, 20% short-term sublets — matches expected real-world mix
 const LISTING_TYPES = ['colocation', 'colocation', 'colocation', 'colocation', 'sous_location'] as const
 const ROOM_TYPES = ['single', 'couple', 'both'] as const
 
-const COMMUNES: Record<string, string[]> = {
-  Tahiti: ['Papeete', 'Punaauia', 'Faaa', 'Pirae', 'Arue', 'Mahina', 'Paea', 'Papara', 'Taravao'],
-  Moorea: ['Afareaitu', 'Haapiti', 'Paopao', 'Teavaro'],
-  'Bora Bora': ['Vaitape', 'Anau', 'Faanui'],
-  Huahine: ['Fare', 'Maeva', 'Fitii'],
-  Raiatea: ['Uturoa', 'Avera', 'Opoa'],
-  Rangiroa: ['Avatoru', 'Tiputa'],
-  Fakarava: ['Rotoava', 'Tetamanu'],
-  'Nuku Hiva': ['Taiohae', 'Hatiheu'],
+// Cities per region (keyed by region slug). Add per-country maps when expanding.
+const CITIES_BY_REGION: Record<string, string[]> = {
+  tahiti: ['Papeete', 'Punaauia', 'Faaa', 'Pirae', 'Arue', 'Mahina', 'Paea', 'Papara', 'Taravao'],
+  moorea: ['Afareaitu', 'Haapiti', 'Paopao', 'Teavaro'],
+  'bora-bora': ['Vaitape', 'Anau', 'Faanui'],
+  huahine: ['Fare', 'Maeva', 'Fitii'],
+  raiatea: ['Uturoa', 'Avera', 'Opoa'],
+  rangiroa: ['Avatoru', 'Tiputa'],
+  fakarava: ['Rotoava', 'Tetamanu'],
+  'nuku-hiva': ['Taiohae', 'Hatiheu'],
 }
 
 const USERS = [
@@ -60,21 +62,21 @@ const USERS = [
 const PASSWORD = 'coloc2026'
 
 const TITLES = [
-  'Chambre vue lagon a {commune}',
-  'Coloc chill a {commune}',
-  'Suite avec piscine a {commune}',
-  'Studio bord de mer a {commune}',
-  'Fare traditionnel a {commune}',
-  'Chambre dans villa a {commune}',
-  'Coloc jeunes actifs a {commune}',
-  'Bungalow partage a {commune}',
-  'Chambre calme a {commune}',
-  'Coloc ambiance tropicale a {commune}',
-  'Chambre avec jardin a {commune}',
-  'Suite privee a {commune}',
-  'Coloc proche plage a {commune}',
-  'Chambre meublee a {commune}',
-  'Maison partagee a {commune}',
+  'Chambre vue lagon a {city}',
+  'Coloc chill a {city}',
+  'Suite avec piscine a {city}',
+  'Studio bord de mer a {city}',
+  'Fare traditionnel a {city}',
+  'Chambre dans villa a {city}',
+  'Coloc jeunes actifs a {city}',
+  'Bungalow partage a {city}',
+  'Chambre calme a {city}',
+  'Coloc ambiance tropicale a {city}',
+  'Chambre avec jardin a {city}',
+  'Suite privee a {city}',
+  'Coloc proche plage a {city}',
+  'Chambre meublee a {city}',
+  'Maison partagee a {city}',
 ]
 
 const DESCRIPTIONS = [
@@ -92,6 +94,36 @@ const DESCRIPTIONS = [
 
 async function seed() {
   console.log('🌱 Seeding database...')
+
+  // ── Geo (countries + regions) ─────────────────────────────────────────────
+  await db.insert(schema.countries).values([
+    { code: 'PF', label: 'Polynésie française', sortOrder: 0 },
+  ]).onConflictDoNothing()
+
+  const PF_REGION_ROWS = [
+    { code: 'tahiti', label: 'Tahiti', sortOrder: 0 },
+    { code: 'moorea', label: 'Moorea', sortOrder: 1 },
+    { code: 'huahine', label: 'Huahine', sortOrder: 2 },
+    { code: 'raiatea', label: 'Raiatea', sortOrder: 3 },
+    { code: 'tahaa', label: 'Tahaa', sortOrder: 4 },
+    { code: 'bora-bora', label: 'Bora Bora', sortOrder: 5 },
+    { code: 'rangiroa', label: 'Rangiroa', sortOrder: 6 },
+    { code: 'fakarava', label: 'Fakarava', sortOrder: 7 },
+    { code: 'nuku-hiva', label: 'Nuku Hiva', sortOrder: 8 },
+    { code: 'hiva-oa', label: 'Hiva Oa', sortOrder: 9 },
+    { code: 'other', label: 'Autre', sortOrder: 99 },
+  ]
+  for (const r of PF_REGION_ROWS) {
+    const [existing] = await db
+      .select({ id: schema.regions.id })
+      .from(schema.regions)
+      .where(and(eq(schema.regions.countryCode, 'PF'), eq(schema.regions.code, r.code)))
+      .limit(1)
+    if (!existing) {
+      await db.insert(schema.regions).values({ countryCode: 'PF', ...r })
+    }
+  }
+  console.log(`  🌍 1 country, ${PF_REGION_ROWS.length} regions`)
 
   // Use Better Auth's own password hasher
   const { hashPassword } = await import('better-auth/crypto')
@@ -148,10 +180,10 @@ async function seed() {
   let listingCount = 0
 
   for (let i = 0; i < 30; i++) {
-    const island = pick(ISLANDS)
-    const commune = pick(COMMUNES[island]!)
+    const region = pick(REGIONS)
+    const city = pick(CITIES_BY_REGION[region]!)
     const titleTemplate = pick(TITLES)
-    const title = titleTemplate.replace('{commune}', commune)
+    const title = titleTemplate.replace('{city}', city)
     const listingSlug = `${slug(title)}-${rand(100, 999)}`
     const authorId = pick(providerIds)
     const listingType = pick(LISTING_TYPES)
@@ -167,8 +199,9 @@ async function seed() {
       listingType,
       availableFrom: futureDate(1, 60),
       availableTo: listingType === 'sous_location' ? futureDate(61, 120) : null,
-      island,
-      commune,
+      country: 'PF',
+      region,
+      city,
       roomType: pick(ROOM_TYPES),
       roommateCount: pick([0, 1, 1, 2, 2, 3]),
       privateBathroom: Math.random() > 0.5,

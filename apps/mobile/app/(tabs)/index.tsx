@@ -1,25 +1,30 @@
 import { useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import * as Haptics from 'expo-haptics'
-import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
 
 import { authClient } from '@/lib/auth'
-import { client } from '@/lib/orpc'
+import { client, orpc } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
 
 export default function HomeScreen() {
   const { data: session } = authClient.useSession()
   const insets = useSafeAreaInsets()
-  const [selectedIsland, setSelectedIsland] = useState<string | null>(null)
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
 
   const input = {
-    ...(selectedIsland ? { island: selectedIsland as any } : {}),
+    ...(selectedRegion ? { region: selectedRegion as any } : {}),
     ...(selectedDuration ? { listingType: selectedDuration as any } : {}),
   }
+
+  const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
+    input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
 
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['listings', 'home', input],
@@ -51,24 +56,24 @@ export default function HomeScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             <Pressable
-              className={`rounded-pill px-4 py-2 ${!selectedIsland ? 'bg-primary' : 'bg-muted'}`}
-              onPress={() => { Haptics.selectionAsync(); setSelectedIsland(null) }}
+              className={`rounded-pill px-4 py-2 ${!selectedRegion ? 'bg-primary' : 'bg-muted'}`}
+              onPress={() => { Haptics.selectionAsync(); setSelectedRegion(null) }}
               accessibilityLabel="Toutes les îles"
               accessibilityRole="button"
-              accessibilityState={{ selected: !selectedIsland }}
+              accessibilityState={{ selected: !selectedRegion }}
             >
-              <Text className={`text-sm font-medium ${!selectedIsland ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+              <Text className={`text-sm font-medium ${!selectedRegion ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
                 Toutes les iles
               </Text>
             </Pressable>
-            {ISLANDS.filter((i) => i !== 'Other').map((island) => (
+            {regionOptions.filter((r) => r.code !== 'other').map((r) => (
               <Pressable
-                key={island}
-                className={`rounded-pill px-4 py-2 ${selectedIsland === island ? 'bg-primary' : 'bg-muted'}`}
-                onPress={() => { Haptics.selectionAsync(); setSelectedIsland(selectedIsland === island ? null : island) }}
+                key={r.code}
+                className={`rounded-pill px-4 py-2 ${selectedRegion === r.code ? 'bg-primary' : 'bg-muted'}`}
+                onPress={() => { Haptics.selectionAsync(); setSelectedRegion(selectedRegion === r.code ? null : r.code) }}
               >
-                <Text className={`text-sm font-medium ${selectedIsland === island ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
-                  {island}
+                <Text className={`text-sm font-medium ${selectedRegion === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                  {r.label}
                 </Text>
               </Pressable>
             ))}

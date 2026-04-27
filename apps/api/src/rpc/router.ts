@@ -4,8 +4,13 @@ import * as image from './image'
 import * as favorite from './favorite'
 import * as candidature from './candidature'
 import * as userProc from './user'
+import * as geo from './geo'
 
 export const router = pub.router({
+  geo: {
+    countries: geo.countriesList,
+    regions: geo.regionsList,
+  },
   listing: {
     list: listing.list,
     get: listing.get,

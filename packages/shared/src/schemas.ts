@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
-import { LISTING_TYPES, ISLANDS, LISTING_STATUSES, ROOM_TYPES } from './constants'
+import { LISTING_TYPES, LISTING_STATUSES, ROOM_TYPES } from './constants'
+
+const countryCode = z.string().length(2)
+const regionCode = z.string().min(1).max(50)
 
 export const userSchema = z.object({
   id: z.string(),
@@ -36,8 +39,11 @@ export const listingSchema = z.object({
   listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable(),
-  island: z.enum(ISLANDS),
-  commune: z.string(),
+  country: countryCode,
+  region: regionCode,
+  city: z.string(),
+  countryLabel: z.string().optional(),
+  regionLabel: z.string().optional(),
   latitude: z.string().nullable(),
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),
@@ -62,8 +68,9 @@ export const createListingSchema = z.object({
   listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable().optional(),
-  island: z.enum(ISLANDS),
-  commune: z.string().min(1).max(100),
+  country: countryCode.optional().default('PF'),
+  region: regionCode,
+  city: z.string().min(1).max(100),
   latitude: z.string().nullable().optional(),
   longitude: z.string().nullable().optional(),
   roomType: z.enum(ROOM_TYPES),
@@ -80,7 +87,8 @@ export const createListingSchema = z.object({
 export const updateListingSchema = createListingSchema.partial()
 
 export const listingFiltersSchema = z.object({
-  island: z.enum(ISLANDS).optional(),
+  country: countryCode.optional(),
+  region: regionCode.optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),

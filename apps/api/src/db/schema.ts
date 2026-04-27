@@ -1,7 +1,6 @@
 import { relations } from 'drizzle-orm'
 import { date, index, integer, jsonb, pgTable, primaryKey, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
 import type {
-  ISLANDS,
   LISTING_TYPES,
   ROOM_TYPES,
   LISTING_STATUSES,
@@ -12,7 +11,6 @@ import type {
   LANGUAGE_CHOICES,
 } from '@coloc/contract'
 
-type Island = (typeof ISLANDS)[number]
 type ListingType = (typeof LISTING_TYPES)[number]
 type RoomType = (typeof ROOM_TYPES)[number]
 type ListingStatus = (typeof LISTING_STATUSES)[number]
@@ -133,6 +131,30 @@ export const accountRelations = relations(account, ({ one }) => ({
 
 // ── Application tables ──────────────────────────────────────────────────────
 
+// Geo reference: source of truth for listings.country / listings.region.
+// Free-text columns on listings for now (no FK) — code is the same string we
+// store there. Validation happens at the RPC handler.
+export const countries = pgTable('countries', {
+  code: varchar('code', { length: 2 }).primaryKey(),
+  label: text('label').notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+})
+
+export const regions = pgTable(
+  'regions',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    countryCode: varchar('country_code', { length: 2 }).notNull().references(() => countries.code, { onDelete: 'cascade' }),
+    code: varchar('code', { length: 50 }).notNull(),
+    label: text('label').notNull(),
+    sortOrder: integer('sort_order').default(0).notNull(),
+  },
+  (table) => [
+    index('regions_country_idx').on(table.countryCode),
+    index('regions_country_code_unique').on(table.countryCode, table.code),
+  ],
+)
+
 export const listings = pgTable(
   'listings',
   {
@@ -148,8 +170,9 @@ export const listings = pgTable(
     availableFrom: timestamp('available_from').notNull(),
     availableTo: timestamp('available_to'),
     // Location
-    island: varchar('island', { length: 50 }).$type<Island>().notNull(),
-    commune: varchar('commune', { length: 100 }).notNull(),
+    country: varchar('country', { length: 2 }).notNull().default('PF'),
+    region: varchar('region', { length: 50 }).notNull(),
+    city: varchar('city', { length: 100 }).notNull(),
     latitude: text('latitude'),
     longitude: text('longitude'),
     // Amenities
@@ -174,7 +197,8 @@ export const listings = pgTable(
   (table) => [
     index('listings_author_idx').on(table.authorId),
     index('listings_status_idx').on(table.status),
-    index('listings_island_idx').on(table.island),
+    index('listings_country_idx').on(table.country),
+    index('listings_region_idx').on(table.region),
   ],
 )
 

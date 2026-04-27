@@ -1,9 +1,8 @@
 import { z } from 'zod'
 
-export const ISLANDS = [
-  'Tahiti', 'Moorea', 'Huahine', 'Raiatea', 'Tahaa',
-  'Bora Bora', 'Rangiroa', 'Fakarava', 'Nuku Hiva', 'Hiva Oa', 'Other',
-] as const
+// country / region values are sourced from the `countries` / `regions` DB tables
+// (served via `geo.countries` and `geo.regions`). Validation at the handler layer
+// rejects unknown codes. Schemas only enforce shape + length here.
 
 // Listing kinds. `colocation` is the default flagship use case (shared room rental).
 // `sous_location` is short-term sublet of a room within a coloc.
@@ -17,6 +16,9 @@ export const SMOKER_CHOICES = ['no', 'outside', 'yes'] as const
 export const PET_CHOICES = ['none', 'cat', 'dog', 'other'] as const
 export const SCHEDULE_CHOICES = ['day', 'night', 'flexible'] as const
 export const LANGUAGE_CHOICES = ['fr', 'en', 'ty'] as const
+
+const countryCode = z.string().length(2)
+const regionCode = z.string().min(1).max(50)
 
 export const imageSchema = z.object({
   id: z.string(),
@@ -43,8 +45,13 @@ export const listingSchema = z.object({
   listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable(),
-  island: z.enum(ISLANDS),
-  commune: z.string(),
+  country: countryCode,
+  region: regionCode,
+  city: z.string(),
+  // Display labels resolved from the geo tables. Optional so handlers that
+  // don't enrich (e.g. raw inserts) still satisfy the schema.
+  countryLabel: z.string().optional(),
+  regionLabel: z.string().optional(),
   latitude: z.string().nullable(),
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),
@@ -69,8 +76,9 @@ export const createListingSchema = z.object({
   listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable().optional(),
-  island: z.enum(ISLANDS),
-  commune: z.string().min(1).max(100),
+  country: countryCode.optional().default('PF'),
+  region: regionCode,
+  city: z.string().min(1).max(100),
   latitude: z.string().nullable().optional(),
   longitude: z.string().nullable().optional(),
   roomType: z.enum(ROOM_TYPES),
@@ -88,7 +96,8 @@ export const updateListingSchema = createListingSchema.partial()
 
 export const listingFiltersSchema = z.object({
   search: z.string().optional(),
-  island: z.enum(ISLANDS).optional(),
+  country: countryCode.optional(),
+  region: regionCode.optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),

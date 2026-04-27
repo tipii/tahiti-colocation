@@ -97,6 +97,7 @@ Missing pieces before store submission split into three priorities below.
 - [ ] Payment integration if monetizing later
 - [ ] Multi-device push tokens (currently one `user.pushToken` per user — installing on a second device overwrites the first; migrate to a `user_devices` table when this becomes a real complaint)
 - [ ] Listing type `location` for professional rentals (full apartment, no candidature/coloc flow). Enum already reserves the slot in `LISTING_TYPES`; will need a separate listing form variant + adjusted contact flow + provider role / KYC if pros need their own onboarding.
+- [ ] Multi-country expansion. Data model is already market-agnostic (`country` / `region` / `city` columns, `REGIONS_BY_COUNTRY` map keyed by country code). To open a new market: add the country to `COUNTRIES`, add its regions to `REGIONS_BY_COUNTRY`, then surface a country selector in filters + listing form (currently hidden, defaults to `'PF'`). UI labels stay French-Polynesia-flavoured (Île, Commune) until a second country ships.
 
 ---
 

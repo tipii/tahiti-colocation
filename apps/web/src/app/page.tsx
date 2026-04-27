@@ -2,24 +2,28 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
 
 import { orpc } from '@/lib/orpc'
 import { ListingCard } from '@/components/listing-card'
 import { Button } from '@/components/ui/button'
 
 export default function HomePage() {
-  const [selectedIsland, setSelectedIsland] = useState<string | null>(null)
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
   const [page, setPage] = useState(1)
 
   const input = {
     page,
-    ...(selectedIsland ? { island: selectedIsland as any } : {}),
+    ...(selectedRegion ? { region: selectedRegion as any } : {}),
     ...(selectedDuration ? { listingType: selectedDuration as any } : {}),
   }
 
   const { data, isLoading } = useQuery(orpc.listing.list.queryOptions({ input }))
+  const { data: regions = [] } = useQuery(orpc.geo.regions.queryOptions({
+    input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
 
   const listings = data?.data ?? []
   const meta = data?.meta
@@ -31,12 +35,12 @@ export default function HomePage() {
 
       <div className="mt-6 space-y-3">
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant={!selectedIsland ? 'default' : 'outline'} onClick={() => { setSelectedIsland(null); setPage(1) }}>
+          <Button size="sm" variant={!selectedRegion ? 'default' : 'outline'} onClick={() => { setSelectedRegion(null); setPage(1) }}>
             Toutes les iles
           </Button>
-          {ISLANDS.filter((i) => i !== 'Other').map((island) => (
-            <Button key={island} size="sm" variant={selectedIsland === island ? 'default' : 'outline'} onClick={() => { setSelectedIsland(selectedIsland === island ? null : island); setPage(1) }}>
-              {island}
+          {regions.filter((r) => r.code !== 'Other').map((r) => (
+            <Button key={r.code} size="sm" variant={selectedRegion === r.code ? 'default' : 'outline'} onClick={() => { setSelectedRegion(selectedRegion === r.code ? null : r.code); setPage(1) }}>
+              {r.label}
             </Button>
           ))}
         </div>

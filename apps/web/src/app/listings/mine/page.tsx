@@ -45,7 +45,7 @@ export default function MyListingsPage() {
                   <Badge variant="secondary">{LISTING_TYPE_LABELS[listing.listingType as ListingType]}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {listing.commune}, {listing.island} · {listing.price.toLocaleString('fr-FR')} XPF/mois · {listing.views} vues
+                  {listing.city}, {listing.regionLabel ?? listing.region} · {listing.price.toLocaleString('fr-FR')} XPF/mois · {listing.views} vues
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">

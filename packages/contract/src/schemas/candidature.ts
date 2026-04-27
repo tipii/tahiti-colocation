@@ -30,8 +30,11 @@ export const candidatureSchema = z.object({
   updatedAt: z.coerce.date(),
   user: candidateProfileSchema.optional(),
   listingTitle: z.string().optional(),
-  listingCommune: z.string().optional(),
-  listingIsland: z.string().optional(),
+  listingCity: z.string().optional(),
+  listingRegion: z.string().optional(),
+  listingRegionLabel: z.string().optional(),
+  listingCountry: z.string().optional(),
+  listingCountryLabel: z.string().optional(),
   listingImage: z.string().nullable().optional(),
 })
 

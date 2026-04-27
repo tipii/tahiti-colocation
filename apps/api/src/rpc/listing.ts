@@ -1,9 +1,20 @@
 import { eq, and, asc, desc, gte, lte, sql, or, ilike } from 'drizzle-orm'
 
 import { db } from '../db'
-import { images, listings, user } from '../db/schema'
+import { countries, images, listings, regions, user } from '../db/schema'
 import { getPublicUrl, deleteObject } from '../lib/r2'
 import { pub, authed } from './base'
+
+async function assertGeo(country: string, region: string) {
+  const [c] = await db.select({ code: countries.code }).from(countries).where(eq(countries.code, country)).limit(1)
+  if (!c) throw new Error(`Unknown country: ${country}`)
+  const [r] = await db
+    .select({ code: regions.code })
+    .from(regions)
+    .where(and(eq(regions.countryCode, country), eq(regions.code, region)))
+    .limit(1)
+  if (!r) throw new Error(`Unknown region "${region}" for country ${country}`)
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -55,12 +66,23 @@ async function enrichWithAuthor(authorId: string) {
   return author ?? null
 }
 
+async function resolveGeoLabels(country: string, region: string) {
+  const [c] = await db.select({ label: countries.label }).from(countries).where(eq(countries.code, country)).limit(1)
+  const [r] = await db
+    .select({ label: regions.label })
+    .from(regions)
+    .where(and(eq(regions.countryCode, country), eq(regions.code, region)))
+    .limit(1)
+  return { countryLabel: c?.label ?? country, regionLabel: r?.label ?? region }
+}
+
 async function enrichListing(listing: typeof listings.$inferSelect) {
-  const [listingImages, author] = await Promise.all([
+  const [listingImages, author, geoLabels] = await Promise.all([
     enrichWithImages(listing.id),
     enrichWithAuthor(listing.authorId),
+    resolveGeoLabels(listing.country, listing.region),
   ])
-  return { ...listing, images: listingImages, author }
+  return { ...listing, images: listingImages, author, ...geoLabels }
 }
 
 function isOwnerOrAdmin(userId: string, authorId: string, role?: string) {
@@ -77,9 +99,10 @@ export const list = pub.listing.list.handler(async ({ input }) => {
   const conditions = [eq(listings.status, 'published')]
   if (input.search) {
     const term = `%${input.search}%`
-    conditions.push(or(ilike(listings.title, term), ilike(listings.commune, term), ilike(listings.description, term))!)
+    conditions.push(or(ilike(listings.title, term), ilike(listings.city, term), ilike(listings.description, term))!)
   }
-  if (input.island) conditions.push(eq(listings.island, input.island))
+  if (input.country) conditions.push(eq(listings.country, input.country))
+  if (input.region) conditions.push(eq(listings.region, input.region))
   if (input.listingType) conditions.push(eq(listings.listingType, input.listingType))
   if (input.roomType) {
     // "both" matches any room type, so only filter for "single" or "couple"
@@ -146,6 +169,8 @@ export const create = authed.listing.create.handler(async ({ input, context }) =
   const [author] = await db.select().from(user).where(eq(user.id, context.user.id)).limit(1)
   if (!author?.emailVerified) throw new Error('Email non confirmé. Vérifie ta boîte mail avant de publier.')
 
+  await assertGeo(input.country, input.region)
+
   const slug = await uniqueSlug(input.title)
   const [created] = await db
     .insert(listings)
@@ -159,6 +184,10 @@ export const update = authed.listing.update.handler(async ({ input, context }) =
   const [existing] = await db.select().from(listings).where(eq(listings.id, id)).limit(1)
   if (!existing) throw new Error('Not found')
   if (!isOwnerOrAdmin(context.user.id, existing.authorId, context.user.role)) throw new Error('Forbidden')
+
+  if (data.country || data.region) {
+    await assertGeo(data.country ?? existing.country, data.region ?? existing.region)
+  }
 
   const updates = { ...data } as Partial<typeof listings.$inferInsert>
   if (data.title && data.title !== existing.title) updates.slug = await uniqueSlug(data.title, id)

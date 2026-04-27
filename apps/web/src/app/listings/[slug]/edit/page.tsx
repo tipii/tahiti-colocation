@@ -4,8 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, Island, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import type { ListingType, RoomType } from '@coloc/shared/constants'
 import type { Image as ImageType } from '@coloc/shared/types'
 
 import { orpc, client } from '@/lib/orpc'
@@ -28,12 +28,17 @@ export default function EditListingPage() {
     orpc.listing.get.queryOptions({ input: { idOrSlug: slug } }),
   )
 
+  const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
+    input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
+
   const form = useForm({
     defaultValues: {
       title: '', description: '', price: 0,
       listingType: 'colocation' as ListingType,
       availableFrom: '', availableTo: '',
-      island: 'Tahiti' as Island, commune: '',
+      region: 'tahiti', city: '',
       roomType: 'single' as RoomType, roommateCount: 1,
       privateBathroom: false, privateToilets: false, pool: false,
       parking: false, airConditioning: false, petsAccepted: false,
@@ -48,8 +53,8 @@ export default function EditListingPage() {
     form.setFieldValue('listingType', l.listingType)
     form.setFieldValue('availableFrom', new Date(l.availableFrom).toISOString().split('T')[0])
     form.setFieldValue('availableTo', l.availableTo ? new Date(l.availableTo).toISOString().split('T')[0] : '')
-    form.setFieldValue('island', l.island)
-    form.setFieldValue('commune', l.commune)
+    form.setFieldValue('region', l.region)
+    form.setFieldValue('city', l.city)
     form.setFieldValue('roomType', l.roomType)
     form.setFieldValue('roommateCount', l.roommateCount)
     form.setFieldValue('privateBathroom', l.privateBathroom)
@@ -146,8 +151,8 @@ export default function EditListingPage() {
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">Localisation</h2>
-          <form.Field name="island">{(f) => <div className="flex flex-wrap gap-2">{ISLANDS.map((i) => <Button key={i} type="button" size="sm" variant={f.state.value === i ? 'default' : 'outline'} onClick={() => f.handleChange(i)}>{i}</Button>)}</div>}</form.Field>
-          <form.Field name="commune">{(f) => <div><label className="text-sm font-medium">Commune</label><Input value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} className="mt-1" /></div>}</form.Field>
+          <form.Field name="region">{(f) => <div className="flex flex-wrap gap-2">{regionOptions.map((r) => <Button key={r.code} type="button" size="sm" variant={f.state.value === r.code ? 'default' : 'outline'} onClick={() => f.handleChange(r.code)}>{r.label}</Button>)}</div>}</form.Field>
+          <form.Field name="city">{(f) => <div><label className="text-sm font-medium">Commune</label><Input value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} className="mt-1" /></div>}</form.Field>
         </section>
 
         <Separator />

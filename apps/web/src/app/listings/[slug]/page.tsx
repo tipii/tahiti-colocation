@@ -64,7 +64,7 @@ export default function ListingDetailPage() {
               {listing.status === 'draft' && <Badge variant="outline">Brouillon</Badge>}
             </div>
             <h1 className="mt-3 text-2xl font-bold">{listing.title}</h1>
-            <p className="mt-1 text-muted-foreground">{listing.commune}, {listing.island}</p>
+            <p className="mt-1 text-muted-foreground">{listing.city}, {listing.regionLabel ?? listing.region}</p>
           </div>
 
           <Separator />
