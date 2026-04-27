@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ISLANDS, DURATION_TYPES, DURATION_LABELS } from '@coloc/shared/constants'
+import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS } from '@coloc/shared/constants'
 
 import { orpc } from '@/lib/orpc'
 import { ListingCard } from '@/components/listing-card'
@@ -16,7 +16,7 @@ export default function HomePage() {
   const input = {
     page,
     ...(selectedIsland ? { island: selectedIsland as any } : {}),
-    ...(selectedDuration ? { durationType: selectedDuration as any } : {}),
+    ...(selectedDuration ? { listingType: selectedDuration as any } : {}),
   }
 
   const { data, isLoading } = useQuery(orpc.listing.list.queryOptions({ input }))
@@ -41,9 +41,9 @@ export default function HomePage() {
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          {DURATION_TYPES.map((dt) => (
+          {LISTING_TYPES.map((dt) => (
             <Button key={dt} size="sm" variant={selectedDuration === dt ? 'default' : 'outline'} onClick={() => { setSelectedDuration(selectedDuration === dt ? null : dt); setPage(1) }}>
-              {DURATION_LABELS[dt]}
+              {LISTING_TYPE_LABELS[dt]}
             </Button>
           ))}
         </div>

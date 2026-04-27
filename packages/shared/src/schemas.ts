@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { DURATION_TYPES, ISLANDS, LISTING_STATUSES, ROOM_TYPES } from './constants'
+import { LISTING_TYPES, ISLANDS, LISTING_STATUSES, ROOM_TYPES } from './constants'
 
 export const userSchema = z.object({
   id: z.string(),
@@ -33,7 +33,7 @@ export const listingSchema = z.object({
   price: z.number().int().positive(),
   status: z.enum(LISTING_STATUSES),
   views: z.number().int(),
-  durationType: z.enum(DURATION_TYPES),
+  listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable(),
   island: z.enum(ISLANDS),
@@ -59,7 +59,7 @@ export const createListingSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().min(1),
   price: z.number().int().positive(),
-  durationType: z.enum(DURATION_TYPES),
+  listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable().optional(),
   island: z.enum(ISLANDS),
@@ -81,7 +81,7 @@ export const updateListingSchema = createListingSchema.partial()
 
 export const listingFiltersSchema = z.object({
   island: z.enum(ISLANDS).optional(),
-  durationType: z.enum(DURATION_TYPES).optional(),
+  listingType: z.enum(LISTING_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),
   maxPrice: z.coerce.number().int().optional(),

@@ -5,7 +5,10 @@ export const ISLANDS = [
   'Bora Bora', 'Rangiroa', 'Fakarava', 'Nuku Hiva', 'Hiva Oa', 'Other',
 ] as const
 
-export const DURATION_TYPES = ['sous_location', 'location'] as const
+// Listing kinds. `colocation` is the default flagship use case (shared room rental).
+// `sous_location` is short-term sublet of a room within a coloc.
+// `location` (full apartment / professional listings) is reserved for post-launch.
+export const LISTING_TYPES = ['colocation', 'sous_location'] as const
 export const ROOM_TYPES = ['single', 'couple', 'both'] as const
 export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
 
@@ -37,7 +40,7 @@ export const listingSchema = z.object({
   price: z.number().int().positive(),
   status: z.enum(LISTING_STATUSES),
   views: z.number().int(),
-  durationType: z.enum(DURATION_TYPES),
+  listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable(),
   island: z.enum(ISLANDS),
@@ -63,7 +66,7 @@ export const createListingSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().min(1),
   price: z.number().int().positive(),
-  durationType: z.enum(DURATION_TYPES),
+  listingType: z.enum(LISTING_TYPES),
   availableFrom: z.coerce.date(),
   availableTo: z.coerce.date().nullable().optional(),
   island: z.enum(ISLANDS),
@@ -86,7 +89,7 @@ export const updateListingSchema = createListingSchema.partial()
 export const listingFiltersSchema = z.object({
   search: z.string().optional(),
   island: z.enum(ISLANDS).optional(),
-  durationType: z.enum(DURATION_TYPES).optional(),
+  listingType: z.enum(LISTING_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),
   maxPrice: z.coerce.number().int().optional(),

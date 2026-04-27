@@ -29,7 +29,8 @@ function futureDate(daysMin: number, daysMax: number) {
 // ── Data ────────────────────────────────────────────────────────────────────
 
 const ISLANDS = ['Tahiti', 'Moorea', 'Bora Bora', 'Huahine', 'Raiatea', 'Rangiroa', 'Fakarava', 'Nuku Hiva'] as const
-const DURATIONS = ['sous_location', 'location'] as const
+// 80% colocations, 20% short-term sublets — matches expected real-world mix
+const LISTING_TYPES = ['colocation', 'colocation', 'colocation', 'colocation', 'sous_location'] as const
 const ROOM_TYPES = ['single', 'couple', 'both'] as const
 
 const COMMUNES: Record<string, string[]> = {
@@ -153,7 +154,7 @@ async function seed() {
     const title = titleTemplate.replace('{commune}', commune)
     const listingSlug = `${slug(title)}-${rand(100, 999)}`
     const authorId = pick(providerIds)
-    const duration = pick(DURATIONS)
+    const listingType = pick(LISTING_TYPES)
     const price = pick([45000, 55000, 65000, 75000, 80000, 95000, 110000, 120000, 150000, 180000])
 
     await db.insert(schema.listings).values({
@@ -163,9 +164,9 @@ async function seed() {
       price,
       status: 'published',
       views: rand(5, 250),
-      durationType: duration,
+      listingType,
       availableFrom: futureDate(1, 60),
-      availableTo: duration === 'sous_location' ? futureDate(61, 120) : null,
+      availableTo: listingType === 'sous_location' ? futureDate(61, 120) : null,
       island,
       commune,
       roomType: pick(ROOM_TYPES),

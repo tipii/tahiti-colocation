@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DURATION_LABELS } from '@coloc/shared/constants'
-import type { DurationType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType } from '@coloc/shared/constants'
 
 import { orpc, client } from '@/lib/orpc'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,7 @@ export default function MyListingsPage() {
                 <div className="flex items-center gap-2">
                   <Link href={`/listings/${listing.slug}`} className="truncate font-medium hover:underline">{listing.title}</Link>
                   <Badge variant={STATUS_VARIANTS[listing.status]}>{STATUS_LABELS[listing.status]}</Badge>
-                  <Badge variant="secondary">{DURATION_LABELS[listing.durationType as DurationType]}</Badge>
+                  <Badge variant="secondary">{LISTING_TYPE_LABELS[listing.listingType as ListingType]}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {listing.commune}, {listing.island} · {listing.price.toLocaleString('fr-FR')} XPF/mois · {listing.views} vues

@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { MapPin, Home, Users, Calendar, Droplet, Sunset, Truck, Wind, Heart } from 'lucide-react'
 import type { Listing } from '@coloc/shared/types'
-import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { DurationType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, RoomType } from '@coloc/shared/constants'
 
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -23,7 +23,7 @@ function colocLabel(roommateCount: number, roomType: RoomType): string {
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const firstImage = listing.images?.[0]
-  const durationLabel = DURATION_LABELS[listing.durationType as DurationType]
+  const durationLabel = LISTING_TYPE_LABELS[listing.listingType as ListingType]
   const roomLabel = ROOM_TYPE_LABELS[listing.roomType as RoomType]
   const activeAmenities = AMENITY_CONFIG.filter(([key]) => (listing as any)[key])
 

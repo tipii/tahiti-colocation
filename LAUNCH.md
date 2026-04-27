@@ -96,6 +96,7 @@ Missing pieces before store submission split into three priorities below.
 - [ ] iOS Universal Links + Android App Links (deep linking from web)
 - [ ] Payment integration if monetizing later
 - [ ] Multi-device push tokens (currently one `user.pushToken` per user — installing on a second device overwrites the first; migrate to a `user_devices` table when this becomes a real complaint)
+- [ ] Listing type `location` for professional rentals (full apartment, no candidature/coloc flow). Enum already reserves the slot in `LISTING_TYPES`; will need a separate listing form variant + adjusted contact flow + provider role / KYC if pros need their own onboarding.
 
 ---
 

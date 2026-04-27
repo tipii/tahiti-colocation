@@ -80,7 +80,7 @@ export const list = pub.listing.list.handler(async ({ input }) => {
     conditions.push(or(ilike(listings.title, term), ilike(listings.commune, term), ilike(listings.description, term))!)
   }
   if (input.island) conditions.push(eq(listings.island, input.island))
-  if (input.durationType) conditions.push(eq(listings.durationType, input.durationType))
+  if (input.listingType) conditions.push(eq(listings.listingType, input.listingType))
   if (input.roomType) {
     // "both" matches any room type, so only filter for "single" or "couple"
     if (input.roomType === 'single') {

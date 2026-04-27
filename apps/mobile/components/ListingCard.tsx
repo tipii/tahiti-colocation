@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import type { Listing } from '@coloc/shared/types'
-import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { DurationType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, RoomType } from '@coloc/shared/constants'
 
 import { authClient } from '@/lib/auth'
 import { orpc } from '@/lib/orpc'
@@ -31,7 +31,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const router = useRouter()
   const { data: session } = authClient.useSession()
   const firstImage = listing.images?.[0]
-  const durationLabel = DURATION_LABELS[listing.durationType as DurationType]
+  const durationLabel = LISTING_TYPE_LABELS[listing.listingType as ListingType]
   const roomLabel = ROOM_TYPE_LABELS[listing.roomType as RoomType]
   const activeAmenities = AMENITY_ICONS.filter(([key]) => (listing as any)[key])
 

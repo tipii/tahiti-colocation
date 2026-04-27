@@ -2,8 +2,8 @@ import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Feather } from '@expo/vector-icons'
-import { DURATION_LABELS } from '@coloc/shared/constants'
-import type { DurationType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType } from '@coloc/shared/constants'
 
 import { orpc, client } from '@/lib/orpc'
 import { ListingStatusBadge } from '@/components/ListingStatus'

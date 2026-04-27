@@ -16,8 +16,8 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ISLANDS, DURATION_TYPES, DURATION_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { DurationType, Island, RoomType } from '@coloc/shared/constants'
+import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, Island, RoomType } from '@coloc/shared/constants'
 
 import * as Haptics from 'expo-haptics'
 import { authClient } from '@/lib/auth'
@@ -50,7 +50,7 @@ export default function CreateListingScreen() {
       title: '',
       description: '',
       price: '',
-      durationType: 'location' as DurationType,
+      listingType: 'colocation' as ListingType,
       availableFrom: '',
       availableTo: '',
       island: 'Tahiti' as Island,
@@ -73,7 +73,7 @@ export default function CreateListingScreen() {
         title: v.title,
         description: v.description,
         price: Number(v.price),
-        durationType: v.durationType,
+        listingType: v.listingType,
         availableFrom: new Date(v.availableFrom),
         availableTo: v.availableTo ? new Date(v.availableTo) : null,
         island: v.island,
@@ -175,12 +175,12 @@ export default function CreateListingScreen() {
 
           {/* Duration */}
           <SectionTitle>Duree</SectionTitle>
-          <form.Field name="durationType">
+          <form.Field name="listingType">
             {(f) => (
               <View className="flex-row gap-2">
-                {DURATION_TYPES.map((dt) => (
+                {LISTING_TYPES.map((dt) => (
                   <Pressable key={dt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === dt ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(dt)}>
-                    <Text className={`text-sm font-medium ${f.state.value === dt ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{DURATION_LABELS[dt]}</Text>
+                    <Text className={`text-sm font-medium ${f.state.value === dt ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{LISTING_TYPE_LABELS[dt]}</Text>
                   </Pressable>
                 ))}
               </View>

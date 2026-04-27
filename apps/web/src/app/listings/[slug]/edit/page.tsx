@@ -4,8 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ISLANDS, DURATION_TYPES, DURATION_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { DurationType, Island, RoomType } from '@coloc/shared/constants'
+import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, Island, RoomType } from '@coloc/shared/constants'
 import type { Image as ImageType } from '@coloc/shared/types'
 
 import { orpc, client } from '@/lib/orpc'
@@ -31,7 +31,7 @@ export default function EditListingPage() {
   const form = useForm({
     defaultValues: {
       title: '', description: '', price: 0,
-      durationType: 'location' as DurationType,
+      listingType: 'colocation' as ListingType,
       availableFrom: '', availableTo: '',
       island: 'Tahiti' as Island, commune: '',
       roomType: 'single' as RoomType, roommateCount: 1,
@@ -45,7 +45,7 @@ export default function EditListingPage() {
     form.setFieldValue('title', l.title)
     form.setFieldValue('description', l.description)
     form.setFieldValue('price', l.price)
-    form.setFieldValue('durationType', l.durationType)
+    form.setFieldValue('listingType', l.listingType)
     form.setFieldValue('availableFrom', new Date(l.availableFrom).toISOString().split('T')[0])
     form.setFieldValue('availableTo', l.availableTo ? new Date(l.availableTo).toISOString().split('T')[0] : '')
     form.setFieldValue('island', l.island)
@@ -135,7 +135,7 @@ export default function EditListingPage() {
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">Duree</h2>
-          <form.Field name="durationType">{(f) => <div className="flex gap-2">{DURATION_TYPES.map((dt) => <Button key={dt} type="button" size="sm" variant={f.state.value === dt ? 'default' : 'outline'} onClick={() => f.handleChange(dt)}>{DURATION_LABELS[dt]}</Button>)}</div>}</form.Field>
+          <form.Field name="listingType">{(f) => <div className="flex gap-2">{LISTING_TYPES.map((dt) => <Button key={dt} type="button" size="sm" variant={f.state.value === dt ? 'default' : 'outline'} onClick={() => f.handleChange(dt)}>{LISTING_TYPE_LABELS[dt]}</Button>)}</div>}</form.Field>
           <div className="grid grid-cols-2 gap-4">
             <form.Field name="availableFrom">{(f) => <div><label className="text-sm font-medium">Disponible a partir du</label><Input type="date" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} className="mt-1" /></div>}</form.Field>
             <form.Field name="availableTo">{(f) => <div><label className="text-sm font-medium">Jusqu'au (optionnel)</label><Input type="date" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} className="mt-1" /></div>}</form.Field>

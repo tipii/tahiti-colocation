@@ -16,8 +16,11 @@ export const ISLANDS = [
 ] as const
 export type Island = (typeof ISLANDS)[number]
 
-export const DURATION_TYPES = ['sous_location', 'location'] as const
-export type DurationType = (typeof DURATION_TYPES)[number]
+// Listing kinds. `colocation` is the default flagship use case.
+// `sous_location` is short-term sublet of a room within a coloc.
+// `location` (full apartment / professional listings) is reserved for post-launch.
+export const LISTING_TYPES = ['colocation', 'sous_location'] as const
+export type ListingType = (typeof LISTING_TYPES)[number]
 
 export const ROOM_TYPES = ['single', 'couple', 'both'] as const
 export type RoomType = (typeof ROOM_TYPES)[number]
@@ -25,9 +28,9 @@ export type RoomType = (typeof ROOM_TYPES)[number]
 export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
 export type ListingStatus = (typeof LISTING_STATUSES)[number]
 
-export const DURATION_LABELS: Record<DurationType, string> = {
+export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
+  colocation: 'Colocation',
   sous_location: 'Sous-location',
-  location: 'Location',
 }
 
 export const ROOM_TYPE_LABELS: Record<RoomType, string> = {

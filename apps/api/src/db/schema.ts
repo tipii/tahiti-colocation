@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm'
 import { date, index, integer, jsonb, pgTable, primaryKey, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
 import type {
   ISLANDS,
-  DURATION_TYPES,
+  LISTING_TYPES,
   ROOM_TYPES,
   LISTING_STATUSES,
   OCCUPATIONS,
@@ -13,7 +13,7 @@ import type {
 } from '@coloc/contract'
 
 type Island = (typeof ISLANDS)[number]
-type DurationType = (typeof DURATION_TYPES)[number]
+type ListingType = (typeof LISTING_TYPES)[number]
 type RoomType = (typeof ROOM_TYPES)[number]
 type ListingStatus = (typeof LISTING_STATUSES)[number]
 type Occupation = (typeof OCCUPATIONS)[number]
@@ -144,7 +144,7 @@ export const listings = pgTable(
     status: varchar('status', { length: 20 }).$type<ListingStatus>().default('draft').notNull(),
     views: integer('views').default(0).notNull(),
     // Duration
-    durationType: varchar('duration_type', { length: 20 }).$type<DurationType>().notNull(),
+    listingType: varchar('listing_type', { length: 20 }).$type<ListingType>().notNull(),
     availableFrom: timestamp('available_from').notNull(),
     availableTo: timestamp('available_to'),
     // Location

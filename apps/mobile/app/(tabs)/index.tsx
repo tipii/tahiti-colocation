@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import * as Haptics from 'expo-haptics'
-import { ISLANDS, DURATION_TYPES, DURATION_LABELS } from '@coloc/shared/constants'
+import { ISLANDS, LISTING_TYPES, LISTING_TYPE_LABELS } from '@coloc/shared/constants'
 
 import { authClient } from '@/lib/auth'
 import { client } from '@/lib/orpc'
@@ -18,7 +18,7 @@ export default function HomeScreen() {
 
   const input = {
     ...(selectedIsland ? { island: selectedIsland as any } : {}),
-    ...(selectedDuration ? { durationType: selectedDuration as any } : {}),
+    ...(selectedDuration ? { listingType: selectedDuration as any } : {}),
   }
 
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
@@ -76,14 +76,14 @@ export default function HomeScreen() {
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
-            {DURATION_TYPES.map((dt) => (
+            {LISTING_TYPES.map((dt) => (
               <Pressable
                 key={dt}
                 className={`rounded-pill px-4 py-2 ${selectedDuration === dt ? 'bg-secondary' : 'bg-muted'}`}
                 onPress={() => { Haptics.selectionAsync(); setSelectedDuration(selectedDuration === dt ? null : dt) }}
               >
                 <Text className={`text-sm font-medium ${selectedDuration === dt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>
-                  {DURATION_LABELS[dt]}
+                  {LISTING_TYPE_LABELS[dt]}
                 </Text>
               </Pressable>
             ))}

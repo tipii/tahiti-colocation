@@ -5,8 +5,8 @@ import { ImageGallery } from '@/components/ImageGallery'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DURATION_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { DurationType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, RoomType } from '@coloc/shared/constants'
 
 import { Feather } from '@expo/vector-icons'
 
@@ -196,7 +196,7 @@ export default function ListingDetailScreen() {
           <View className="flex-row items-center gap-2">
             <View className="rounded-pill bg-accent px-3 py-1">
               <Text className="text-xs font-semibold text-accent-foreground">
-                {DURATION_LABELS[listing.durationType as DurationType]}
+                {LISTING_TYPE_LABELS[listing.listingType as ListingType]}
               </Text>
             </View>
             {listing.status !== 'published' && <ListingStatusBadge status={listing.status} />}
