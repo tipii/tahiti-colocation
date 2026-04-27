@@ -2,30 +2,16 @@ import { useCallback, useMemo, useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
-import { Camera, Map, Marker } from '@maplibre/maplibre-react-native'
-import type { StyleSpecification } from '@maplibre/maplibre-react-native'
+import { Camera, GeoJSONSource, Layer, Map } from '@maplibre/maplibre-react-native'
 import { Feather } from '@expo/vector-icons'
 
 import { client } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 
-// OSM raster tiles. Acceptable for dev/early stage. Before public launch, swap
-// to a self-hosted Protomaps file on R2 or a paid tile provider — OSMF policy
-// forbids high-traffic apps using their public tile servers.
-const OSM_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  },
-  layers: [{ id: 'osm-layer', type: 'raster', source: 'osm' }],
-}
+// OpenFreeMap vector tiles — free, no API key, OSM-derived, hosted by them.
+// Alternatives: 'positron' (minimal grayscale), 'bright' (more colorful), '3d' (extruded buildings).
+// For prod scale: swap to MapTiler / Stadia paid plans or self-hosted Protomaps PMTiles on R2.
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 
 const TAHITI_CENTER: [number, number] = [-149.45, -17.65]
 
@@ -52,6 +38,29 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
 
   const selected = listings.find((l) => l.id === selectedId)
 
+  // Single FeatureCollection feeds one GeoJSONSource — much cheaper than one
+  // ViewAnnotation per listing, which lags during pan/zoom because each
+  // marker re-projects through the JS bridge each frame.
+  const featureCollection = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: listings.map((l) => ({
+        type: 'Feature' as const,
+        id: l.id,
+        properties: {
+          id: l.id,
+          label: `${Math.round(l.price / 1000)}k`,
+          selected: selectedId === l.id ? 1 : 0,
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [Number(l.longitude), Number(l.latitude)] as [number, number],
+        },
+      })),
+    }),
+    [listings, selectedId],
+  )
+
   const initialViewState = useMemo(() => {
     if (listings.length === 0) {
       return { center: TAHITI_CENTER, zoom: 7 } as const
@@ -74,26 +83,42 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
 
   return (
     <View style={{ flex: 1 }}>
-      <Map mapStyle={OSM_STYLE} style={{ flex: 1 }}>
+      <Map mapStyle={MAP_STYLE_URL} style={{ flex: 1 }}>
         <Camera initialViewState={initialViewState} />
-        {listings.map((l) => (
-          <Marker
-            key={l.id}
-            id={l.id}
-            lngLat={[Number(l.longitude), Number(l.latitude)]}
-            onPress={() => setSelectedId(l.id)}
-          >
-            <View
-              className={`rounded-pill px-2.5 py-1 shadow ${
-                selectedId === l.id ? 'bg-secondary' : 'bg-primary'
-              }`}
-            >
-              <Text className="text-xs font-bold text-primary-foreground">
-                {Math.round(l.price / 1000)}k
-              </Text>
-            </View>
-          </Marker>
-        ))}
+        <GeoJSONSource
+          id="listings-source"
+          data={featureCollection}
+          onPress={(e) => {
+            const id = e.nativeEvent.features?.[0]?.properties?.id
+            if (typeof id === 'string') setSelectedId(id)
+          }}
+        >
+          <Layer
+            id="listings-bg"
+            type="circle"
+            paint={{
+              'circle-radius': 18,
+              'circle-color': ['case', ['==', ['get', 'selected'], 1], '#0D9488', '#FF6B35'],
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#FFFFFF',
+              'circle-pitch-alignment': 'map',
+            }}
+          />
+          <Layer
+            id="listings-label"
+            type="symbol"
+            layout={{
+              'text-field': ['get', 'label'],
+              'text-size': 12,
+              'text-font': ['Noto Sans Bold'],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
+            }}
+          />
+        </GeoJSONSource>
       </Map>
 
       {!isLoading && listings.length === 0 && (

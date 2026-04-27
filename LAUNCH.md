@@ -80,7 +80,7 @@ Missing pieces before store submission split into three priorities below.
 
 ### Map tiles
 
-- [ ] **Swap OSM raster tiles to a permitted tile source.** Search-tab map currently fetches `tile.openstreetmap.org` directly; OSMF policy forbids high-traffic apps using their public servers. Options: MapTiler free (100k req/mo), Stadia free (200k req/mo non-commercial), or self-host a Protomaps `.pmtiles` PF extract on R2 (free egress via Cloudflare). Tile URL is the only change — no native rebuild needed. See `apps/mobile/components/MapResults.tsx` `OSM_STYLE` constant.
+- [ ] **Evaluate map tile provider for prod scale.** Search-tab map currently uses OpenFreeMap (`tiles.openfreemap.org/styles/liberty`) — free, no API key, OSM-derived, hosted by them with "unlimited" usage. Reliable enough for early stage but single-org-hosted. If/when traffic grows or we want SLAs: switch to MapTiler (100k req/mo free, paid above), Stadia (200k req/mo free non-commercial), or self-host a Protomaps `.pmtiles` PF extract on R2 (free egress via Cloudflare). Style URL is the only change — no native rebuild needed. See `apps/mobile/components/MapResults.tsx` `MAP_STYLE_URL` constant.
 - [ ] **Provider sets listing coordinates on create/edit.** Currently lat/lng are seeded server-side from city centroid + ±300m jitter; new listings created via the app have `null` coords. Add a map picker to the listing form so the provider drops a pin on their general area, then jitter server-side before persist (precise coords never reach the DB).
 
 ### CI / quality
