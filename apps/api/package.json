@@ -14,6 +14,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed-geo": "tsx src/db/seed-geo.ts",
     "db:seed-images": "tsx src/db/seed-images.ts",
     "db:reattribute-images": "tsx src/db/reattribute-images.ts"
   },

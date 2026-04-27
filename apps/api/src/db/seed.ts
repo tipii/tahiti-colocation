@@ -1,8 +1,10 @@
 import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import * as schema from './schema'
 import { auth } from '../lib/auth'
+import { CITIES_BY_REGION, seedGeo } from './seed-geo'
+import type { CitySeed } from './seed-geo'
 
 const db = drizzle(process.env.DATABASE_URL!, { schema })
 
@@ -29,60 +31,12 @@ function futureDate(daysMin: number, daysMax: number) {
 // ── Data ────────────────────────────────────────────────────────────────────
 
 // Region slugs — must match `regions.code` rows seeded below.
-const REGIONS = ['tahiti', 'moorea', 'bora-bora', 'huahine', 'raiatea', 'rangiroa', 'fakarava', 'nuku-hiva'] as const
+// Distribution of fake listings across regions (Tahiti is the launch focus,
+// so it gets a dedicated loop below — this list covers the other islands).
+const NON_TAHITI_REGIONS = ['moorea', 'bora-bora', 'huahine', 'raiatea', 'rangiroa', 'fakarava', 'nuku-hiva'] as const
 // 80% colocations, 20% short-term sublets — matches expected real-world mix
 const LISTING_TYPES = ['colocation', 'colocation', 'colocation', 'colocation', 'sous_location'] as const
 const ROOM_TYPES = ['single', 'couple', 'both'] as const
-
-// Curated cities by region, with centroid coords. Used to seed both the
-// `cities` table (one row each) and listing coordinates (centroid + jitter).
-type CitySeed = { code: string; label: string; lat: number; lng: number }
-const CITIES_BY_REGION: Record<string, CitySeed[]> = {
-  tahiti: [
-    { code: 'papeete', label: 'Papeete', lat: -17.5325, lng: -149.5665 },
-    { code: 'punaauia', label: 'Punaauia', lat: -17.6242, lng: -149.6075 },
-    { code: 'faaa', label: 'Faaa', lat: -17.5573, lng: -149.6110 },
-    { code: 'pirae', label: 'Pirae', lat: -17.5246, lng: -149.5374 },
-    { code: 'arue', label: 'Arue', lat: -17.5172, lng: -149.5113 },
-    { code: 'mahina', label: 'Mahina', lat: -17.5040, lng: -149.4760 },
-    { code: 'paea', label: 'Paea', lat: -17.6878, lng: -149.5811 },
-    { code: 'papara', label: 'Papara', lat: -17.7510, lng: -149.5470 },
-    { code: 'taravao', label: 'Taravao', lat: -17.7351, lng: -149.3146 },
-  ],
-  moorea: [
-    { code: 'afareaitu', label: 'Afareaitu', lat: -17.5570, lng: -149.7989 },
-    { code: 'haapiti', label: 'Haapiti', lat: -17.5540, lng: -149.8730 },
-    { code: 'paopao', label: 'Paopao', lat: -17.5141, lng: -149.8262 },
-    { code: 'teavaro', label: 'Teavaro', lat: -17.4896, lng: -149.7714 },
-  ],
-  'bora-bora': [
-    { code: 'vaitape', label: 'Vaitape', lat: -16.5097, lng: -151.7472 },
-    { code: 'anau', label: 'Anau', lat: -16.4910, lng: -151.7220 },
-    { code: 'faanui', label: 'Faanui', lat: -16.4820, lng: -151.7610 },
-  ],
-  huahine: [
-    { code: 'fare', label: 'Fare', lat: -16.7167, lng: -151.0333 },
-    { code: 'maeva', label: 'Maeva', lat: -16.7239, lng: -151.0114 },
-    { code: 'fitii', label: 'Fitii', lat: -16.7790, lng: -151.0220 },
-  ],
-  raiatea: [
-    { code: 'uturoa', label: 'Uturoa', lat: -16.7311, lng: -151.4467 },
-    { code: 'avera', label: 'Avera', lat: -16.7822, lng: -151.4367 },
-    { code: 'opoa', label: 'Opoa', lat: -16.8350, lng: -151.3730 },
-  ],
-  rangiroa: [
-    { code: 'avatoru', label: 'Avatoru', lat: -14.9497, lng: -147.7000 },
-    { code: 'tiputa', label: 'Tiputa', lat: -14.9756, lng: -147.6217 },
-  ],
-  fakarava: [
-    { code: 'rotoava', label: 'Rotoava', lat: -16.0578, lng: -145.6217 },
-    { code: 'tetamanu', label: 'Tetamanu', lat: -16.4840, lng: -145.4470 },
-  ],
-  'nuku-hiva': [
-    { code: 'taiohae', label: 'Taiohae', lat: -8.9112, lng: -140.0995 },
-    { code: 'hatiheu', label: 'Hatiheu', lat: -8.8170, lng: -140.0930 },
-  ],
-}
 
 // Returns lat/lng strings (column type is text) jittered ±300m around the
 // city centroid so the map pin never reveals the exact address.
@@ -146,64 +100,10 @@ const DESCRIPTIONS = [
 async function seed() {
   console.log('🌱 Seeding database...')
 
-  // ── Geo (countries + regions) ─────────────────────────────────────────────
-  await db.insert(schema.countries).values([
-    { code: 'PF', label: 'Polynésie française', sortOrder: 0 },
-  ]).onConflictDoNothing()
-
-  const PF_REGION_ROWS = [
-    { code: 'tahiti', label: 'Tahiti', sortOrder: 0 },
-    { code: 'moorea', label: 'Moorea', sortOrder: 1 },
-    { code: 'huahine', label: 'Huahine', sortOrder: 2 },
-    { code: 'raiatea', label: 'Raiatea', sortOrder: 3 },
-    { code: 'tahaa', label: 'Tahaa', sortOrder: 4 },
-    { code: 'bora-bora', label: 'Bora Bora', sortOrder: 5 },
-    { code: 'rangiroa', label: 'Rangiroa', sortOrder: 6 },
-    { code: 'fakarava', label: 'Fakarava', sortOrder: 7 },
-    { code: 'nuku-hiva', label: 'Nuku Hiva', sortOrder: 8 },
-    { code: 'hiva-oa', label: 'Hiva Oa', sortOrder: 9 },
-    { code: 'other', label: 'Autre', sortOrder: 99 },
-  ]
-  for (const r of PF_REGION_ROWS) {
-    const [existing] = await db
-      .select({ id: schema.regions.id })
-      .from(schema.regions)
-      .where(and(eq(schema.regions.countryCode, 'PF'), eq(schema.regions.code, r.code)))
-      .limit(1)
-    if (!existing) {
-      await db.insert(schema.regions).values({ countryCode: 'PF', ...r })
-    }
-  }
-
-  // Cities (idempotent on (country, region, code))
-  let cityCount = 0
-  for (const [regionCode, citySeeds] of Object.entries(CITIES_BY_REGION)) {
-    for (let i = 0; i < citySeeds.length; i++) {
-      const c = citySeeds[i]!
-      const [existing] = await db
-        .select({ id: schema.cities.id })
-        .from(schema.cities)
-        .where(and(
-          eq(schema.cities.countryCode, 'PF'),
-          eq(schema.cities.regionCode, regionCode),
-          eq(schema.cities.code, c.code),
-        ))
-        .limit(1)
-      if (!existing) {
-        await db.insert(schema.cities).values({
-          countryCode: 'PF',
-          regionCode,
-          code: c.code,
-          label: c.label,
-          latitude: c.lat.toFixed(6),
-          longitude: c.lng.toFixed(6),
-          sortOrder: i,
-        })
-      }
-      cityCount++
-    }
-  }
-  console.log(`  🌍 1 country, ${PF_REGION_ROWS.length} regions, ${cityCount} cities`)
+  // Geo reference data — countries / regions / cities — lives in seed-geo.ts
+  // because it's not fixture data; it ships with the app and is safe in prod.
+  const { countries: nC, regions: nR, cities: nCi } = await seedGeo(db)
+  console.log(`  🌍 ${nC} country, ${nR} regions, ${nCi} cities`)
 
   // Use Better Auth's own password hasher
   const { hashPassword } = await import('better-auth/crypto')
@@ -257,11 +157,8 @@ async function seed() {
 
   // Create listings (any user can create)
   const providerIds = userIds.slice(0, 6) // first 6 users create listings
-  let listingCount = 0
 
-  for (let i = 0; i < 30; i++) {
-    const region = pick(REGIONS)
-    const citySeed = pick(CITIES_BY_REGION[region]!)
+  async function createListing(region: string, citySeed: CitySeed) {
     const titleTemplate = pick(TITLES)
     const title = titleTemplate.replace('{city}', citySeed.label)
     const listingSlug = `${slug(title)}-${rand(100, 999)}`
@@ -295,11 +192,30 @@ async function seed() {
       petsAccepted: Math.random() > 0.6,
       authorId,
     })
+  }
 
+  let listingCount = 0
+
+  // Tahiti is the launch focus → 20 listings, with at least one in every
+  // commune so the island map is well-populated.
+  const TAHITI_TARGET = 20
+  const tahitiCities = CITIES_BY_REGION.tahiti!
+  for (let i = 0; i < TAHITI_TARGET; i++) {
+    // First pass cycles through each commune; the rest are random.
+    const citySeed = i < tahitiCities.length ? tahitiCities[i]! : pick(tahitiCities)
+    await createListing('tahiti', citySeed)
     listingCount++
   }
 
-  console.log(`  🏠 ${listingCount} listings created`)
+  // Other islands — 30 listings spread randomly across the rest.
+  for (let i = 0; i < 30; i++) {
+    const region = pick(NON_TAHITI_REGIONS)
+    const citySeed = pick(CITIES_BY_REGION[region]!)
+    await createListing(region, citySeed)
+    listingCount++
+  }
+
+  console.log(`  🏠 ${listingCount} listings created (${TAHITI_TARGET} on Tahiti)`)
 
   // Create some favorites
   const seekerIds = userIds.slice(6) // last 4 users get favorites
