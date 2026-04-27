@@ -34,72 +34,66 @@ const REGIONS = ['tahiti', 'moorea', 'bora-bora', 'huahine', 'raiatea', 'rangiro
 const LISTING_TYPES = ['colocation', 'colocation', 'colocation', 'colocation', 'sous_location'] as const
 const ROOM_TYPES = ['single', 'couple', 'both'] as const
 
-// Cities per region (keyed by region slug). Add per-country maps when expanding.
-const CITIES_BY_REGION: Record<string, string[]> = {
-  tahiti: ['Papeete', 'Punaauia', 'Faaa', 'Pirae', 'Arue', 'Mahina', 'Paea', 'Papara', 'Taravao'],
-  moorea: ['Afareaitu', 'Haapiti', 'Paopao', 'Teavaro'],
-  'bora-bora': ['Vaitape', 'Anau', 'Faanui'],
-  huahine: ['Fare', 'Maeva', 'Fitii'],
-  raiatea: ['Uturoa', 'Avera', 'Opoa'],
-  rangiroa: ['Avatoru', 'Tiputa'],
-  fakarava: ['Rotoava', 'Tetamanu'],
-  'nuku-hiva': ['Taiohae', 'Hatiheu'],
+// Curated cities by region, with centroid coords. Used to seed both the
+// `cities` table (one row each) and listing coordinates (centroid + jitter).
+type CitySeed = { code: string; label: string; lat: number; lng: number }
+const CITIES_BY_REGION: Record<string, CitySeed[]> = {
+  tahiti: [
+    { code: 'papeete', label: 'Papeete', lat: -17.5325, lng: -149.5665 },
+    { code: 'punaauia', label: 'Punaauia', lat: -17.6242, lng: -149.6075 },
+    { code: 'faaa', label: 'Faaa', lat: -17.5573, lng: -149.6110 },
+    { code: 'pirae', label: 'Pirae', lat: -17.5246, lng: -149.5374 },
+    { code: 'arue', label: 'Arue', lat: -17.5172, lng: -149.5113 },
+    { code: 'mahina', label: 'Mahina', lat: -17.5040, lng: -149.4760 },
+    { code: 'paea', label: 'Paea', lat: -17.6878, lng: -149.5811 },
+    { code: 'papara', label: 'Papara', lat: -17.7510, lng: -149.5470 },
+    { code: 'taravao', label: 'Taravao', lat: -17.7351, lng: -149.3146 },
+  ],
+  moorea: [
+    { code: 'afareaitu', label: 'Afareaitu', lat: -17.5570, lng: -149.7989 },
+    { code: 'haapiti', label: 'Haapiti', lat: -17.5540, lng: -149.8730 },
+    { code: 'paopao', label: 'Paopao', lat: -17.5141, lng: -149.8262 },
+    { code: 'teavaro', label: 'Teavaro', lat: -17.4896, lng: -149.7714 },
+  ],
+  'bora-bora': [
+    { code: 'vaitape', label: 'Vaitape', lat: -16.5097, lng: -151.7472 },
+    { code: 'anau', label: 'Anau', lat: -16.4910, lng: -151.7220 },
+    { code: 'faanui', label: 'Faanui', lat: -16.4820, lng: -151.7610 },
+  ],
+  huahine: [
+    { code: 'fare', label: 'Fare', lat: -16.7167, lng: -151.0333 },
+    { code: 'maeva', label: 'Maeva', lat: -16.7239, lng: -151.0114 },
+    { code: 'fitii', label: 'Fitii', lat: -16.7790, lng: -151.0220 },
+  ],
+  raiatea: [
+    { code: 'uturoa', label: 'Uturoa', lat: -16.7311, lng: -151.4467 },
+    { code: 'avera', label: 'Avera', lat: -16.7822, lng: -151.4367 },
+    { code: 'opoa', label: 'Opoa', lat: -16.8350, lng: -151.3730 },
+  ],
+  rangiroa: [
+    { code: 'avatoru', label: 'Avatoru', lat: -14.9497, lng: -147.7000 },
+    { code: 'tiputa', label: 'Tiputa', lat: -14.9756, lng: -147.6217 },
+  ],
+  fakarava: [
+    { code: 'rotoava', label: 'Rotoava', lat: -16.0578, lng: -145.6217 },
+    { code: 'tetamanu', label: 'Tetamanu', lat: -16.4840, lng: -145.4470 },
+  ],
+  'nuku-hiva': [
+    { code: 'taiohae', label: 'Taiohae', lat: -8.9112, lng: -140.0995 },
+    { code: 'hatiheu', label: 'Hatiheu', lat: -8.8170, lng: -140.0930 },
+  ],
 }
 
-// Approximate centroids per city (lat, lng). Used to seed listing coords.
-// Values come from public city-level lookups; precise to ~city-block level.
-// Listings then get a ±300m jitter so the map pin never reveals the exact address.
-const CITY_CENTROIDS: Record<string, [number, number]> = {
-  // Tahiti
-  Papeete: [-17.5325, -149.5665],
-  Punaauia: [-17.6242, -149.6075],
-  Faaa: [-17.5573, -149.6110],
-  Pirae: [-17.5246, -149.5374],
-  Arue: [-17.5172, -149.5113],
-  Mahina: [-17.5040, -149.4760],
-  Paea: [-17.6878, -149.5811],
-  Papara: [-17.7510, -149.5470],
-  Taravao: [-17.7351, -149.3146],
-  // Moorea
-  Afareaitu: [-17.5570, -149.7989],
-  Haapiti: [-17.5540, -149.8730],
-  Paopao: [-17.5141, -149.8262],
-  Teavaro: [-17.4896, -149.7714],
-  // Bora Bora
-  Vaitape: [-16.5097, -151.7472],
-  Anau: [-16.4910, -151.7220],
-  Faanui: [-16.4820, -151.7610],
-  // Huahine
-  Fare: [-16.7167, -151.0333],
-  Maeva: [-16.7239, -151.0114],
-  Fitii: [-16.7790, -151.0220],
-  // Raiatea
-  Uturoa: [-16.7311, -151.4467],
-  Avera: [-16.7822, -151.4367],
-  Opoa: [-16.8350, -151.3730],
-  // Rangiroa
-  Avatoru: [-14.9497, -147.7000],
-  Tiputa: [-14.9756, -147.6217],
-  // Fakarava
-  Rotoava: [-16.0578, -145.6217],
-  Tetamanu: [-16.4840, -145.4470],
-  // Nuku Hiva
-  Taiohae: [-8.9112, -140.0995],
-  Hatiheu: [-8.8170, -140.0930],
-}
-
-// Returns lat/lng strings (the column type is text) jittered by up to ~300m.
-// 1 degree of latitude ≈ 111km, so 300m ≈ 0.0027 degrees.
-function jitterCoords(city: string): { latitude: string | null; longitude: string | null } {
-  const centroid = CITY_CENTROIDS[city]
-  if (!centroid) return { latitude: null, longitude: null }
-  const [lat, lng] = centroid
-  const dLat = (Math.random() - 0.5) * 0.0054 // ~±300m
-  // Longitude degrees shrink by cos(lat); at -17° ≈ 0.956
-  const dLng = ((Math.random() - 0.5) * 0.0054) / Math.cos((lat * Math.PI) / 180)
+// Returns lat/lng strings (column type is text) jittered ±300m around the
+// city centroid so the map pin never reveals the exact address.
+// 1° latitude ≈ 111km → 300m ≈ 0.0027°.
+function jitterCoords(centroid: { lat: number; lng: number }): { latitude: string; longitude: string } {
+  const dLat = (Math.random() - 0.5) * 0.0054
+  // Longitude degrees shrink by cos(lat); at -17° ≈ 0.956.
+  const dLng = ((Math.random() - 0.5) * 0.0054) / Math.cos((centroid.lat * Math.PI) / 180)
   return {
-    latitude: (lat + dLat).toFixed(6),
-    longitude: (lng + dLng).toFixed(6),
+    latitude: (centroid.lat + dLat).toFixed(6),
+    longitude: (centroid.lng + dLng).toFixed(6),
   }
 }
 
@@ -180,7 +174,36 @@ async function seed() {
       await db.insert(schema.regions).values({ countryCode: 'PF', ...r })
     }
   }
-  console.log(`  🌍 1 country, ${PF_REGION_ROWS.length} regions`)
+
+  // Cities (idempotent on (country, region, code))
+  let cityCount = 0
+  for (const [regionCode, citySeeds] of Object.entries(CITIES_BY_REGION)) {
+    for (let i = 0; i < citySeeds.length; i++) {
+      const c = citySeeds[i]!
+      const [existing] = await db
+        .select({ id: schema.cities.id })
+        .from(schema.cities)
+        .where(and(
+          eq(schema.cities.countryCode, 'PF'),
+          eq(schema.cities.regionCode, regionCode),
+          eq(schema.cities.code, c.code),
+        ))
+        .limit(1)
+      if (!existing) {
+        await db.insert(schema.cities).values({
+          countryCode: 'PF',
+          regionCode,
+          code: c.code,
+          label: c.label,
+          latitude: c.lat.toFixed(6),
+          longitude: c.lng.toFixed(6),
+          sortOrder: i,
+        })
+      }
+      cityCount++
+    }
+  }
+  console.log(`  🌍 1 country, ${PF_REGION_ROWS.length} regions, ${cityCount} cities`)
 
   // Use Better Auth's own password hasher
   const { hashPassword } = await import('better-auth/crypto')
@@ -238,14 +261,14 @@ async function seed() {
 
   for (let i = 0; i < 30; i++) {
     const region = pick(REGIONS)
-    const city = pick(CITIES_BY_REGION[region]!)
+    const citySeed = pick(CITIES_BY_REGION[region]!)
     const titleTemplate = pick(TITLES)
-    const title = titleTemplate.replace('{city}', city)
+    const title = titleTemplate.replace('{city}', citySeed.label)
     const listingSlug = `${slug(title)}-${rand(100, 999)}`
     const authorId = pick(providerIds)
     const listingType = pick(LISTING_TYPES)
     const price = pick([45000, 55000, 65000, 75000, 80000, 95000, 110000, 120000, 150000, 180000])
-    const { latitude, longitude } = jitterCoords(city)
+    const { latitude, longitude } = jitterCoords({ lat: citySeed.lat, lng: citySeed.lng })
 
     await db.insert(schema.listings).values({
       title,
@@ -259,7 +282,7 @@ async function seed() {
       availableTo: listingType === 'sous_location' ? futureDate(61, 120) : null,
       country: 'PF',
       region,
-      city,
+      city: citySeed.code,
       latitude,
       longitude,
       roomType: pick(ROOM_TYPES),

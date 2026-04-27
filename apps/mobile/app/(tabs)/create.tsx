@@ -39,8 +39,17 @@ export default function CreateListingScreen() {
   const { data: profile } = useQuery(orpc.user.me.queryOptions())
   const emailVerified = !!profile?.emailVerified
 
+  // Lifted region state so the cities query refetches as the user picks chips.
+  // Form value is kept in sync via the chip onPress.
+  const [selectedRegion, setSelectedRegion] = useState<string>('tahiti')
+
   const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
     input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
+
+  const { data: cityOptions = [] } = useQuery(orpc.geo.cities.queryOptions({
+    input: { country: DEFAULT_COUNTRY, region: selectedRegion },
     staleTime: 60 * 60 * 1000,
   }))
 
@@ -59,7 +68,7 @@ export default function CreateListingScreen() {
       availableFrom: '',
       availableTo: '',
       region: 'tahiti',
-      city: '',
+      city: 'papeete',
       roomType: 'single' as RoomType,
       roommateCount: '1',
       privateBathroom: false,
@@ -200,21 +209,42 @@ export default function CreateListingScreen() {
 
           {/* Location */}
           <SectionTitle>Localisation</SectionTitle>
+          <Text className="mb-1.5 text-xs font-medium text-muted-foreground">Île</Text>
           <form.Field name="region">
             {(f) => (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row gap-2">
-                  {regionOptions.map((r) => (
-                    <Pressable key={r.code} className={`rounded-pill px-4 py-2 ${f.state.value === r.code ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(r.code)}>
-                      <Text className={`text-sm ${f.state.value === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{r.label}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </ScrollView>
+              <View className="flex-row flex-wrap gap-2">
+                {regionOptions.map((r) => (
+                  <Pressable
+                    key={r.code}
+                    className={`rounded-pill px-4 py-2 ${f.state.value === r.code ? 'bg-primary' : 'bg-muted'}`}
+                    onPress={() => {
+                      f.handleChange(r.code)
+                      setSelectedRegion(r.code)
+                      // Reset city — it likely doesn't belong to the new region.
+                      form.setFieldValue('city', '')
+                    }}
+                  >
+                    <Text className={`text-sm ${f.state.value === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{r.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
             )}
           </form.Field>
+          <Text className="mb-1.5 mt-3 text-xs font-medium text-muted-foreground">Commune</Text>
           <form.Field name="city">
-            {(f) => <TextInput className="mt-3 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Commune" placeholderTextColor="#8B7E74" value={f.state.value} onChangeText={f.handleChange} />}
+            {(f) => (
+              <View className="flex-row flex-wrap gap-2">
+                {cityOptions.map((c) => (
+                  <Pressable
+                    key={c.code}
+                    className={`rounded-pill px-4 py-2 ${f.state.value === c.code ? 'bg-primary' : 'bg-muted'}`}
+                    onPress={() => f.handleChange(c.code)}
+                  >
+                    <Text className={`text-sm ${f.state.value === c.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{c.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </form.Field>
 
           {/* Room */}

@@ -40,7 +40,7 @@ export default function MyListingsScreen() {
               <ListingStatusBadge status={item.status} />
             </View>
             <Text className="mt-1 text-sm text-muted-foreground">
-              {item.city}, {item.regionLabel ?? item.region} · {item.price.toLocaleString('fr-FR')} XPF · {item.views} vues
+              {item.cityLabel ?? item.city}, {item.regionLabel ?? item.region} · {item.price.toLocaleString('fr-FR')} XPF · {item.views} vues
             </Text>
             <View className="mt-3 flex-row gap-2">
               <Pressable className="flex-row items-center gap-1 rounded-button bg-secondary px-3 py-1.5" onPress={() => router.push(`/listing/candidatures/${item.id}` as any)}>

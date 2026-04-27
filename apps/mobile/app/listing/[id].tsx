@@ -204,7 +204,7 @@ export default function ListingDetailScreen() {
           <Text className="mt-3 text-2xl font-bold text-foreground">{listing.title}</Text>
           <View className="mt-2 flex-row items-center gap-1.5">
             <Feather name="map-pin" size={16} color="#0D9488" />
-            <Text className="text-base text-muted-foreground">{listing.city}, {listing.regionLabel ?? listing.region}</Text>
+            <Text className="text-base text-muted-foreground">{listing.cityLabel ?? listing.city}, {listing.regionLabel ?? listing.region}</Text>
           </View>
           <Text className="mt-2 text-xl font-bold text-primary">
             {listing.price.toLocaleString('fr-FR')} XPF / mois

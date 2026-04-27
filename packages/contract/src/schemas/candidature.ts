@@ -31,6 +31,7 @@ export const candidatureSchema = z.object({
   user: candidateProfileSchema.optional(),
   listingTitle: z.string().optional(),
   listingCity: z.string().optional(),
+  listingCityLabel: z.string().optional(),
   listingRegion: z.string().optional(),
   listingRegionLabel: z.string().optional(),
   listingCountry: z.string().optional(),

@@ -52,6 +52,7 @@ export const listingSchema = z.object({
   // don't enrich (e.g. raw inserts) still satisfy the schema.
   countryLabel: z.string().optional(),
   regionLabel: z.string().optional(),
+  cityLabel: z.string().optional(),
   latitude: z.string().nullable(),
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),
@@ -99,6 +100,11 @@ export const listingFiltersSchema = z.object({
   country: countryCode.optional(),
   region: regionCode.optional(),
   city: z.string().min(1).max(100).optional(),
+  // Geo radius filter — when set, takes precedence over the city eq match
+  // and returns listings within `radiusKm` of (centerLat, centerLng).
+  centerLat: z.coerce.number().optional(),
+  centerLng: z.coerce.number().optional(),
+  radiusKm: z.coerce.number().positive().max(500).optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),

@@ -1,11 +1,11 @@
 import { eq, and, asc, desc, gte, lte, sql, or, ilike } from 'drizzle-orm'
 
 import { db } from '../db'
-import { countries, images, listings, regions, user } from '../db/schema'
+import { cities, countries, images, listings, regions, user } from '../db/schema'
 import { getPublicUrl, deleteObject } from '../lib/r2'
 import { pub, authed } from './base'
 
-async function assertGeo(country: string, region: string) {
+async function assertGeo(country: string, region: string, city: string) {
   const [c] = await db.select({ code: countries.code }).from(countries).where(eq(countries.code, country)).limit(1)
   if (!c) throw new Error(`Unknown country: ${country}`)
   const [r] = await db
@@ -14,6 +14,12 @@ async function assertGeo(country: string, region: string) {
     .where(and(eq(regions.countryCode, country), eq(regions.code, region)))
     .limit(1)
   if (!r) throw new Error(`Unknown region "${region}" for country ${country}`)
+  const [ct] = await db
+    .select({ code: cities.code })
+    .from(cities)
+    .where(and(eq(cities.countryCode, country), eq(cities.regionCode, region), eq(cities.code, city)))
+    .limit(1)
+  if (!ct) throw new Error(`Unknown city "${city}" for region "${region}"`)
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -66,21 +72,32 @@ async function enrichWithAuthor(authorId: string) {
   return author ?? null
 }
 
-async function resolveGeoLabels(country: string, region: string) {
+async function resolveGeoLabels(country: string, region: string, city: string) {
   const [c] = await db.select({ label: countries.label }).from(countries).where(eq(countries.code, country)).limit(1)
   const [r] = await db
     .select({ label: regions.label })
     .from(regions)
     .where(and(eq(regions.countryCode, country), eq(regions.code, region)))
     .limit(1)
-  return { countryLabel: c?.label ?? country, regionLabel: r?.label ?? region }
+  const [ct] = await db
+    .select({ label: cities.label })
+    .from(cities)
+    .where(and(eq(cities.countryCode, country), eq(cities.regionCode, region), eq(cities.code, city)))
+    .limit(1)
+  return {
+    countryLabel: c?.label ?? country,
+    regionLabel: r?.label ?? region,
+    // Free-text legacy fallback: if the listing's `city` value isn't in the
+    // cities table, we display the raw value as the label so old data still renders.
+    cityLabel: ct?.label ?? city,
+  }
 }
 
 async function enrichListing(listing: typeof listings.$inferSelect) {
   const [listingImages, author, geoLabels] = await Promise.all([
     enrichWithImages(listing.id),
     enrichWithAuthor(listing.authorId),
-    resolveGeoLabels(listing.country, listing.region),
+    resolveGeoLabels(listing.country, listing.region, listing.city),
   ])
   return { ...listing, images: listingImages, author, ...geoLabels }
 }
@@ -103,7 +120,24 @@ export const list = pub.listing.list.handler(async ({ input }) => {
   }
   if (input.country) conditions.push(eq(listings.country, input.country))
   if (input.region) conditions.push(eq(listings.region, input.region))
-  if (input.city) conditions.push(eq(listings.city, input.city))
+
+  // Geo radius takes precedence over city eq match — picking a city + radius
+  // means "within X km of city centroid", which usually spans neighbouring
+  // communes. When only a city (no radius) is set, fall back to eq match.
+  const hasRadius = input.radiusKm != null && input.centerLat != null && input.centerLng != null
+  if (hasRadius) {
+    // Haversine: 6371 km * acos(...). lat/lng columns are text, cast to float.
+    // Filter out listings without coords to avoid NULL math poisoning the result.
+    conditions.push(sql`${listings.latitude} IS NOT NULL AND ${listings.longitude} IS NOT NULL`)
+    conditions.push(sql`6371 * acos(
+      sin(radians(${input.centerLat})) * sin(radians(${listings.latitude}::float)) +
+      cos(radians(${input.centerLat})) * cos(radians(${listings.latitude}::float)) *
+      cos(radians(${listings.longitude}::float - ${input.centerLng}))
+    ) < ${input.radiusKm}`)
+  } else if (input.city) {
+    conditions.push(eq(listings.city, input.city))
+  }
+
   if (input.listingType) conditions.push(eq(listings.listingType, input.listingType))
   if (input.roomType) {
     // "both" matches any room type, so only filter for "single" or "couple"
@@ -170,7 +204,7 @@ export const create = authed.listing.create.handler(async ({ input, context }) =
   const [author] = await db.select().from(user).where(eq(user.id, context.user.id)).limit(1)
   if (!author?.emailVerified) throw new Error('Email non confirmé. Vérifie ta boîte mail avant de publier.')
 
-  await assertGeo(input.country, input.region)
+  await assertGeo(input.country, input.region, input.city)
 
   const slug = await uniqueSlug(input.title)
   const [created] = await db
@@ -186,8 +220,12 @@ export const update = authed.listing.update.handler(async ({ input, context }) =
   if (!existing) throw new Error('Not found')
   if (!isOwnerOrAdmin(context.user.id, existing.authorId, context.user.role)) throw new Error('Forbidden')
 
-  if (data.country || data.region) {
-    await assertGeo(data.country ?? existing.country, data.region ?? existing.region)
+  if (data.country || data.region || data.city) {
+    await assertGeo(
+      data.country ?? existing.country,
+      data.region ?? existing.region,
+      data.city ?? existing.city,
+    )
   }
 
   const updates = { ...data } as Partial<typeof listings.$inferInsert>

@@ -51,7 +51,8 @@ export default function SearchScreen() {
   const [view, setView] = useState<'list' | 'map'>('list')
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<string | null>(null)
-  const [city, setCity] = useState<string | null>(null)
+  const [city, setCity] = useState<{ code: string; lat: number; lng: number } | null>(null)
+  const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [listingType, setListingType] = useState<string | null>(null)
   const [roomType, setRoomType] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
@@ -79,12 +80,15 @@ export default function SearchScreen() {
   const snapPoints = useMemo(() => ['7%', '55%', '85%'], [])
   const [sheetIndex, setSheetIndex] = useState(0)
 
-  const activeFilterCount = [region, city, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
+  const activeFilterCount = [region, city, radiusKm, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
 
   const input = {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(region ? { region } : {}),
-    ...(city ? { city } : {}),
+    ...(city ? { city: city.code } : {}),
+    // Radius takes precedence over city eq match server-side: we send the
+    // city's centroid + km. Listings within the disc are returned.
+    ...(city && radiusKm ? { centerLat: city.lat, centerLng: city.lng, radiusKm } : {}),
     ...(listingType ? { listingType: listingType as ListingType } : {}),
     ...(roomType ? { roomType: roomType as RoomType } : {}),
     ...(debouncedMin ? { minPrice: Number(debouncedMin) } : {}),
@@ -110,7 +114,7 @@ export default function SearchScreen() {
 
   const resetFilters = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    setSearch(''); setRegion(null); setCity(null); setListingType(null); setRoomType(null)
+    setSearch(''); setRegion(null); setCity(null); setRadiusKm(null); setListingType(null); setRoomType(null)
     setMinPrice(''); setMaxPrice('')
     setPool(false); setParking(false); setAirConditioning(false); setPetsAccepted(false)
   }
@@ -232,7 +236,7 @@ export default function SearchScreen() {
           {/* Region */}
           <FilterSection title="Île">
             <View className="flex-row flex-wrap gap-2">
-              <Chip label="Toutes" active={!region} onPress={() => { setRegion(null); setCity(null) }} />
+              <Chip label="Toutes" active={!region} onPress={() => { setRegion(null); setCity(null); setRadiusKm(null) }} />
               {regionOptions.filter((r) => r.code !== 'other').map((r) => (
                 <Chip
                   key={r.code}
@@ -242,6 +246,7 @@ export default function SearchScreen() {
                     const next = region === r.code ? null : r.code
                     setRegion(next)
                     setCity(null)
+                    setRadiusKm(null)
                   }}
                 />
               ))}
@@ -252,13 +257,37 @@ export default function SearchScreen() {
           {cityOptions.length > 0 && (
             <FilterSection title="Commune">
               <View className="flex-row flex-wrap gap-2">
-                <Chip label="Toutes" active={!city} onPress={() => setCity(null)} />
+                <Chip label="Toutes" active={!city} onPress={() => { setCity(null); setRadiusKm(null) }} />
                 {cityOptions.map((c) => (
                   <Chip
-                    key={c.name}
-                    label={c.name}
-                    active={city === c.name}
-                    onPress={() => setCity(city === c.name ? null : c.name)}
+                    key={c.code}
+                    label={c.label}
+                    active={city?.code === c.code}
+                    onPress={() => {
+                      if (city?.code === c.code) {
+                        setCity(null)
+                        setRadiusKm(null)
+                      } else {
+                        setCity({ code: c.code, lat: Number(c.latitude), lng: Number(c.longitude) })
+                      }
+                    }}
+                  />
+                ))}
+              </View>
+            </FilterSection>
+          )}
+
+          {/* Radius — only meaningful with a city centroid */}
+          {city && (
+            <FilterSection title="Rayon autour de la commune">
+              <View className="flex-row flex-wrap gap-2">
+                <Chip label="Aucun" active={!radiusKm} onPress={() => setRadiusKm(null)} />
+                {[3, 5, 10, 20, 30].map((km) => (
+                  <Chip
+                    key={km}
+                    label={`${km} km`}
+                    active={radiusKm === km}
+                    onPress={() => setRadiusKm(radiusKm === km ? null : km)}
                   />
                 ))}
               </View>

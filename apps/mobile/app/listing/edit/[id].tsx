@@ -45,8 +45,15 @@ export default function EditListingScreen() {
     },
   })
 
+  const [selectedRegion, setSelectedRegion] = useState<string>('tahiti')
+
   const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
     input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
+
+  const { data: cityOptions = [] } = useQuery(orpc.geo.cities.queryOptions({
+    input: { country: DEFAULT_COUNTRY, region: selectedRegion },
     staleTime: 60 * 60 * 1000,
   }))
 
@@ -62,6 +69,7 @@ export default function EditListingScreen() {
         form.setFieldValue('availableFrom', new Date(l.availableFrom).toISOString().split('T')[0])
         form.setFieldValue('availableTo', l.availableTo ? new Date(l.availableTo).toISOString().split('T')[0] : '')
         form.setFieldValue('region', l.region)
+        setSelectedRegion(l.region)
         form.setFieldValue('city', l.city)
         form.setFieldValue('roomType', l.roomType)
         form.setFieldValue('roommateCount', String(l.roommateCount))
@@ -144,8 +152,42 @@ export default function EditListingScreen() {
           <form.Field name="availableTo">{(f) => <DateField label="Jusqu'au (optionnel)" value={f.state.value} onChange={f.handleChange} placeholder="Pas de date de fin" />}</form.Field>
 
           <SectionTitle>Localisation</SectionTitle>
-          <form.Field name="region">{(f) => <ScrollView horizontal showsHorizontalScrollIndicator={false}><View className="flex-row gap-2">{regionOptions.map((r) => <Pressable key={r.code} className={`rounded-pill px-4 py-2 ${f.state.value === r.code ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(r.code)}><Text className={`text-sm ${f.state.value === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{r.label}</Text></Pressable>)}</View></ScrollView>}</form.Field>
-          <form.Field name="city">{(f) => <TextInput className="mt-3 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" placeholder="Commune" placeholderTextColor="#8B7E74" value={f.state.value} onChangeText={f.handleChange} />}</form.Field>
+          <Text className="mb-1.5 text-xs font-medium text-muted-foreground">Île</Text>
+          <form.Field name="region">
+            {(f) => (
+              <View className="flex-row flex-wrap gap-2">
+                {regionOptions.map((r) => (
+                  <Pressable
+                    key={r.code}
+                    className={`rounded-pill px-4 py-2 ${f.state.value === r.code ? 'bg-primary' : 'bg-muted'}`}
+                    onPress={() => {
+                      f.handleChange(r.code)
+                      setSelectedRegion(r.code)
+                      form.setFieldValue('city', '')
+                    }}
+                  >
+                    <Text className={`text-sm ${f.state.value === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{r.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </form.Field>
+          <Text className="mb-1.5 mt-3 text-xs font-medium text-muted-foreground">Commune</Text>
+          <form.Field name="city">
+            {(f) => (
+              <View className="flex-row flex-wrap gap-2">
+                {cityOptions.map((c) => (
+                  <Pressable
+                    key={c.code}
+                    className={`rounded-pill px-4 py-2 ${f.state.value === c.code ? 'bg-primary' : 'bg-muted'}`}
+                    onPress={() => f.handleChange(c.code)}
+                  >
+                    <Text className={`text-sm ${f.state.value === c.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{c.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </form.Field>
 
           <SectionTitle>Logement</SectionTitle>
           <form.Field name="roomType">{(f) => <View className="flex-row gap-2">{ROOM_TYPES.map((rt) => <Pressable key={rt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === rt ? 'bg-secondary' : 'bg-muted'}`} onPress={() => f.handleChange(rt)}><Text className={`text-sm font-medium ${f.state.value === rt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>{ROOM_TYPE_LABELS[rt]}</Text></Pressable>)}</View>}</form.Field>

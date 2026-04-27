@@ -14,10 +14,12 @@ export const regionsInputSchema = z.object({
   country: z.string().length(2),
 })
 
-// Cities aren't normalized (free-text on listings) so we expose the live set
-// derived from published listings, optionally scoped to a region.
+// Curated cities with centroids. Sourced from the `cities` table.
 export const citySchema = z.object({
-  name: z.string(),
+  code: z.string().min(1).max(100),
+  label: z.string(),
+  latitude: z.string(),
+  longitude: z.string(),
 })
 
 export const citiesInputSchema = z.object({

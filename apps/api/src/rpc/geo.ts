@@ -1,7 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm'
 
 import { db } from '../db'
-import { countries, listings, regions } from '../db/schema'
+import { cities, countries, regions } from '../db/schema'
 import { pub } from './base'
 
 export const countriesList = pub.geo.countries.handler(async () => {
@@ -22,12 +22,17 @@ export const regionsList = pub.geo.regions.handler(async ({ input }) => {
 })
 
 export const citiesList = pub.geo.cities.handler(async ({ input }) => {
-  const conditions = [eq(listings.country, input.country), eq(listings.status, 'published')]
-  if (input.region) conditions.push(eq(listings.region, input.region))
+  const conditions = [eq(cities.countryCode, input.country)]
+  if (input.region) conditions.push(eq(cities.regionCode, input.region))
   const rows = await db
-    .selectDistinct({ city: listings.city })
-    .from(listings)
+    .select({
+      code: cities.code,
+      label: cities.label,
+      latitude: cities.latitude,
+      longitude: cities.longitude,
+    })
+    .from(cities)
     .where(and(...conditions))
-    .orderBy(asc(listings.city))
-  return rows.map((r) => ({ name: r.city }))
+    .orderBy(asc(cities.sortOrder), asc(cities.label))
+  return rows
 })
