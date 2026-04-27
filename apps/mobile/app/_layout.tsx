@@ -109,7 +109,7 @@ function RootLayoutNav() {
   // for the same device + project, so calling on every login is fine.
   useEffect(() => {
     if (session) {
-      syncPushToken().catch((e) => console.warn('[push] sync failed at top level', e))
+      syncPushToken().catch(() => {})
       // Prefetch candidatures so listing cards + detail screens can show status without flicker
       queryClient.prefetchQuery(orpc.candidature.mine.queryOptions())
     }

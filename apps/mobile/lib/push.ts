@@ -55,22 +55,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 }
 
-// Convenience wrapper: get the token, send it to the backend.
-// Returns true on success.
+// Convenience wrapper: get the token, send it to the backend. Returns true on success.
+// Silent on the happy path; warns on failure.
 export async function syncPushToken(): Promise<boolean> {
-  console.log('[push] syncPushToken: starting')
   const token = await registerForPushNotifications()
-  if (!token) {
-    console.warn('[push] syncPushToken: no token (permission denied or projectId missing)')
-    return false
-  }
-  console.log('[push] syncPushToken: got token', token.slice(0, 32) + '...')
+  if (!token) return false
   try {
     await client.user.registerPushToken({ token })
-    console.log('[push] syncPushToken: registered with backend ✓')
     return true
   } catch (e) {
-    console.warn('[push] syncPushToken: backend register failed', e)
+    console.warn('[push] backend register failed', e)
     return false
   }
 }
