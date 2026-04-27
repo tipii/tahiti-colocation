@@ -51,6 +51,7 @@ export default function SearchScreen() {
   const [view, setView] = useState<'list' | 'map'>('list')
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<string | null>(null)
+  const [city, setCity] = useState<string | null>(null)
   const [listingType, setListingType] = useState<string | null>(null)
   const [roomType, setRoomType] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
@@ -69,14 +70,21 @@ export default function SearchScreen() {
     staleTime: 60 * 60 * 1000,
   }))
 
+  // Cities scope to the selected region (or all PF cities when no region set).
+  const { data: cityOptions = [] } = useQuery(orpc.geo.cities.queryOptions({
+    input: { country: DEFAULT_COUNTRY, ...(region ? { region } : {}) },
+    staleTime: 5 * 60 * 1000,
+  }))
+
   const snapPoints = useMemo(() => ['7%', '55%', '85%'], [])
   const [sheetIndex, setSheetIndex] = useState(0)
 
-  const activeFilterCount = [region, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
+  const activeFilterCount = [region, city, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
 
   const input = {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(region ? { region } : {}),
+    ...(city ? { city } : {}),
     ...(listingType ? { listingType: listingType as ListingType } : {}),
     ...(roomType ? { roomType: roomType as RoomType } : {}),
     ...(debouncedMin ? { minPrice: Number(debouncedMin) } : {}),
@@ -102,7 +110,7 @@ export default function SearchScreen() {
 
   const resetFilters = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    setSearch(''); setRegion(null); setListingType(null); setRoomType(null)
+    setSearch(''); setRegion(null); setCity(null); setListingType(null); setRoomType(null)
     setMinPrice(''); setMaxPrice('')
     setPool(false); setParking(false); setAirConditioning(false); setPetsAccepted(false)
   }
@@ -223,15 +231,39 @@ export default function SearchScreen() {
         <BottomSheetScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40, gap: 24 }}>
           {/* Region */}
           <FilterSection title="Île">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                <Chip label="Toutes" active={!region} onPress={() => setRegion(null)} />
-                {regionOptions.filter((r) => r.code !== 'other').map((r) => (
-                  <Chip key={r.code} label={r.label} active={region === r.code} onPress={() => setRegion(region === r.code ? null : r.code)} />
+            <View className="flex-row flex-wrap gap-2">
+              <Chip label="Toutes" active={!region} onPress={() => { setRegion(null); setCity(null) }} />
+              {regionOptions.filter((r) => r.code !== 'other').map((r) => (
+                <Chip
+                  key={r.code}
+                  label={r.label}
+                  active={region === r.code}
+                  onPress={() => {
+                    const next = region === r.code ? null : r.code
+                    setRegion(next)
+                    setCity(null)
+                  }}
+                />
+              ))}
+            </View>
+          </FilterSection>
+
+          {/* City */}
+          {cityOptions.length > 0 && (
+            <FilterSection title="Commune">
+              <View className="flex-row flex-wrap gap-2">
+                <Chip label="Toutes" active={!city} onPress={() => setCity(null)} />
+                {cityOptions.map((c) => (
+                  <Chip
+                    key={c.name}
+                    label={c.name}
+                    active={city === c.name}
+                    onPress={() => setCity(city === c.name ? null : c.name)}
+                  />
                 ))}
               </View>
-            </ScrollView>
-          </FilterSection>
+            </FilterSection>
+          )}
 
           {/* Duration */}
           <FilterSection title="Type de location">

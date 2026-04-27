@@ -103,6 +103,7 @@ export const list = pub.listing.list.handler(async ({ input }) => {
   }
   if (input.country) conditions.push(eq(listings.country, input.country))
   if (input.region) conditions.push(eq(listings.region, input.region))
+  if (input.city) conditions.push(eq(listings.city, input.city))
   if (input.listingType) conditions.push(eq(listings.listingType, input.listingType))
   if (input.roomType) {
     // "both" matches any room type, so only filter for "single" or "couple"

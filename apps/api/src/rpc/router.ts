@@ -10,6 +10,7 @@ export const router = pub.router({
   geo: {
     countries: geo.countriesList,
     regions: geo.regionsList,
+    cities: geo.citiesList,
   },
   listing: {
     list: listing.list,

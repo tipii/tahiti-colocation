@@ -1,7 +1,7 @@
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 
 import { db } from '../db'
-import { countries, regions } from '../db/schema'
+import { countries, listings, regions } from '../db/schema'
 import { pub } from './base'
 
 export const countriesList = pub.geo.countries.handler(async () => {
@@ -19,4 +19,15 @@ export const regionsList = pub.geo.regions.handler(async ({ input }) => {
     .where(eq(regions.countryCode, input.country))
     .orderBy(asc(regions.sortOrder), asc(regions.label))
   return rows
+})
+
+export const citiesList = pub.geo.cities.handler(async ({ input }) => {
+  const conditions = [eq(listings.country, input.country), eq(listings.status, 'published')]
+  if (input.region) conditions.push(eq(listings.region, input.region))
+  const rows = await db
+    .selectDistinct({ city: listings.city })
+    .from(listings)
+    .where(and(...conditions))
+    .orderBy(asc(listings.city))
+  return rows.map((r) => ({ name: r.city }))
 })
