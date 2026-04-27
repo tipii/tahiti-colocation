@@ -96,7 +96,6 @@ export const createListingSchema = z.object({
 export const updateListingSchema = createListingSchema.partial()
 
 export const listingFiltersSchema = z.object({
-  search: z.string().optional(),
   country: countryCode.optional(),
   region: regionCode.optional(),
   city: z.string().min(1).max(100).optional(),

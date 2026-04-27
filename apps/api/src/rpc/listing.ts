@@ -1,4 +1,4 @@
-import { eq, and, asc, desc, gte, lte, sql, or, ilike } from 'drizzle-orm'
+import { eq, and, asc, desc, gte, lte, sql, or } from 'drizzle-orm'
 
 import { db } from '../db'
 import { cities, countries, images, listings, regions, user } from '../db/schema'
@@ -114,10 +114,6 @@ export const list = pub.listing.list.handler(async ({ input }) => {
   const offset = (page - 1) * limit
 
   const conditions = [eq(listings.status, 'published')]
-  if (input.search) {
-    const term = `%${input.search}%`
-    conditions.push(or(ilike(listings.title, term), ilike(listings.city, term), ilike(listings.description, term))!)
-  }
   if (input.country) conditions.push(eq(listings.country, input.country))
   if (input.region) conditions.push(eq(listings.region, input.region))
 
