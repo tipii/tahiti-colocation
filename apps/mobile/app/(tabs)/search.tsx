@@ -72,11 +72,15 @@ export default function SearchScreen() {
     staleTime: 60 * 60 * 1000,
   }))
 
-  // Cities scope to the selected region (or all PF cities when no region set).
-  const { data: cityOptions = [] } = useQuery(orpc.geo.cities.queryOptions({
-    input: { country: DEFAULT_COUNTRY, ...(region ? { region } : {}) },
-    staleTime: 5 * 60 * 1000,
-  }))
+  // Cities only make sense once a region is picked — too many to chip-display
+  // across all of PF, and the UX flow is region → city → radius.
+  const { data: cityOptions = [] } = useQuery({
+    ...orpc.geo.cities.queryOptions({
+      input: { country: DEFAULT_COUNTRY, region: region ?? '' },
+      staleTime: 5 * 60 * 1000,
+    }),
+    enabled: !!region,
+  })
 
   const snapPoints = useMemo(() => ['7%', '55%', '85%'], [])
   const [sheetIndex, setSheetIndex] = useState(0)
@@ -254,8 +258,8 @@ export default function SearchScreen() {
             </View>
           </FilterSection>
 
-          {/* City */}
-          {cityOptions.length > 0 && (
+          {/* City — only when a region is selected */}
+          {region && cityOptions.length > 0 && (
             <FilterSection title="Commune">
               <View className="flex-row flex-wrap gap-2">
                 <Chip label="Toutes" active={!city} onPress={() => { setCity(null); setRadiusKm(null) }} />
