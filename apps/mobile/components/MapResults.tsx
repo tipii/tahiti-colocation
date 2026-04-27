@@ -38,25 +38,28 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
 
   const selected = listings.find((l) => l.id === selectedId)
 
-  // Single FeatureCollection feeds one GeoJSONSource — much cheaper than one
-  // ViewAnnotation per listing, which lags during pan/zoom because each
-  // marker re-projects through the JS bridge each frame.
   const featureCollection = useMemo(
     () => ({
       type: 'FeatureCollection' as const,
-      features: listings.map((l) => ({
-        type: 'Feature' as const,
-        id: l.id,
-        properties: {
+      features: listings.map((l) => {
+        const lat = Number(l.latitude)
+        return {
+          type: 'Feature' as const,
           id: l.id,
-          label: `${Math.round(l.price / 1000)}k`,
-          selected: selectedId === l.id ? 1 : 0,
-        },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [Number(l.longitude), Number(l.latitude)] as [number, number],
-        },
-      })),
+          properties: {
+            id: l.id,
+            label: `${Math.round(l.price / 1000)}k`,
+            selected: selectedId === l.id ? 1 : 0,
+            // Higher key = drawn later (on top). Southernmost pins win, mimicking
+            // viewport-Y depth on north-up maps. Selected pin always wins.
+            sortKey: (selectedId === l.id ? 1000 : 0) + (-lat),
+          },
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [Number(l.longitude), lat] as [number, number],
+          },
+        }
+      }),
     }),
     [listings, selectedId],
   )
@@ -96,26 +99,29 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
           <Layer
             id="listings-bg"
             type="circle"
-            paint={{
-              'circle-radius': 18,
-              'circle-color': ['case', ['==', ['get', 'selected'], 1], '#0D9488', '#FF6B35'],
-              'circle-stroke-width': 2,
-              'circle-stroke-color': '#FFFFFF',
-              'circle-pitch-alignment': 'map',
+            style={{
+              circleRadius: 18,
+              circleColor: ['case', ['==', ['get', 'selected'], 1], '#0D9488', '#FF6B35'],
+              circleStrokeWidth: 2,
+              circleStrokeColor: '#FFFFFF',
+              circlePitchAlignment: 'map',
+              circleSortKey: ['get', 'sortKey'],
             }}
           />
           <Layer
             id="listings-label"
             type="symbol"
-            layout={{
-              'text-field': ['get', 'label'],
-              'text-size': 12,
-              'text-font': ['Noto Sans Bold'],
-              'text-allow-overlap': true,
-              'text-ignore-placement': true,
-            }}
-            paint={{
-              'text-color': '#FFFFFF',
+            style={{
+              textField: ['get', 'label'],
+              textSize: 12,
+              textFont: ['Noto Sans Bold'],
+              textColor: '#FFFFFF',
+              // Off → MapLibre hides labels that collide with already-placed ones.
+              // Circles still render (so the listing is visible) but only readable
+              // text is shown at any given zoom. Sort key gives priority order.
+              textAllowOverlap: false,
+              textIgnorePlacement: false,
+              symbolSortKey: ['-', 0, ['get', 'sortKey']],
             }}
           />
         </GeoJSONSource>
