@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,7 @@ import { orpc, client } from '@/lib/orpc'
 import { uploadImage } from '@/lib/upload'
 import { DateField } from '@/components/DateField'
 import { ImagePickerGrid } from '@/components/ImagePickerGrid'
+import { MapPicker } from '@/components/MapPicker'
 
 function SectionTitle({ children }: { children: string }) {
   return <Text className="mt-6 mb-2 text-sm font-semibold text-muted-foreground uppercase">{children}</Text>
@@ -57,6 +58,11 @@ export default function CreateListingScreen() {
     staleTime: 60 * 60 * 1000,
   }))
 
+  // Listing coordinates — provider places the pin in the embedded map below.
+  // Initialised to the default city's centroid, then updated by city chip
+  // taps and by map-picker taps.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+
   const resendM = useMutation({
     mutationFn: () => authClient.sendVerificationEmail({ email: profile!.email }),
     onSuccess: () => Alert.alert('Email envoyé', 'Vérifie ta boîte mail (et le dossier spam).'),
@@ -79,6 +85,12 @@ export default function CreateListingScreen() {
     },
   })
 
+  useEffect(() => {
+    if (coords) return
+    const city = cityOptions.find((c) => c.code === form.state.values.city)
+    if (city) setCoords({ lat: Number(city.latitude), lng: Number(city.longitude) })
+  }, [coords, cityOptions, form])
+
   const submitMutation = useMutation({
     mutationFn: async (publish: boolean) => {
       const v = form.state.values
@@ -94,6 +106,8 @@ export default function CreateListingScreen() {
         roomType: v.roomType,
         roommateCount: Number(v.roommateCount),
         amenities: v.amenities,
+        latitude: coords ? coords.lat.toFixed(6) : null,
+        longitude: coords ? coords.lng.toFixed(6) : null,
         status: publish ? 'published' : 'draft',
       })
 
@@ -232,7 +246,10 @@ export default function CreateListingScreen() {
                   <Pressable
                     key={c.code}
                     className={`rounded-pill px-4 py-2 ${f.state.value === c.code ? 'bg-primary' : 'bg-muted'}`}
-                    onPress={() => f.handleChange(c.code)}
+                    onPress={() => {
+                      f.handleChange(c.code)
+                      setCoords({ lat: Number(c.latitude), lng: Number(c.longitude) })
+                    }}
                   >
                     <Text className={`text-sm ${f.state.value === c.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{c.label}</Text>
                   </Pressable>
@@ -240,6 +257,21 @@ export default function CreateListingScreen() {
               </View>
             )}
           </form.Field>
+
+          {coords && (
+            <>
+              <Text className="mb-1.5 mt-4 text-xs font-medium text-muted-foreground">Position sur la carte</Text>
+              <Text className="mb-2 text-xs text-muted-foreground">
+                📍 Place la punaise <Text className="font-semibold">approximativement</Text> — elle sera visible par les autres utilisateurs.
+              </Text>
+              <MapPicker
+                key={form.state.values.city}
+                initialLat={coords.lat}
+                initialLng={coords.lng}
+                onChange={(lat, lng) => setCoords({ lat, lng })}
+              />
+            </>
+          )}
 
           {/* Room */}
           <SectionTitle>Logement</SectionTitle>

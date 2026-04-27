@@ -22,6 +22,18 @@ async function assertGeo(country: string, region: string, city: string) {
   if (!ct) throw new Error(`Unknown city "${city}" for region "${region}"`)
 }
 
+// Returns city centroid (lat, lng) as strings — used as the fallback when a
+// client doesn't send explicit listing coords (e.g. the web form, which has
+// no map picker yet). Centroids are public geography, no privacy concern.
+async function cityCentroid(country: string, region: string, city: string): Promise<{ lat: string; lng: string } | null> {
+  const [c] = await db
+    .select({ lat: cities.latitude, lng: cities.longitude })
+    .from(cities)
+    .where(and(eq(cities.countryCode, country), eq(cities.regionCode, region), eq(cities.code, city)))
+    .limit(1)
+  return c ? { lat: c.lat, lng: c.lng } : null
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function generateSlug(title: string): string {
@@ -202,10 +214,18 @@ export const create = authed.listing.create.handler(async ({ input, context }) =
 
   await assertGeo(input.country, input.region, input.city)
 
+  // Fallback to the city centroid when the client didn't drop a pin (web
+  // form for now). Listings always have coords so the map is never empty.
+  let { latitude, longitude } = input
+  if (!latitude || !longitude) {
+    const centroid = await cityCentroid(input.country, input.region, input.city)
+    if (centroid) { latitude = centroid.lat; longitude = centroid.lng }
+  }
+
   const slug = await uniqueSlug(input.title)
   const [created] = await db
     .insert(listings)
-    .values({ ...input, slug, authorId: context.user.id })
+    .values({ ...input, latitude, longitude, slug, authorId: context.user.id })
     .returning()
   return created!
 })
@@ -216,6 +236,7 @@ export const update = authed.listing.update.handler(async ({ input, context }) =
   if (!existing) throw new Error('Not found')
   if (!isOwnerOrAdmin(context.user.id, existing.authorId, context.user.role)) throw new Error('Forbidden')
 
+  const cityChanged = data.city && data.city !== existing.city
   if (data.country || data.region || data.city) {
     await assertGeo(
       data.country ?? existing.country,
@@ -226,6 +247,17 @@ export const update = authed.listing.update.handler(async ({ input, context }) =
 
   const updates = { ...data } as Partial<typeof listings.$inferInsert>
   if (data.title && data.title !== existing.title) updates.slug = await uniqueSlug(data.title, id)
+
+  // If the city changed and the client didn't send explicit coords, snap to
+  // the new city's centroid so the listing doesn't stay pinned in the wrong area.
+  if (cityChanged && !data.latitude && !data.longitude) {
+    const centroid = await cityCentroid(
+      data.country ?? existing.country,
+      data.region ?? existing.region,
+      data.city!,
+    )
+    if (centroid) { updates.latitude = centroid.lat; updates.longitude = centroid.lng }
+  }
 
   const [updated] = await db.update(listings).set(updates).where(eq(listings.id, id)).returning()
   return await enrichListing(updated!)

@@ -12,6 +12,7 @@ import { orpc, client } from '@/lib/orpc'
 import { apiFetch } from '@/lib/api'
 import { DateField } from '@/components/DateField'
 import { ImagePickerGrid } from '@/components/ImagePickerGrid'
+import { MapPicker } from '@/components/MapPicker'
 
 function SectionTitle({ children }: { children: string }) {
   return <Text className="mt-6 mb-2 text-sm font-semibold text-muted-foreground uppercase">{children}</Text>
@@ -57,6 +58,10 @@ export default function EditListingScreen() {
     staleTime: 60 * 60 * 1000,
   }))
 
+  // Listing coordinates — loaded from the listing on mount, then driven by
+  // the embedded map picker.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+
   const { isLoading } = useQuery({
     ...orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
     enabled: !!id,
@@ -76,6 +81,9 @@ export default function EditListingScreen() {
         form.setFieldValue('amenities', l.amenities ?? [])
         form.setFieldValue('status', l.status)
         setExistingImages(l.images ?? [])
+        if (l.latitude && l.longitude) {
+          setCoords({ lat: Number(l.latitude), lng: Number(l.longitude) })
+        }
         setInitialized(true)
       }
       return l
@@ -104,6 +112,8 @@ export default function EditListingScreen() {
         region: v.region, city: v.city, roomType: v.roomType,
         roommateCount: Number(v.roommateCount),
         amenities: v.amenities,
+        latitude: coords ? coords.lat.toFixed(6) : null,
+        longitude: coords ? coords.lng.toFixed(6) : null,
       })
     },
     onSuccess: () => { Alert.alert('Succes', 'Annonce mise a jour'); invalidate() },
@@ -173,7 +183,10 @@ export default function EditListingScreen() {
                   <Pressable
                     key={c.code}
                     className={`rounded-pill px-4 py-2 ${f.state.value === c.code ? 'bg-primary' : 'bg-muted'}`}
-                    onPress={() => f.handleChange(c.code)}
+                    onPress={() => {
+                      f.handleChange(c.code)
+                      setCoords({ lat: Number(c.latitude), lng: Number(c.longitude) })
+                    }}
                   >
                     <Text className={`text-sm ${f.state.value === c.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{c.label}</Text>
                   </Pressable>
@@ -181,6 +194,21 @@ export default function EditListingScreen() {
               </View>
             )}
           </form.Field>
+
+          {coords && (
+            <>
+              <Text className="mb-1.5 mt-4 text-xs font-medium text-muted-foreground">Position sur la carte</Text>
+              <Text className="mb-2 text-xs text-muted-foreground">
+                📍 Place la punaise <Text className="font-semibold">approximativement</Text> — elle sera visible par les autres utilisateurs.
+              </Text>
+              <MapPicker
+                key={form.state.values.city || 'init'}
+                initialLat={coords.lat}
+                initialLng={coords.lng}
+                onChange={(lat, lng) => setCoords({ lat, lng })}
+              />
+            </>
+          )}
 
           <SectionTitle>Logement</SectionTitle>
           <form.Field name="roomType">{(f) => <View className="flex-row gap-2">{ROOM_TYPES.map((rt) => <Pressable key={rt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === rt ? 'bg-secondary' : 'bg-muted'}`} onPress={() => f.handleChange(rt)}><Text className={`text-sm font-medium ${f.state.value === rt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>{ROOM_TYPE_LABELS[rt]}</Text></Pressable>)}</View>}</form.Field>
