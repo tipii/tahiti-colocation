@@ -1,7 +1,7 @@
 import { eq, and, sql, desc, ne } from 'drizzle-orm'
 
 import { db } from '../db'
-import { candidatures, countries, listings, regions, user } from '../db/schema'
+import { candidatures, cities, countries, listings, regions, user } from '../db/schema'
 import { logger } from '../lib/logger'
 import { dispatch } from '../lib/notifications'
 import { authed } from './base'
@@ -74,8 +74,16 @@ async function enrichCandidature(c: typeof candidatures.$inferSelect, includeUse
         .from(regions)
         .where(and(eq(regions.countryCode, l.country), eq(regions.code, l.region)))
         .limit(1)
+      const [ct] = l.city
+        ? await db
+            .select({ label: cities.label })
+            .from(cities)
+            .where(and(eq(cities.countryCode, l.country), eq(cities.regionCode, l.region), eq(cities.code, l.city)))
+            .limit(1)
+        : [undefined]
       result.listingCountryLabel = cn?.label ?? l.country
       result.listingRegionLabel = rg?.label ?? l.region
+      result.listingCityLabel = ct?.label ?? l.city
     }
 
     const { images } = await import('../db/schema')

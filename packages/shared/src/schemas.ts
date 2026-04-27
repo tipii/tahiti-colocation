@@ -44,6 +44,7 @@ export const listingSchema = z.object({
   city: z.string(),
   countryLabel: z.string().optional(),
   regionLabel: z.string().optional(),
+  cityLabel: z.string().optional(),
   latitude: z.string().nullable(),
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),

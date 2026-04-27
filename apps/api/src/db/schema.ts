@@ -155,6 +155,26 @@ export const regions = pgTable(
   ],
 )
 
+// Curated communes with centroid coords. Listings store the city `code` (slug)
+// in `listings.city`; display label is resolved server-side via JOIN.
+export const cities = pgTable(
+  'cities',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    countryCode: varchar('country_code', { length: 2 }).notNull(),
+    regionCode: varchar('region_code', { length: 50 }).notNull(),
+    code: varchar('code', { length: 100 }).notNull(),
+    label: text('label').notNull(),
+    latitude: text('latitude').notNull(),
+    longitude: text('longitude').notNull(),
+    sortOrder: integer('sort_order').default(0).notNull(),
+  },
+  (table) => [
+    index('cities_region_idx').on(table.countryCode, table.regionCode),
+    index('cities_country_region_code_unique').on(table.countryCode, table.regionCode, table.code),
+  ],
+)
+
 export const listings = pgTable(
   'listings',
   {

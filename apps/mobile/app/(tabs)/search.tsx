@@ -12,6 +12,8 @@ import type { ListingType, RoomType } from '@coloc/shared/constants'
 import { orpc, client } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
+import { MapResults } from '@/components/MapResults'
+import { Slider } from '@/components/Slider'
 
 function useDebounce(value: string, delay = 500) {
   const [debounced, setDebounced] = useState(value)
@@ -47,8 +49,13 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 export default function SearchScreen() {
   const insets = useSafeAreaInsets()
   const bottomSheetRef = useRef<BottomSheet>(null)
+  const [view, setView] = useState<'list' | 'map'>('map')
   const [search, setSearch] = useState('')
-  const [region, setRegion] = useState<string | null>(null)
+  // Default to Tahiti (first region by sortOrder, and the launch focus) so
+  // the map opens already scoped instead of cluttered with all PF pins.
+  const [region, setRegion] = useState<string | null>('tahiti')
+  const [city, setCity] = useState<{ code: string; lat: number; lng: number } | null>(null)
+  const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [listingType, setListingType] = useState<string | null>(null)
   const [roomType, setRoomType] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
@@ -67,14 +74,28 @@ export default function SearchScreen() {
     staleTime: 60 * 60 * 1000,
   }))
 
+  // Cities only make sense once a region is picked — too many to chip-display
+  // across all of PF, and the UX flow is region → city → radius.
+  const { data: cityOptions = [] } = useQuery({
+    ...orpc.geo.cities.queryOptions({
+      input: { country: DEFAULT_COUNTRY, region: region ?? '' },
+      staleTime: 5 * 60 * 1000,
+    }),
+    enabled: !!region,
+  })
+
   const snapPoints = useMemo(() => ['7%', '55%', '85%'], [])
   const [sheetIndex, setSheetIndex] = useState(0)
 
-  const activeFilterCount = [region, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
+  const activeFilterCount = [region, city, radiusKm, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
 
   const input = {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(region ? { region } : {}),
+    ...(city ? { city: city.code } : {}),
+    // Radius takes precedence over city eq match server-side: we send the
+    // city's centroid + km. Listings within the disc are returned.
+    ...(city && radiusKm ? { centerLat: city.lat, centerLng: city.lng, radiusKm } : {}),
     ...(listingType ? { listingType: listingType as ListingType } : {}),
     ...(roomType ? { roomType: roomType as RoomType } : {}),
     ...(debouncedMin ? { minPrice: Number(debouncedMin) } : {}),
@@ -100,7 +121,7 @@ export default function SearchScreen() {
 
   const resetFilters = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    setSearch(''); setRegion(null); setListingType(null); setRoomType(null)
+    setSearch(''); setRegion(null); setCity(null); setRadiusKm(null); setListingType(null); setRoomType(null)
     setMinPrice(''); setMaxPrice('')
     setPool(false); setParking(false); setAirConditioning(false); setPetsAccepted(false)
   }
@@ -126,12 +147,33 @@ export default function SearchScreen() {
             </Pressable>
           )}
         </View>
-        <Text className="mt-2 text-sm text-muted-foreground">
-          {isLoading ? 'Recherche...' : `${total} annonce${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
-        </Text>
+        <View className="mt-2 flex-row items-center justify-between">
+          <Text className="text-sm text-muted-foreground">
+            {isLoading ? 'Recherche...' : `${total} annonce${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
+          </Text>
+          <View className="flex-row rounded-pill border border-border bg-card p-0.5">
+            {(['list', 'map'] as const).map((v) => (
+              <Pressable
+                key={v}
+                className={`flex-row items-center gap-1 rounded-pill px-3 py-1.5 ${view === v ? 'bg-primary' : ''}`}
+                onPress={() => { Haptics.selectionAsync(); setView(v) }}
+                accessibilityLabel={v === 'list' ? 'Vue liste' : 'Vue carte'}
+                accessibilityState={{ selected: view === v }}
+              >
+                <Feather name={v === 'list' ? 'list' : 'map'} size={13} color={view === v ? '#fff' : '#8B7E74'} />
+                <Text className={`text-xs font-medium ${view === v ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  {v === 'list' ? 'Liste' : 'Carte'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </View>
 
       {/* Results */}
+      {view === 'map' ? (
+        <MapResults input={input} bottomInset={80} />
+      ) : (
       <FlatList
         data={isLoading ? [] : listings}
         keyExtractor={(item) => item.id}
@@ -165,6 +207,7 @@ export default function SearchScreen() {
           ) : null
         }
       />
+      )}
 
       {/* Bottom Sheet Filters */}
       <BottomSheet
@@ -199,15 +242,64 @@ export default function SearchScreen() {
         <BottomSheetScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40, gap: 24 }}>
           {/* Region */}
           <FilterSection title="Île">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                <Chip label="Toutes" active={!region} onPress={() => setRegion(null)} />
-                {regionOptions.filter((r) => r.code !== 'other').map((r) => (
-                  <Chip key={r.code} label={r.label} active={region === r.code} onPress={() => setRegion(region === r.code ? null : r.code)} />
+            <View className="flex-row flex-wrap gap-2">
+              <Chip label="Toutes" active={!region} onPress={() => { setRegion(null); setCity(null); setRadiusKm(null) }} />
+              {regionOptions.filter((r) => r.code !== 'other').map((r) => (
+                <Chip
+                  key={r.code}
+                  label={r.label}
+                  active={region === r.code}
+                  onPress={() => {
+                    const next = region === r.code ? null : r.code
+                    setRegion(next)
+                    setCity(null)
+                    setRadiusKm(null)
+                  }}
+                />
+              ))}
+            </View>
+          </FilterSection>
+
+          {/* City — only when a region is selected */}
+          {region && cityOptions.length > 0 && (
+            <FilterSection title="Commune">
+              <View className="flex-row flex-wrap gap-2">
+                <Chip label="Toutes" active={!city} onPress={() => { setCity(null); setRadiusKm(null) }} />
+                {cityOptions.map((c) => (
+                  <Chip
+                    key={c.code}
+                    label={c.label}
+                    active={city?.code === c.code}
+                    onPress={() => {
+                      if (city?.code === c.code) {
+                        setCity(null)
+                        setRadiusKm(null)
+                      } else {
+                        setCity({ code: c.code, lat: Number(c.latitude), lng: Number(c.longitude) })
+                      }
+                    }}
+                  />
                 ))}
               </View>
-            </ScrollView>
-          </FilterSection>
+            </FilterSection>
+          )}
+
+          {/* Radius — only meaningful with a city centroid; 0 = exact city match */}
+          {city && (
+            <FilterSection
+              title={`Rayon : ${radiusKm ? `${radiusKm} km` : 'aucun (commune exacte)'}`}
+            >
+              <View className="px-1.5">
+                <Slider
+                  min={0}
+                  max={30}
+                  step={1}
+                  value={radiusKm ?? 0}
+                  onChange={(v) => setRadiusKm(v > 0 ? v : null)}
+                />
+              </View>
+            </FilterSection>
+          )}
 
           {/* Duration */}
           <FilterSection title="Type de location">

@@ -101,7 +101,7 @@ export default function CandidatureDetailScreen() {
         <View className="flex-1">
           <Text className="text-base font-semibold text-foreground" numberOfLines={1}>{candidature.listingTitle ?? 'Annonce'}</Text>
           {candidature.listingCity && (
-            <Text className="mt-0.5 text-xs text-muted-foreground" numberOfLines={1}>{candidature.listingCity}, {candidature.listingRegionLabel ?? candidature.listingRegion}</Text>
+            <Text className="mt-0.5 text-xs text-muted-foreground" numberOfLines={1}>{candidature.listingCityLabel ?? candidature.listingCity}, {candidature.listingRegionLabel ?? candidature.listingRegion}</Text>
           )}
           <View className="mt-1.5">
             <CandidatureBadge status={candidature.status} />

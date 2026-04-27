@@ -45,7 +45,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
     <Pressable
       className="overflow-hidden rounded-card bg-card shadow-sm"
       accessibilityRole="button"
-      accessibilityLabel={`${listing.title}, ${listing.city}, ${listing.price.toLocaleString('fr-FR')} XPF par mois`}
+      accessibilityLabel={`${listing.title}, ${listing.cityLabel ?? listing.city}, ${listing.price.toLocaleString('fr-FR')} XPF par mois`}
       onPress={() => router.push(`/listing/${listing.slug}` as any)}
     >
       <View className="relative">
@@ -84,7 +84,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </Text>
         <View className="mt-1 flex-row items-center gap-1">
           <Feather name="map-pin" size={13} color="#0D9488" />
-          <Text className="text-sm text-muted-foreground" numberOfLines={1}>{listing.city}, {listing.regionLabel ?? listing.region}</Text>
+          <Text className="text-sm text-muted-foreground" numberOfLines={1}>{listing.cityLabel ?? listing.city}, {listing.regionLabel ?? listing.region}</Text>
         </View>
         <View className="mt-2 flex-row items-center gap-1">
           <Feather name="home" size={13} color="#8B7E74" />

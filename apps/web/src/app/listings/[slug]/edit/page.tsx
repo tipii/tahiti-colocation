@@ -28,8 +28,15 @@ export default function EditListingPage() {
     orpc.listing.get.queryOptions({ input: { idOrSlug: slug } }),
   )
 
+  const [selectedRegion, setSelectedRegion] = useState<string>('tahiti')
+
   const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
     input: { country: DEFAULT_COUNTRY },
+    staleTime: 60 * 60 * 1000,
+  }))
+
+  const { data: cityOptions = [] } = useQuery(orpc.geo.cities.queryOptions({
+    input: { country: DEFAULT_COUNTRY, region: selectedRegion },
     staleTime: 60 * 60 * 1000,
   }))
 
@@ -38,7 +45,7 @@ export default function EditListingPage() {
       title: '', description: '', price: 0,
       listingType: 'colocation' as ListingType,
       availableFrom: '', availableTo: '',
-      region: 'tahiti', city: '',
+      region: 'tahiti', city: 'papeete',
       roomType: 'single' as RoomType, roommateCount: 1,
       privateBathroom: false, privateToilets: false, pool: false,
       parking: false, airConditioning: false, petsAccepted: false,
@@ -54,6 +61,7 @@ export default function EditListingPage() {
     form.setFieldValue('availableFrom', new Date(l.availableFrom).toISOString().split('T')[0])
     form.setFieldValue('availableTo', l.availableTo ? new Date(l.availableTo).toISOString().split('T')[0] : '')
     form.setFieldValue('region', l.region)
+    setSelectedRegion(l.region)
     form.setFieldValue('city', l.city)
     form.setFieldValue('roomType', l.roomType)
     form.setFieldValue('roommateCount', l.roommateCount)
@@ -151,8 +159,8 @@ export default function EditListingPage() {
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">Localisation</h2>
-          <form.Field name="region">{(f) => <div className="flex flex-wrap gap-2">{regionOptions.map((r) => <Button key={r.code} type="button" size="sm" variant={f.state.value === r.code ? 'default' : 'outline'} onClick={() => f.handleChange(r.code)}>{r.label}</Button>)}</div>}</form.Field>
-          <form.Field name="city">{(f) => <div><label className="text-sm font-medium">Commune</label><Input value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} className="mt-1" /></div>}</form.Field>
+          <form.Field name="region">{(f) => <div><label className="text-sm font-medium">Île</label><div className="mt-1 flex flex-wrap gap-2">{regionOptions.map((r) => <Button key={r.code} type="button" size="sm" variant={f.state.value === r.code ? 'default' : 'outline'} onClick={() => { f.handleChange(r.code); setSelectedRegion(r.code); form.setFieldValue('city', '') }}>{r.label}</Button>)}</div></div>}</form.Field>
+          <form.Field name="city">{(f) => <div><label className="text-sm font-medium">Commune</label><div className="mt-1 flex flex-wrap gap-2">{cityOptions.map((c) => <Button key={c.code} type="button" size="sm" variant={f.state.value === c.code ? 'default' : 'outline'} onClick={() => f.handleChange(c.code)}>{c.label}</Button>)}</div></div>}</form.Field>
         </section>
 
         <Separator />
