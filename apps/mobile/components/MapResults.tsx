@@ -45,9 +45,11 @@ export function MapResults({ input, bottomInset = 80 }: { input: Record<string, 
   const router = useRouter()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  // limit caps at 50 in the contract — fine for v1 (PF has ~30 seeded listings).
+  // When density grows, switch to viewport-bounded queries (refetch on map move).
   const { data, isLoading } = useQuery({
     queryKey: ['listings', 'map', input],
-    queryFn: () => client.listing.list({ ...input, page: 1, limit: 100 }),
+    queryFn: () => client.listing.list({ ...input, page: 1, limit: 50 }),
     staleTime: 30 * 1000,
   })
 
