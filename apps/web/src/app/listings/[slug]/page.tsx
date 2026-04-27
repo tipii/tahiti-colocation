@@ -11,11 +11,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
-function Amenity({ label, active }: { label: string; active: boolean }) {
-  if (!active) return null
-  return <Badge variant="secondary">{label}</Badge>
-}
-
 export default function ListingDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   const router = useRouter()
@@ -25,6 +20,10 @@ export default function ListingDetailPage() {
   const { data: listing, isLoading } = useQuery(
     orpc.listing.get.queryOptions({ input: { idOrSlug: slug } }),
   )
+
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
+    staleTime: 60 * 60 * 1000,
+  }))
 
   const deleteM = useMutation(orpc.listing.delete.mutationOptions({
     onSuccess: () => {
@@ -84,17 +83,18 @@ export default function ListingDetailPage() {
             </p>
           </div>
 
-          <div>
-            <h2 className="text-sm font-semibold uppercase text-muted-foreground">Equipements</h2>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Amenity label="Salle de bain privee" active={listing.privateBathroom} />
-              <Amenity label="Toilettes privees" active={listing.privateToilets} />
-              <Amenity label="Piscine" active={listing.pool} />
-              <Amenity label="Parking" active={listing.parking} />
-              <Amenity label="Climatisation" active={listing.airConditioning} />
-              <Amenity label="Animaux acceptes" active={listing.petsAccepted} />
+          {(listing.amenities ?? []).length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold uppercase text-muted-foreground">Equipements</h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {amenityCatalog
+                  .filter((a) => (listing.amenities ?? []).includes(a.code))
+                  .map((a) => (
+                    <Badge key={a.code} variant="secondary">{a.label}</Badge>
+                  ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <Separator />
 

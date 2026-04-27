@@ -12,14 +12,6 @@ import { orpc } from '@/lib/orpc'
 import { CandidatureBadge } from '@/components/CandidatureStatus'
 import { FavoriteButton } from '@/components/FavoriteButton'
 
-const AMENITY_ICONS: [string, string, string][] = [
-  ['privateBathroom', 'droplet', 'SdB privée'],
-  ['pool', 'sunset', 'Piscine'],
-  ['parking', 'truck', 'Parking'],
-  ['airConditioning', 'wind', 'Clim'],
-  ['petsAccepted', 'heart', 'Animaux'],
-]
-
 function colocLabel(roommateCount: number, roomType: RoomType): string {
   const base = `Coloc à ${roommateCount}`
   if (roomType === 'single') return `${base} + 1 (toi)`
@@ -33,7 +25,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const firstImage = listing.images?.[0]
   const durationLabel = LISTING_TYPE_LABELS[listing.listingType as ListingType]
   const roomLabel = ROOM_TYPE_LABELS[listing.roomType as RoomType]
-  const activeAmenities = AMENITY_ICONS.filter(([key]) => (listing as any)[key])
+
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
+    staleTime: 60 * 60 * 1000,
+  }))
+  const listingAmenityCodes = (listing.amenities ?? []) as string[]
+  // Cap displayed amenities on the card; full list lives on the detail page.
+  const activeAmenities = amenityCatalog.filter((a) => listingAmenityCodes.includes(a.code)).slice(0, 5)
 
   // Pull from the same cache as listing/[id] and the candidatures tab — single fetch shared via TanStack Query
   const { data: myCandidatures = [] } = useQuery({
@@ -104,10 +102,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </View>
         {activeAmenities.length > 0 && (
           <View className="mt-2.5 flex-row flex-wrap gap-1.5">
-            {activeAmenities.map(([key, icon, label]) => (
-              <View key={key} className="flex-row items-center gap-1 rounded-pill bg-accent px-2 py-0.5">
-                <Feather name={icon as any} size={11} color="#FF6B35" />
-                <Text className="text-xs text-accent-foreground">{label}</Text>
+            {activeAmenities.map((a) => (
+              <View key={a.code} className="flex-row items-center gap-1 rounded-pill bg-accent px-2 py-0.5">
+                <Feather name={a.icon as any} size={11} color="#FF6B35" />
+                <Text className="text-xs text-accent-foreground">{a.label}</Text>
               </View>
             ))}
           </View>

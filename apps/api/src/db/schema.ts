@@ -1,5 +1,5 @@
-import { relations } from 'drizzle-orm'
-import { date, index, integer, jsonb, pgTable, primaryKey, text, timestamp, boolean, varchar } from 'drizzle-orm/pg-core'
+import { relations, sql } from 'drizzle-orm'
+import { boolean, date, index, integer, jsonb, pgTable, primaryKey, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 import type {
   LISTING_TYPES,
   ROOM_TYPES,
@@ -155,6 +155,18 @@ export const regions = pgTable(
   ],
 )
 
+// Curated amenity catalog. Listings store an array of amenity `code` slugs in
+// `listings.amenities`; display labels + icons are resolved client-side via
+// the `meta.amenities` RPC. Adding a new amenity = inserting a row.
+export const amenities = pgTable('amenities', {
+  code: varchar('code', { length: 50 }).primaryKey(),
+  label: text('label').notNull(),
+  // Feather icon name (kebab-case, e.g. 'wind', 'rotate-cw'). Web converts
+  // to Lucide PascalCase ('Wind', 'RotateCw'); both libs share most names.
+  icon: varchar('icon', { length: 50 }).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+})
+
 // Curated communes with centroid coords. Listings store the city `code` (slug)
 // in `listings.city`; display label is resolved server-side via JOIN.
 export const cities = pgTable(
@@ -195,15 +207,12 @@ export const listings = pgTable(
     city: varchar('city', { length: 100 }).notNull(),
     latitude: text('latitude'),
     longitude: text('longitude'),
-    // Amenities
+    // Room
     roomType: varchar('room_type', { length: 20 }).$type<RoomType>().notNull(),
     roommateCount: integer('roommate_count').notNull(),
-    privateBathroom: boolean('private_bathroom').default(false).notNull(),
-    privateToilets: boolean('private_toilets').default(false).notNull(),
-    pool: boolean('pool').default(false).notNull(),
-    parking: boolean('parking').default(false).notNull(),
-    airConditioning: boolean('air_conditioning').default(false).notNull(),
-    petsAccepted: boolean('pets_accepted').default(false).notNull(),
+    // Amenities — slugs from the `amenities` reference table. Filterable
+    // via `WHERE amenities @> ARRAY[...]` (uses GIN index).
+    amenities: text('amenities').array().default(sql`ARRAY[]::text[]`).notNull(),
     // Meta
     authorId: text('author_id')
       .notNull()
@@ -219,6 +228,7 @@ export const listings = pgTable(
     index('listings_status_idx').on(table.status),
     index('listings_country_idx').on(table.country),
     index('listings_region_idx').on(table.region),
+    index('listings_amenities_gin_idx').using('gin', table.amenities),
   ],
 )
 

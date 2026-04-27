@@ -40,6 +40,10 @@ export default function EditListingPage() {
     staleTime: 60 * 60 * 1000,
   }))
 
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
+    staleTime: 60 * 60 * 1000,
+  }))
+
   const form = useForm({
     defaultValues: {
       title: '', description: '', price: 0,
@@ -47,8 +51,7 @@ export default function EditListingPage() {
       availableFrom: '', availableTo: '',
       region: 'tahiti', city: 'papeete',
       roomType: 'single' as RoomType, roommateCount: 1,
-      privateBathroom: false, privateToilets: false, pool: false,
-      parking: false, airConditioning: false, petsAccepted: false,
+      amenities: [] as string[],
     },
   })
 
@@ -65,12 +68,7 @@ export default function EditListingPage() {
     form.setFieldValue('city', l.city)
     form.setFieldValue('roomType', l.roomType)
     form.setFieldValue('roommateCount', l.roommateCount)
-    form.setFieldValue('privateBathroom', l.privateBathroom)
-    form.setFieldValue('privateToilets', l.privateToilets)
-    form.setFieldValue('pool', l.pool)
-    form.setFieldValue('parking', l.parking)
-    form.setFieldValue('airConditioning', l.airConditioning)
-    form.setFieldValue('petsAccepted', l.petsAccepted)
+    form.setFieldValue('amenities', l.amenities ?? [])
     setExistingImages(l.images ?? [])
     setInitialized(true)
   }
@@ -175,9 +173,26 @@ export default function EditListingPage() {
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">Equipements</h2>
-          {([['privateBathroom', 'Salle de bain privee'], ['privateToilets', 'Toilettes privees'], ['pool', 'Piscine'], ['parking', 'Parking'], ['airConditioning', 'Climatisation'], ['petsAccepted', 'Animaux acceptes']] as const).map(([name, label]) => (
-            <form.Field key={name} name={name}>{(f) => <div className="flex items-center justify-between"><label className="text-sm">{label}</label><Switch checked={f.state.value} onCheckedChange={(v) => f.handleChange(v)} /></div>}</form.Field>
-          ))}
+          <form.Field name="amenities">
+            {(f) => (
+              <div className="flex flex-wrap gap-2">
+                {amenityCatalog.map((a) => {
+                  const active = f.state.value.includes(a.code)
+                  return (
+                    <Button
+                      key={a.code}
+                      type="button"
+                      size="sm"
+                      variant={active ? 'default' : 'outline'}
+                      onClick={() => f.handleChange(active ? f.state.value.filter((c) => c !== a.code) : [...f.state.value, a.code])}
+                    >
+                      {a.label}
+                    </Button>
+                  )
+                })}
+              </div>
+            )}
+          </form.Field>
         </section>
 
         <Separator />

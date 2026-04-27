@@ -59,10 +59,7 @@ export default function SearchScreen() {
   const [roomType, setRoomType] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
-  const [pool, setPool] = useState(false)
-  const [parking, setParking] = useState(false)
-  const [airConditioning, setAirConditioning] = useState(false)
-  const [petsAccepted, setPetsAccepted] = useState(false)
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
 
   const debouncedMin = useDebounce(minPrice)
   const debouncedMax = useDebounce(maxPrice)
@@ -82,10 +79,14 @@ export default function SearchScreen() {
     enabled: !!region,
   })
 
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
+    staleTime: 60 * 60 * 1000,
+  }))
+
   const snapPoints = useMemo(() => ['7%', '55%', '85%'], [])
   const [sheetIndex, setSheetIndex] = useState(0)
 
-  const activeFilterCount = [region, city, radiusKm, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
+  const activeFilterCount = [region, city, radiusKm, listingType, roomType, debouncedMin, debouncedMax].filter(Boolean).length + selectedAmenities.length
 
   const input = {
     ...(region ? { region } : {}),
@@ -97,10 +98,7 @@ export default function SearchScreen() {
     ...(roomType ? { roomType: roomType as RoomType } : {}),
     ...(debouncedMin ? { minPrice: Number(debouncedMin) } : {}),
     ...(debouncedMax ? { maxPrice: Number(debouncedMax) } : {}),
-    ...(pool ? { pool: true } : {}),
-    ...(parking ? { parking: true } : {}),
-    ...(airConditioning ? { airConditioning: true } : {}),
-    ...(petsAccepted ? { petsAccepted: true } : {}),
+    ...(selectedAmenities.length > 0 ? { amenities: selectedAmenities } : {}),
   }
 
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
@@ -120,7 +118,7 @@ export default function SearchScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     setRegion(null); setCity(null); setRadiusKm(null); setListingType(null); setRoomType(null)
     setMinPrice(''); setMaxPrice('')
-    setPool(false); setParking(false); setAirConditioning(false); setPetsAccepted(false)
+    setSelectedAmenities([])
   }
 
   return (
@@ -309,25 +307,26 @@ export default function SearchScreen() {
             </View>
           </FilterSection>
 
-          {/* Amenities */}
+          {/* Amenities — multi-select; AND-match server-side */}
           <FilterSection title="Équipements">
             <View className="flex-row flex-wrap gap-2">
-              {[
-                { value: pool, set: setPool, icon: 'sunset', label: 'Piscine' },
-                { value: parking, set: setParking, icon: 'truck', label: 'Parking' },
-                { value: airConditioning, set: setAirConditioning, icon: 'wind', label: 'Climatisation' },
-                { value: petsAccepted, set: setPetsAccepted, icon: 'heart', label: 'Animaux acceptés' },
-              ].map(({ value, set, icon, label }) => (
-                <Pressable
-                  key={label}
-                  className={`flex-row items-center gap-2 rounded-pill px-3.5 py-2 ${value ? 'bg-primary' : 'bg-card border border-border'}`}
-                  onPress={() => { Haptics.selectionAsync(); set(!value) }}
-                  accessibilityLabel={`${label} ${value ? 'activé' : 'désactivé'}`}
-                >
-                  <Feather name={icon as any} size={14} color={value ? '#fff' : '#8B7E74'} />
-                  <Text className={`text-sm font-medium ${value ? 'text-primary-foreground' : 'text-foreground'}`}>{label}</Text>
-                </Pressable>
-              ))}
+              {amenityCatalog.map((a) => {
+                const active = selectedAmenities.includes(a.code)
+                return (
+                  <Pressable
+                    key={a.code}
+                    className={`flex-row items-center gap-2 rounded-pill px-3.5 py-2 ${active ? 'bg-primary' : 'bg-card border border-border'}`}
+                    onPress={() => {
+                      Haptics.selectionAsync()
+                      setSelectedAmenities(active ? selectedAmenities.filter((c) => c !== a.code) : [...selectedAmenities, a.code])
+                    }}
+                    accessibilityLabel={`${a.label} ${active ? 'activé' : 'désactivé'}`}
+                  >
+                    <Feather name={a.icon as any} size={14} color={active ? '#fff' : '#8B7E74'} />
+                    <Text className={`text-sm font-medium ${active ? 'text-primary-foreground' : 'text-foreground'}`}>{a.label}</Text>
+                  </Pressable>
+                )
+              })}
             </View>
           </FilterSection>
         </BottomSheetScrollView>

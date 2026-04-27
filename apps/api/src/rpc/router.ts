@@ -5,12 +5,16 @@ import * as favorite from './favorite'
 import * as candidature from './candidature'
 import * as userProc from './user'
 import * as geo from './geo'
+import * as meta from './meta'
 
 export const router = pub.router({
   geo: {
     countries: geo.countriesList,
     regions: geo.regionsList,
     cities: geo.citiesList,
+  },
+  meta: {
+    amenities: meta.amenitiesList,
   },
   listing: {
     list: listing.list,

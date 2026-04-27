@@ -1,4 +1,4 @@
-import { eq, and, asc, desc, gte, lte, sql, or } from 'drizzle-orm'
+import { eq, and, arrayContains, asc, desc, gte, lte, sql, or } from 'drizzle-orm'
 
 import { db } from '../db'
 import { cities, countries, images, listings, regions, user } from '../db/schema'
@@ -145,10 +145,10 @@ export const list = pub.listing.list.handler(async ({ input }) => {
   }
   if (input.minPrice) conditions.push(gte(listings.price, input.minPrice))
   if (input.maxPrice) conditions.push(lte(listings.price, input.maxPrice))
-  if (input.pool) conditions.push(eq(listings.pool, true))
-  if (input.parking) conditions.push(eq(listings.parking, true))
-  if (input.airConditioning) conditions.push(eq(listings.airConditioning, true))
-  if (input.petsAccepted) conditions.push(eq(listings.petsAccepted, true))
+  if (input.amenities && input.amenities.length > 0) {
+    // AND-match via Postgres array containment (uses GIN index).
+    conditions.push(arrayContains(listings.amenities, input.amenities))
+  }
 
   const where = and(...conditions)
 

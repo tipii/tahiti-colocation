@@ -6,12 +6,12 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Switch,
   Text,
   TextInput,
   View,
   Image,
 } from 'react-native'
+import { Feather } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useForm } from '@tanstack/react-form'
@@ -53,6 +53,10 @@ export default function CreateListingScreen() {
     staleTime: 60 * 60 * 1000,
   }))
 
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
+    staleTime: 60 * 60 * 1000,
+  }))
+
   const resendM = useMutation({
     mutationFn: () => authClient.sendVerificationEmail({ email: profile!.email }),
     onSuccess: () => Alert.alert('Email envoyé', 'Vérifie ta boîte mail (et le dossier spam).'),
@@ -71,12 +75,7 @@ export default function CreateListingScreen() {
       city: 'papeete',
       roomType: 'single' as RoomType,
       roommateCount: '1',
-      privateBathroom: false,
-      privateToilets: false,
-      pool: false,
-      parking: false,
-      airConditioning: false,
-      petsAccepted: false,
+      amenities: [] as string[],
     },
   })
 
@@ -94,12 +93,7 @@ export default function CreateListingScreen() {
         city: v.city,
         roomType: v.roomType,
         roommateCount: Number(v.roommateCount),
-        privateBathroom: v.privateBathroom,
-        privateToilets: v.privateToilets,
-        pool: v.pool,
-        parking: v.parking,
-        airConditioning: v.airConditioning,
-        petsAccepted: v.petsAccepted,
+        amenities: v.amenities,
         status: publish ? 'published' : 'draft',
       })
 
@@ -274,23 +268,28 @@ export default function CreateListingScreen() {
 
           {/* Amenities */}
           <SectionTitle>Equipements</SectionTitle>
-          {([
-            ['privateBathroom', 'Salle de bain privee'],
-            ['privateToilets', 'Toilettes privees'],
-            ['pool', 'Piscine'],
-            ['parking', 'Parking'],
-            ['airConditioning', 'Climatisation'],
-            ['petsAccepted', 'Animaux acceptes'],
-          ] as const).map(([name, label]) => (
-            <form.Field key={name} name={name}>
-              {(f) => (
-                <View className="flex-row items-center justify-between py-2">
-                  <Text className="text-base text-foreground">{label}</Text>
-                  <Switch value={f.state.value} onValueChange={f.handleChange} trackColor={{ true: '#FF6B35' }} />
-                </View>
-              )}
-            </form.Field>
-          ))}
+          <form.Field name="amenities">
+            {(f) => (
+              <View className="flex-row flex-wrap gap-2">
+                {amenityCatalog.map((a) => {
+                  const active = f.state.value.includes(a.code)
+                  return (
+                    <Pressable
+                      key={a.code}
+                      className={`flex-row items-center gap-1.5 rounded-pill px-3.5 py-2 ${active ? 'bg-primary' : 'bg-muted'}`}
+                      onPress={() => {
+                        Haptics.selectionAsync()
+                        f.handleChange(active ? f.state.value.filter((c) => c !== a.code) : [...f.state.value, a.code])
+                      }}
+                    >
+                      <Feather name={a.icon as any} size={13} color={active ? '#fff' : '#8B7E74'} />
+                      <Text className={`text-sm ${active ? 'text-primary-foreground' : 'text-foreground'}`}>{a.label}</Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+            )}
+          </form.Field>
 
           {/* Validation errors */}
           {validationErrors.length > 0 && (

@@ -5,6 +5,7 @@ import * as schema from './schema'
 import { auth } from '../lib/auth'
 import { CITIES_BY_REGION, seedGeo } from './seed-geo'
 import type { CitySeed } from './seed-geo'
+import { AMENITIES, seedAmenities } from './seed-amenities'
 
 const db = drizzle(process.env.DATABASE_URL!, { schema })
 
@@ -100,10 +101,12 @@ const DESCRIPTIONS = [
 async function seed() {
   console.log('🌱 Seeding database...')
 
-  // Geo reference data — countries / regions / cities — lives in seed-geo.ts
-  // because it's not fixture data; it ships with the app and is safe in prod.
+  // Reference data (geo + amenities) — not fixture data; ships with the app
+  // and is safe to run in any environment.
   const { countries: nC, regions: nR, cities: nCi } = await seedGeo(db)
   console.log(`  🌍 ${nC} country, ${nR} regions, ${nCi} cities`)
+  const { count: nA } = await seedAmenities(db)
+  console.log(`  ✨ ${nA} amenities`)
 
   // Use Better Auth's own password hasher
   const { hashPassword } = await import('better-auth/crypto')
@@ -166,6 +169,12 @@ async function seed() {
     const listingType = pick(LISTING_TYPES)
     const price = pick([45000, 55000, 65000, 75000, 80000, 95000, 110000, 120000, 150000, 180000])
     const { latitude, longitude } = jitterCoords({ lat: citySeed.lat, lng: citySeed.lng })
+    // Each listing gets 3–8 random amenities from the catalog.
+    const numAmenities = rand(3, 8)
+    const amenities = [...AMENITIES]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, numAmenities)
+      .map((a) => a.code)
 
     await db.insert(schema.listings).values({
       title,
@@ -184,12 +193,7 @@ async function seed() {
       longitude,
       roomType: pick(ROOM_TYPES),
       roommateCount: pick([0, 1, 1, 2, 2, 3]),
-      privateBathroom: Math.random() > 0.5,
-      privateToilets: Math.random() > 0.5,
-      pool: Math.random() > 0.7,
-      parking: Math.random() > 0.4,
-      airConditioning: Math.random() > 0.5,
-      petsAccepted: Math.random() > 0.6,
+      amenities,
       authorId,
     })
   }

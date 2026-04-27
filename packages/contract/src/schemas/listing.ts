@@ -57,12 +57,8 @@ export const listingSchema = z.object({
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),
   roommateCount: z.number().int().nonnegative(),
-  privateBathroom: z.boolean(),
-  privateToilets: z.boolean(),
-  pool: z.boolean(),
-  parking: z.boolean(),
-  airConditioning: z.boolean(),
-  petsAccepted: z.boolean(),
+  // Slugs from the curated amenity catalog (see `meta.amenities` RPC).
+  amenities: z.array(z.string()),
   authorId: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
@@ -84,12 +80,7 @@ export const createListingSchema = z.object({
   longitude: z.string().nullable().optional(),
   roomType: z.enum(ROOM_TYPES),
   roommateCount: z.number().int().nonnegative(),
-  privateBathroom: z.boolean().optional().default(false),
-  privateToilets: z.boolean().optional().default(false),
-  pool: z.boolean().optional().default(false),
-  parking: z.boolean().optional().default(false),
-  airConditioning: z.boolean().optional().default(false),
-  petsAccepted: z.boolean().optional().default(false),
+  amenities: z.array(z.string()).optional().default([]),
   status: z.enum(LISTING_STATUSES).optional().default('draft'),
 })
 
@@ -108,10 +99,8 @@ export const listingFiltersSchema = z.object({
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),
   maxPrice: z.coerce.number().int().optional(),
-  pool: z.boolean().optional(),
-  parking: z.boolean().optional(),
-  airConditioning: z.boolean().optional(),
-  petsAccepted: z.boolean().optional(),
+  // AND-match: listings must have *all* of these amenity codes.
+  amenities: z.array(z.string()).optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
 })

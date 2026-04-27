@@ -16,15 +16,6 @@ import { FavoriteButton } from '@/components/FavoriteButton'
 import { getStatusMeta } from '@/components/CandidatureStatus'
 import { ListingStatusBadge } from '@/components/ListingStatus'
 
-const AMENITY_CONFIG: { key: string; icon: string; label: string }[] = [
-  { key: 'privateBathroom', icon: 'droplet', label: 'Salle de bain\nprivée' },
-  { key: 'privateToilets', icon: 'box', label: 'Toilettes\nprivées' },
-  { key: 'pool', icon: 'sunset', label: 'Piscine' },
-  { key: 'parking', icon: 'truck', label: 'Parking' },
-  { key: 'airConditioning', icon: 'wind', label: 'Climatisation' },
-  { key: 'petsAccepted', icon: 'heart', label: 'Animaux\nacceptés' },
-]
-
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
@@ -38,6 +29,10 @@ export default function ListingDetailScreen() {
   const { data: listing, isLoading, error, refetch } = useQuery(
     orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
   )
+
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
+    staleTime: 60 * 60 * 1000,
+  }))
 
   // Fetch user's candidature for this listing.
   // Note: `id` from the URL can be a slug (when navigated from a card) or a UUID.
@@ -101,7 +96,8 @@ export default function ListingDetailScreen() {
 
   const isOwner = session?.user?.id === listing.authorId
   const images = listing.images ?? []
-  const activeAmenities = AMENITY_CONFIG.filter((a) => (listing as any)[a.key])
+  const listingAmenities = (listing.amenities ?? []) as string[]
+  const activeAmenities = amenityCatalog.filter((a) => listingAmenities.includes(a.code))
 
   return (
     <View className="flex-1 bg-background">
@@ -236,10 +232,10 @@ export default function ListingDetailScreen() {
           <View>
             <Text className="text-sm font-semibold text-muted-foreground uppercase">Équipements</Text>
             <View className="mt-3 flex-row flex-wrap" style={{ gap: 10 }}>
-              {activeAmenities.map(({ key, icon, label }) => (
-                <View key={key} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
-                  <Feather name={icon as any} size={24} color="#FF6B35" />
-                  <Text className="mt-1.5 text-xs text-center text-muted-foreground">{label}</Text>
+              {activeAmenities.map((a) => (
+                <View key={a.code} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
+                  <Feather name={a.icon as any} size={24} color="#FF6B35" />
+                  <Text className="mt-1.5 text-xs text-center text-muted-foreground">{a.label}</Text>
                 </View>
               ))}
             </View>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Feather } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -35,12 +36,7 @@ export default function EditListingScreen() {
       city: '',
       roomType: 'single' as RoomType,
       roommateCount: '1',
-      privateBathroom: false,
-      privateToilets: false,
-      pool: false,
-      parking: false,
-      airConditioning: false,
-      petsAccepted: false,
+      amenities: [] as string[],
       status: 'draft' as string,
     },
   })
@@ -54,6 +50,10 @@ export default function EditListingScreen() {
 
   const { data: cityOptions = [] } = useQuery(orpc.geo.cities.queryOptions({
     input: { country: DEFAULT_COUNTRY, region: selectedRegion },
+    staleTime: 60 * 60 * 1000,
+  }))
+
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
     staleTime: 60 * 60 * 1000,
   }))
 
@@ -73,12 +73,7 @@ export default function EditListingScreen() {
         form.setFieldValue('city', l.city)
         form.setFieldValue('roomType', l.roomType)
         form.setFieldValue('roommateCount', String(l.roommateCount))
-        form.setFieldValue('privateBathroom', l.privateBathroom)
-        form.setFieldValue('privateToilets', l.privateToilets)
-        form.setFieldValue('pool', l.pool)
-        form.setFieldValue('parking', l.parking)
-        form.setFieldValue('airConditioning', l.airConditioning)
-        form.setFieldValue('petsAccepted', l.petsAccepted)
+        form.setFieldValue('amenities', l.amenities ?? [])
         form.setFieldValue('status', l.status)
         setExistingImages(l.images ?? [])
         setInitialized(true)
@@ -108,9 +103,7 @@ export default function EditListingScreen() {
         availableTo: v.availableTo ? new Date(v.availableTo) : null,
         region: v.region, city: v.city, roomType: v.roomType,
         roommateCount: Number(v.roommateCount),
-        privateBathroom: v.privateBathroom, privateToilets: v.privateToilets,
-        pool: v.pool, parking: v.parking, airConditioning: v.airConditioning,
-        petsAccepted: v.petsAccepted,
+        amenities: v.amenities,
       })
     },
     onSuccess: () => { Alert.alert('Succes', 'Annonce mise a jour'); invalidate() },
@@ -194,9 +187,25 @@ export default function EditListingScreen() {
           <form.Field name="roommateCount">{(f) => <View className="mt-3"><View className="flex-row items-center gap-2"><Text className="text-base text-foreground">Colocataires actuels:</Text><TextInput className="w-16 rounded-input border border-border bg-card px-3 py-2 text-center text-base text-foreground" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} /></View><Text className="mt-1 text-xs text-muted-foreground">Vous non compris</Text></View>}</form.Field>
 
           <SectionTitle>Equipements</SectionTitle>
-          {([['privateBathroom', 'Salle de bain privee'], ['privateToilets', 'Toilettes privees'], ['pool', 'Piscine'], ['parking', 'Parking'], ['airConditioning', 'Climatisation'], ['petsAccepted', 'Animaux acceptes']] as const).map(([name, label]) => (
-            <form.Field key={name} name={name}>{(f) => <View className="flex-row items-center justify-between py-2"><Text className="text-base text-foreground">{label}</Text><Switch value={f.state.value} onValueChange={f.handleChange} trackColor={{ true: '#FF6B35' }} /></View>}</form.Field>
-          ))}
+          <form.Field name="amenities">
+            {(f) => (
+              <View className="flex-row flex-wrap gap-2">
+                {amenityCatalog.map((a) => {
+                  const active = f.state.value.includes(a.code)
+                  return (
+                    <Pressable
+                      key={a.code}
+                      className={`flex-row items-center gap-1.5 rounded-pill px-3.5 py-2 ${active ? 'bg-primary' : 'bg-muted'}`}
+                      onPress={() => f.handleChange(active ? f.state.value.filter((c: string) => c !== a.code) : [...f.state.value, a.code])}
+                    >
+                      <Feather name={a.icon as any} size={13} color={active ? '#fff' : '#8B7E74'} />
+                      <Text className={`text-sm ${active ? 'text-primary-foreground' : 'text-foreground'}`}>{a.label}</Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+            )}
+          </form.Field>
 
           <View className="mt-8 gap-3 pb-8">
             <Pressable className="items-center rounded-button bg-primary py-3.5" onPress={() => saveMutation.mutate()} disabled={isPending}>

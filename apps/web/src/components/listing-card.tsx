@@ -1,18 +1,21 @@
+'use client'
+
 import Link from 'next/link'
-import { MapPin, Home, Users, Calendar, Droplet, Sunset, Truck, Wind, Heart } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import * as LucideIcons from 'lucide-react'
+import { MapPin, Home, Users, Calendar, type LucideIcon } from 'lucide-react'
 import type { Listing } from '@coloc/shared/types'
 import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
 import type { ListingType, RoomType } from '@coloc/shared/constants'
 
+import { orpc } from '@/lib/orpc'
 import { Card, CardContent } from '@/components/ui/card'
 
-const AMENITY_CONFIG: [string, any, string][] = [
-  ['privateBathroom', Droplet, 'SdB privee'],
-  ['pool', Sunset, 'Piscine'],
-  ['parking', Truck, 'Parking'],
-  ['airConditioning', Wind, 'Clim'],
-  ['petsAccepted', Heart, 'Animaux'],
-]
+// Convert Feather kebab-case (e.g. 'rotate-cw') to Lucide PascalCase ('RotateCw').
+function lucideIcon(name: string): LucideIcon {
+  const pascal = name.split('-').map((p) => p[0]?.toUpperCase() + p.slice(1)).join('')
+  return ((LucideIcons as any)[pascal] ?? LucideIcons.Circle) as LucideIcon
+}
 
 function colocLabel(roommateCount: number, roomType: RoomType): string {
   const base = `Coloc à ${roommateCount}`
@@ -25,7 +28,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const firstImage = listing.images?.[0]
   const durationLabel = LISTING_TYPE_LABELS[listing.listingType as ListingType]
   const roomLabel = ROOM_TYPE_LABELS[listing.roomType as RoomType]
-  const activeAmenities = AMENITY_CONFIG.filter(([key]) => (listing as any)[key])
+
+  const { data: amenityCatalog = [] } = useQuery(orpc.meta.amenities.queryOptions({
+    staleTime: 60 * 60 * 1000,
+  }))
+  const listingAmenityCodes = (listing.amenities ?? []) as string[]
+  const activeAmenities = amenityCatalog
+    .filter((a) => listingAmenityCodes.includes(a.code))
+    .slice(0, 5)
 
   return (
     <Link href={`/listings/${listing.slug}`}>
@@ -71,11 +81,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
           {/* Amenity badges */}
           {activeAmenities.length > 0 && (
             <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {activeAmenities.map(([key, Icon, label]) => (
-                <span key={key} className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
-                  <Icon className="h-3 w-3" /> {label}
-                </span>
-              ))}
+              {activeAmenities.map((a) => {
+                const Icon = lucideIcon(a.icon)
+                return (
+                  <span key={a.code} className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
+                    <Icon className="h-3 w-3" /> {a.label}
+                  </span>
+                )
+              })}
             </div>
           )}
         </CardContent>
