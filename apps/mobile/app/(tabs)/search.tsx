@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { FlatList, Pressable, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ActivityIndicator } from 'react-native'
@@ -50,7 +50,6 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets()
   const bottomSheetRef = useRef<BottomSheet>(null)
   const [view, setView] = useState<'list' | 'map'>('map')
-  const [search, setSearch] = useState('')
   // Default to Tahiti (first region by sortOrder, and the launch focus) so
   // the map opens already scoped instead of cluttered with all PF pins.
   const [region, setRegion] = useState<string | null>('tahiti')
@@ -65,7 +64,6 @@ export default function SearchScreen() {
   const [airConditioning, setAirConditioning] = useState(false)
   const [petsAccepted, setPetsAccepted] = useState(false)
 
-  const debouncedSearch = useDebounce(search)
   const debouncedMin = useDebounce(minPrice)
   const debouncedMax = useDebounce(maxPrice)
 
@@ -90,7 +88,6 @@ export default function SearchScreen() {
   const activeFilterCount = [region, city, radiusKm, listingType, roomType, debouncedMin, debouncedMax, pool, parking, airConditioning, petsAccepted].filter(Boolean).length
 
   const input = {
-    ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(region ? { region } : {}),
     ...(city ? { city: city.code } : {}),
     // Radius takes precedence over city eq match server-side: we send the
@@ -121,52 +118,36 @@ export default function SearchScreen() {
 
   const resetFilters = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    setSearch(''); setRegion(null); setCity(null); setRadiusKm(null); setListingType(null); setRoomType(null)
+    setRegion(null); setCity(null); setRadiusKm(null); setListingType(null); setRoomType(null)
     setMinPrice(''); setMaxPrice('')
     setPool(false); setParking(false); setAirConditioning(false); setPetsAccepted(false)
   }
 
   return (
     <View className="flex-1 bg-background">
-      {/* Header + Search */}
-      <View className="px-6 pb-3" style={{ paddingTop: insets.top + 8 }}>
-        <View className="flex-row items-center gap-3 rounded-pill border border-border bg-card px-4 py-2.5">
-          <Feather name="search" size={18} color="#8B7E74" />
-          <TextInput
-            className="flex-1 text-base text-foreground"
-            placeholder="Rechercher une annonce..."
-            placeholderTextColor="#8B7E74"
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-            accessibilityLabel="Rechercher"
-          />
-          {search.length > 0 && (
-            <Pressable onPress={() => setSearch('')} accessibilityLabel="Effacer la recherche">
-              <Feather name="x" size={18} color="#8B7E74" />
+      {/* Header — result count + view toggle */}
+      <View
+        className="flex-row items-center justify-between px-6 pb-3"
+        style={{ paddingTop: insets.top + 8 }}
+      >
+        <Text className="text-sm text-muted-foreground">
+          {isLoading ? 'Recherche...' : `${total} annonce${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
+        </Text>
+        <View className="flex-row rounded-pill border border-border bg-card p-0.5">
+          {(['map', 'list'] as const).map((v) => (
+            <Pressable
+              key={v}
+              className={`flex-row items-center gap-1 rounded-pill px-3 py-1.5 ${view === v ? 'bg-primary' : ''}`}
+              onPress={() => { Haptics.selectionAsync(); setView(v) }}
+              accessibilityLabel={v === 'list' ? 'Vue liste' : 'Vue carte'}
+              accessibilityState={{ selected: view === v }}
+            >
+              <Feather name={v === 'list' ? 'list' : 'map'} size={13} color={view === v ? '#fff' : '#8B7E74'} />
+              <Text className={`text-xs font-medium ${view === v ? 'text-primary-foreground' : 'text-foreground'}`}>
+                {v === 'list' ? 'Liste' : 'Carte'}
+              </Text>
             </Pressable>
-          )}
-        </View>
-        <View className="mt-2 flex-row items-center justify-between">
-          <Text className="text-sm text-muted-foreground">
-            {isLoading ? 'Recherche...' : `${total} annonce${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
-          </Text>
-          <View className="flex-row rounded-pill border border-border bg-card p-0.5">
-            {(['map', 'list'] as const).map((v) => (
-              <Pressable
-                key={v}
-                className={`flex-row items-center gap-1 rounded-pill px-3 py-1.5 ${view === v ? 'bg-primary' : ''}`}
-                onPress={() => { Haptics.selectionAsync(); setView(v) }}
-                accessibilityLabel={v === 'list' ? 'Vue liste' : 'Vue carte'}
-                accessibilityState={{ selected: view === v }}
-              >
-                <Feather name={v === 'list' ? 'list' : 'map'} size={13} color={view === v ? '#fff' : '#8B7E74'} />
-                <Text className={`text-xs font-medium ${view === v ? 'text-primary-foreground' : 'text-foreground'}`}>
-                  {v === 'list' ? 'Liste' : 'Carte'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          ))}
         </View>
       </View>
 
