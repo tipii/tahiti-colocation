@@ -51,7 +51,9 @@ export default function SearchScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null)
   const [view, setView] = useState<'list' | 'map'>('map')
   const [search, setSearch] = useState('')
-  const [region, setRegion] = useState<string | null>(null)
+  // Default to Tahiti (first region by sortOrder, and the launch focus) so
+  // the map opens already scoped instead of cluttered with all PF pins.
+  const [region, setRegion] = useState<string | null>('tahiti')
   const [city, setCity] = useState<{ code: string; lat: number; lng: number } | null>(null)
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [listingType, setListingType] = useState<string | null>(null)
