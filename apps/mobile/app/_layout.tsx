@@ -2,7 +2,7 @@ import '../globals.css'
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
 import * as Notifications from 'expo-notifications'
@@ -15,6 +15,7 @@ import 'react-native-reanimated'
 
 import { useColorScheme } from '@/components/useColorScheme'
 import { authClient } from '@/lib/auth'
+import { orpc } from '@/lib/orpc'
 import { syncPushToken } from '@/lib/push'
 
 // Foreground handler — when a push arrives while the app is open, the OS by default
@@ -89,6 +90,7 @@ function RootLayoutNav() {
   const { data: session, isPending } = authClient.useSession()
   const segments = useSegments()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (isPending) return
@@ -108,8 +110,10 @@ function RootLayoutNav() {
   useEffect(() => {
     if (session) {
       syncPushToken().catch((e) => console.warn('[push] sync failed at top level', e))
+      // Prefetch candidatures so listing cards + detail screens can show status without flicker
+      queryClient.prefetchQuery(orpc.candidature.mine.queryOptions())
     }
-  }, [session])
+  }, [session, queryClient])
 
   // Notification tap → navigate to data.route if provided.
   // Two paths:

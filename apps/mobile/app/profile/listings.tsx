@@ -6,24 +6,7 @@ import { DURATION_LABELS } from '@coloc/shared/constants'
 import type { DurationType } from '@coloc/shared/constants'
 
 import { orpc, client } from '@/lib/orpc'
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-muted',
-  published: 'bg-secondary',
-  archived: 'bg-border',
-}
-
-const STATUS_TEXT: Record<string, string> = {
-  draft: 'text-muted-foreground',
-  published: 'text-secondary-foreground',
-  archived: 'text-muted-foreground',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Brouillon',
-  published: 'Publiee',
-  archived: 'Archivee',
-}
+import { ListingStatusBadge } from '@/components/ListingStatus'
 
 export default function MyListingsScreen() {
   const router = useRouter()
@@ -54,9 +37,7 @@ export default function MyListingsScreen() {
           <Pressable className="rounded-card bg-card p-4 shadow-sm" onPress={() => router.push(`/listing/${item.slug}` as any)}>
             <View className="flex-row items-center justify-between">
               <Text className="flex-1 text-base font-semibold text-foreground" numberOfLines={1}>{item.title}</Text>
-              <View className={`rounded-pill px-2.5 py-0.5 ${STATUS_COLORS[item.status]}`}>
-                <Text className={`text-xs font-medium ${STATUS_TEXT[item.status]}`}>{STATUS_LABELS[item.status]}</Text>
-              </View>
+              <ListingStatusBadge status={item.status} />
             </View>
             <Text className="mt-1 text-sm text-muted-foreground">
               {item.commune}, {item.island} · {item.price.toLocaleString('fr-FR')} XPF · {item.views} vues
