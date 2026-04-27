@@ -49,7 +49,7 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 export default function SearchScreen() {
   const insets = useSafeAreaInsets()
   const bottomSheetRef = useRef<BottomSheet>(null)
-  const [view, setView] = useState<'list' | 'map'>('list')
+  const [view, setView] = useState<'list' | 'map'>('map')
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState<string | null>(null)
   const [city, setCity] = useState<{ code: string; lat: number; lng: number } | null>(null)
