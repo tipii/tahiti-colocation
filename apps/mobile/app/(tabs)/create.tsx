@@ -261,11 +261,7 @@ export default function CreateListingScreen() {
           {coords && (
             <>
               <Text className="mb-1.5 mt-4 text-xs font-medium text-muted-foreground">Position sur la carte</Text>
-              <Text className="mb-2 text-xs text-muted-foreground">
-                📍 Place la punaise <Text className="font-semibold">approximativement</Text> — elle sera visible par les autres utilisateurs.
-              </Text>
               <MapPicker
-                key={form.state.values.city}
                 initialLat={coords.lat}
                 initialLng={coords.lng}
                 onChange={(lat, lng) => setCoords({ lat, lng })}
