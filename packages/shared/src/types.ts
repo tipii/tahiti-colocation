@@ -7,7 +7,7 @@ export type {
   UpdateListing,
   ListingFilters,
 } from './schemas'
-export type { ListingType, RoomType, ListingStatus } from './constants'
+export type { ListingType, RoomType, ListingStatus, HousingType } from './constants'
 
 export interface ApiResponse<T> {
   data: T

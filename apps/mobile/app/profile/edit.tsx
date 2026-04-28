@@ -9,6 +9,7 @@ import { OCCUPATIONS, SMOKER_CHOICES, PET_CHOICES, SCHEDULE_CHOICES, LANGUAGE_CH
 
 import { orpc, client } from '@/lib/orpc'
 import { pickImage, uploadImage } from '@/lib/upload'
+import { DateField } from '@/components/DateField'
 
 const OCCUPATION_LABELS: Record<string, string> = {
   student: 'Étudiant·e',
@@ -187,10 +188,14 @@ export default function EditProfileScreen() {
           <TextInput className="rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" value={name} onChangeText={setName} placeholder="Votre nom" placeholderTextColor="#8B7E74" />
         </View>
 
-        <View>
-          <Text className="mb-1 text-sm font-medium text-foreground">Date de naissance</Text>
-          <TextInput className="rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" value={dob} onChangeText={setDob} placeholder="AAAA-MM-JJ" placeholderTextColor="#8B7E74" />
-        </View>
+        <DateField
+          label="Date de naissance"
+          value={dob}
+          onChange={setDob}
+          placeholder="Choisir une date"
+          defaultDate={new Date(new Date().getFullYear() - 25, 0, 1)}
+          maximumDate={new Date()}
+        />
 
         <View>
           <Text className="mb-1 text-sm font-medium text-foreground">Téléphone (+689…)</Text>
@@ -211,6 +216,12 @@ export default function EditProfileScreen() {
             ))}
           </View>
           <TextInput className="mt-2 rounded-input border border-border bg-card px-4 py-3 text-base text-foreground" value={occupationDetail} onChangeText={setOccupationDetail} placeholder="Précision (optionnel)" placeholderTextColor="#8B7E74" />
+          <Text className="mb-2 mt-4 text-sm font-medium text-foreground">Horaires</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {SCHEDULE_CHOICES.map((s) => (
+              <Pill key={s} value={s} selected={schedule === s} onPress={() => setSchedule(s)} label={SCHEDULE_LABELS[s]!} />
+            ))}
+          </View>
         </View>
 
         <View>
@@ -236,15 +247,6 @@ export default function EditProfileScreen() {
           <View className="flex-row flex-wrap gap-2">
             {PET_CHOICES.map((p) => (
               <Pill key={p} value={p} selected={pets === p} onPress={() => setPets(p)} label={PET_LABELS[p]!} />
-            ))}
-          </View>
-        </View>
-
-        <View>
-          <Text className="mb-2 text-sm font-medium text-foreground">Horaires</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {SCHEDULE_CHOICES.map((s) => (
-              <Pill key={s} value={s} selected={schedule === s} onPress={() => setSchedule(s)} label={SCHEDULE_LABELS[s]!} />
             ))}
           </View>
         </View>

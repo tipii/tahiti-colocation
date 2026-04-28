@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics'
 
 import { authClient } from '@/lib/auth'
 import { client, orpc } from '@/lib/orpc'
+import { DateField } from '@/components/DateField'
 
 function profileComplete(p: any | undefined) {
   if (!p) return { ok: false, missing: ['profil'], emailVerified: false }
@@ -97,12 +98,12 @@ export default function ApplyScreen() {
           <Text className="mt-1 text-right text-xs text-muted-foreground">{message.length}/500</Text>
         </View>
 
-        <View className="mt-5">
-          <Text className="mb-1 text-sm font-medium text-foreground">Date d'emménagement souhaitée</Text>
-          <TextInput
-            className="rounded-input border border-border bg-card px-4 py-3 text-base text-foreground"
-            placeholder="AAAA-MM-JJ" placeholderTextColor="#8B7E74"
-            value={moveInDate} onChangeText={setMoveInDate}
+        <View className="mt-2">
+          <DateField
+            label="Date d'emménagement souhaitée"
+            value={moveInDate}
+            onChange={setMoveInDate}
+            placeholder="Choisir une date"
           />
         </View>
 

@@ -38,6 +38,8 @@ const NON_TAHITI_REGIONS = ['moorea', 'bora-bora', 'huahine', 'raiatea', 'rangir
 // 80% colocations, 20% short-term sublets — matches expected real-world mix
 const LISTING_TYPES = ['colocation', 'colocation', 'colocation', 'colocation', 'sous_location'] as const
 const ROOM_TYPES = ['single', 'couple', 'both'] as const
+// Slight tilt toward apartments (urban Tahiti), still plenty of houses.
+const HOUSING_TYPES = ['appartement', 'appartement', 'maison', 'maison', 'maison'] as const
 
 // Returns lat/lng strings (column type is text) jittered ±300m around the
 // city centroid so the map pin never reveals the exact address.
@@ -193,6 +195,7 @@ async function seed() {
       longitude,
       roomType: pick(ROOM_TYPES),
       roommateCount: pick([0, 1, 1, 2, 2, 3]),
+      housingType: pick(HOUSING_TYPES),
       amenities,
       authorId,
     })

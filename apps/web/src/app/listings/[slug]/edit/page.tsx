@@ -4,8 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
-import type { ListingType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, HOUSING_TYPES, HOUSING_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import type { ListingType, RoomType, HousingType } from '@coloc/shared/constants'
 import type { Image as ImageType } from '@coloc/shared/types'
 
 import { orpc, client } from '@/lib/orpc'
@@ -51,6 +51,7 @@ export default function EditListingPage() {
       availableFrom: '', availableTo: '',
       region: 'tahiti', city: 'papeete',
       roomType: 'single' as RoomType, roommateCount: 1,
+      housingType: 'appartement' as HousingType,
       amenities: [] as string[],
     },
   })
@@ -68,6 +69,7 @@ export default function EditListingPage() {
     form.setFieldValue('city', l.city)
     form.setFieldValue('roomType', l.roomType)
     form.setFieldValue('roommateCount', l.roommateCount)
+    form.setFieldValue('housingType', l.housingType)
     form.setFieldValue('amenities', l.amenities ?? [])
     setExistingImages(l.images ?? [])
     setInitialized(true)
@@ -164,9 +166,16 @@ export default function EditListingPage() {
         <Separator />
 
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground">Logement</h2>
+          <h2 className="text-sm font-semibold uppercase text-muted-foreground">Type de logement</h2>
+          <form.Field name="housingType">{(f) => <div className="flex gap-2">{HOUSING_TYPES.map((ht) => <Button key={ht} type="button" size="sm" variant={f.state.value === ht ? 'default' : 'outline'} onClick={() => f.handleChange(ht)}>{HOUSING_TYPE_LABELS[ht]}</Button>)}</div>}</form.Field>
+        </section>
+
+        <Separator />
+
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase text-muted-foreground">Logement pour</h2>
           <form.Field name="roomType">{(f) => <div className="flex gap-2">{ROOM_TYPES.map((rt) => <Button key={rt} type="button" size="sm" variant={f.state.value === rt ? 'default' : 'outline'} onClick={() => f.handleChange(rt)}>{ROOM_TYPE_LABELS[rt]}</Button>)}</div>}</form.Field>
-          <form.Field name="roommateCount">{(f) => <div><label className="text-sm font-medium">Colocataires actuels</label><Input type="number" min={0} value={f.state.value} onChange={(e) => f.handleChange(Number(e.target.value))} className="mt-1 w-24" /><p className="mt-1 text-xs text-muted-foreground">Vous non compris</p></div>}</form.Field>
+          <form.Field name="roommateCount">{(f) => <div><label className="text-sm font-medium">Personnes déjà sur place</label><Input type="number" min={0} value={f.state.value} onChange={(e) => f.handleChange(Number(e.target.value))} className="mt-1 w-24" /><p className="mt-1 text-xs text-muted-foreground">Hors futur·e colocataire</p></div>}</form.Field>
         </section>
 
         <Separator />

@@ -2,8 +2,8 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS, HOUSING_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, RoomType, HousingType } from '@coloc/shared/constants'
 
 import { authClient } from '@/lib/auth-client'
 import { orpc } from '@/lib/orpc'
@@ -60,6 +60,7 @@ export default function ListingDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <Badge>{LISTING_TYPE_LABELS[listing.listingType as ListingType]}</Badge>
+              <Badge variant="secondary">{HOUSING_TYPE_LABELS[listing.housingType as HousingType]}</Badge>
               {listing.status === 'draft' && <Badge variant="outline">Brouillon</Badge>}
             </div>
             <h1 className="mt-3 text-2xl font-bold">{listing.title}</h1>

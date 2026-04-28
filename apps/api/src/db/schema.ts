@@ -3,6 +3,7 @@ import { boolean, date, index, integer, jsonb, pgTable, primaryKey, text, timest
 import type {
   LISTING_TYPES,
   ROOM_TYPES,
+  HOUSING_TYPES,
   LISTING_STATUSES,
   OCCUPATIONS,
   SMOKER_CHOICES,
@@ -13,6 +14,7 @@ import type {
 
 type ListingType = (typeof LISTING_TYPES)[number]
 type RoomType = (typeof ROOM_TYPES)[number]
+type HousingType = (typeof HOUSING_TYPES)[number]
 type ListingStatus = (typeof LISTING_STATUSES)[number]
 type Occupation = (typeof OCCUPATIONS)[number]
 type SmokerChoice = (typeof SMOKER_CHOICES)[number]
@@ -210,6 +212,7 @@ export const listings = pgTable(
     // Room
     roomType: varchar('room_type', { length: 20 }).$type<RoomType>().notNull(),
     roommateCount: integer('roommate_count').notNull(),
+    housingType: varchar('housing_type', { length: 20 }).$type<HousingType>().notNull(),
     // Amenities — slugs from the `amenities` reference table. Filterable
     // via `WHERE amenities @> ARRAY[...]` (uses GIN index).
     amenities: text('amenities').array().default(sql`ARRAY[]::text[]`).notNull(),

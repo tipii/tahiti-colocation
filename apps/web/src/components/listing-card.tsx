@@ -5,8 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import * as LucideIcons from 'lucide-react'
 import { MapPin, Home, Users, Calendar, type LucideIcon } from 'lucide-react'
 import type { Listing } from '@coloc/shared/types'
-import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS, HOUSING_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, RoomType, HousingType } from '@coloc/shared/constants'
 
 import { orpc } from '@/lib/orpc'
 import { Card, CardContent } from '@/components/ui/card'
@@ -48,9 +48,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
           <span className="absolute bottom-3 left-3 rounded-full bg-primary px-3 py-1 text-sm font-bold text-primary-foreground">
             {listing.price.toLocaleString('fr-FR')} XPF/mois
           </span>
-          <span className="absolute top-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground">
-            {durationLabel}
-          </span>
+          <div className="absolute top-3 left-3 flex gap-1.5">
+            <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground">
+              {durationLabel}
+            </span>
+            <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground">
+              {HOUSING_TYPE_LABELS[listing.housingType as HousingType]}
+            </span>
+          </div>
         </div>
 
         <CardContent className="p-4">

@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router'
 import { Feather } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import type { Listing } from '@coloc/shared/types'
-import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS, HOUSING_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, RoomType, HousingType } from '@coloc/shared/constants'
 
 import { authClient } from '@/lib/auth'
 import { orpc } from '@/lib/orpc'
@@ -68,6 +68,9 @@ export function ListingCard({ listing }: { listing: Listing }) {
         <View className="absolute top-3 left-3 flex-row gap-1.5" accessibilityElementsHidden>
           <View className="rounded-pill bg-white/90 px-2.5 py-1">
             <Text className="text-xs font-medium text-foreground">{durationLabel}</Text>
+          </View>
+          <View className="rounded-pill bg-white/90 px-2.5 py-1">
+            <Text className="text-xs font-medium text-foreground">{HOUSING_TYPE_LABELS[listing.housingType as HousingType]}</Text>
           </View>
           {myCandidature && <CandidatureBadge status={myCandidature.status} />}
         </View>

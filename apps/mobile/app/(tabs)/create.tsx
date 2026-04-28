@@ -16,8 +16,8 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
-import type { ListingType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, HOUSING_TYPES, HOUSING_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import type { ListingType, RoomType, HousingType } from '@coloc/shared/constants'
 
 import * as Haptics from 'expo-haptics'
 import { authClient } from '@/lib/auth'
@@ -81,6 +81,7 @@ export default function CreateListingScreen() {
       city: 'papeete',
       roomType: 'single' as RoomType,
       roommateCount: '1',
+      housingType: 'appartement' as HousingType,
       amenities: [] as string[],
     },
   })
@@ -105,6 +106,7 @@ export default function CreateListingScreen() {
         city: v.city,
         roomType: v.roomType,
         roommateCount: Number(v.roommateCount),
+        housingType: v.housingType,
         amenities: v.amenities,
         latitude: coords ? coords.lat.toFixed(6) : null,
         longitude: coords ? coords.lng.toFixed(6) : null,
@@ -195,13 +197,21 @@ export default function CreateListingScreen() {
             )}
           </form.Field>
 
-          {/* Duration */}
-          <SectionTitle>Duree</SectionTitle>
+          {/* Listing type */}
+          <SectionTitle>Type de location</SectionTitle>
           <form.Field name="listingType">
             {(f) => (
               <View className="flex-row gap-2">
                 {LISTING_TYPES.map((dt) => (
-                  <Pressable key={dt} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === dt ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(dt)}>
+                  <Pressable
+                    key={dt}
+                    className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === dt ? 'bg-primary' : 'bg-muted'}`}
+                    onPress={() => {
+                      f.handleChange(dt)
+                      // Drop the end date when leaving sous_location.
+                      if (dt !== 'sous_location') form.setFieldValue('availableTo', '')
+                    }}
+                  >
                     <Text className={`text-sm font-medium ${f.state.value === dt ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{LISTING_TYPE_LABELS[dt]}</Text>
                   </Pressable>
                 ))}
@@ -211,9 +221,15 @@ export default function CreateListingScreen() {
           <form.Field name="availableFrom">
             {(f) => <DateField label="Disponible a partir du" value={f.state.value} onChange={f.handleChange} />}
           </form.Field>
-          <form.Field name="availableTo">
-            {(f) => <DateField label="Jusqu'au (optionnel)" value={f.state.value} onChange={f.handleChange} placeholder="Pas de date de fin" />}
-          </form.Field>
+          {/* "Jusqu'au" is only meaningful for short-term sublets; colocations
+              are open-ended, so we hide it for them. */}
+          <form.Subscribe selector={(s) => s.values.listingType}>
+            {(listingType) => listingType === 'sous_location' && (
+              <form.Field name="availableTo">
+                {(f) => <DateField label="Jusqu'au" value={f.state.value} onChange={f.handleChange} placeholder="Date de fin" />}
+              </form.Field>
+            )}
+          </form.Subscribe>
 
           {/* Location */}
           <SectionTitle>Localisation</SectionTitle>
@@ -269,8 +285,22 @@ export default function CreateListingScreen() {
             </>
           )}
 
+          {/* Housing type */}
+          <SectionTitle>Type de logement</SectionTitle>
+          <form.Field name="housingType">
+            {(f) => (
+              <View className="flex-row gap-2">
+                {HOUSING_TYPES.map((ht) => (
+                  <Pressable key={ht} className={`flex-1 items-center rounded-button py-2.5 ${f.state.value === ht ? 'bg-primary' : 'bg-muted'}`} onPress={() => f.handleChange(ht)}>
+                    <Text className={`text-sm font-medium ${f.state.value === ht ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{HOUSING_TYPE_LABELS[ht]}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </form.Field>
+
           {/* Room */}
-          <SectionTitle>Logement</SectionTitle>
+          <SectionTitle>Logement pour</SectionTitle>
           <form.Field name="roomType">
             {(f) => (
               <View className="flex-row gap-2">
@@ -286,10 +316,10 @@ export default function CreateListingScreen() {
             {(f) => (
               <View className="mt-3">
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-base text-foreground">Colocataires actuels:</Text>
+                  <Text className="text-base text-foreground">Personnes déjà sur place :</Text>
                   <TextInput className="w-16 rounded-input border border-border bg-card px-3 py-2 text-center text-base text-foreground" keyboardType="numeric" value={f.state.value} onChangeText={f.handleChange} />
                 </View>
-                <Text className="mt-1 text-xs text-muted-foreground">Vous non compris</Text>
+                <Text className="mt-1 text-xs text-muted-foreground">Hors futur·e colocataire</Text>
               </View>
             )}
           </form.Field>

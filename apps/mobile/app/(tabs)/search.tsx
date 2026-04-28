@@ -255,6 +255,9 @@ export default function SearchScreen() {
                         setRadiusKm(null)
                       } else {
                         setCity({ code: c.code, lat: Number(c.latitude), lng: Number(c.longitude) })
+                        // Default radius on first city pick; preserve any value
+                        // the user already chose with the slider.
+                        if (radiusKm == null) setRadiusKm(5)
                       }
                     }}
                   />

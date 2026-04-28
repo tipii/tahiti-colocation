@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { LISTING_TYPES, LISTING_STATUSES, ROOM_TYPES } from './constants'
+import { LISTING_TYPES, LISTING_STATUSES, ROOM_TYPES, HOUSING_TYPES } from './constants'
 
 const countryCode = z.string().length(2)
 const regionCode = z.string().min(1).max(50)
@@ -49,6 +49,7 @@ export const listingSchema = z.object({
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),
   roommateCount: z.number().int().nonnegative(),
+  housingType: z.enum(HOUSING_TYPES),
   amenities: z.array(z.string()),
   authorId: z.string(),
   createdAt: z.coerce.date(),
@@ -71,6 +72,7 @@ export const createListingSchema = z.object({
   longitude: z.string().nullable().optional(),
   roomType: z.enum(ROOM_TYPES),
   roommateCount: z.number().int().nonnegative(),
+  housingType: z.enum(HOUSING_TYPES),
   amenities: z.array(z.string()).optional().default([]),
   status: z.enum(LISTING_STATUSES).optional().default('draft'),
 })

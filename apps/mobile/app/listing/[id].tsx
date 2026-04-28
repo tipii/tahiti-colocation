@@ -5,8 +5,8 @@ import { ImageGallery } from '@/components/ImageGallery'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS } from '@coloc/shared/constants'
-import type { ListingType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPE_LABELS, ROOM_TYPE_LABELS, HOUSING_TYPE_LABELS } from '@coloc/shared/constants'
+import type { ListingType, RoomType, HousingType } from '@coloc/shared/constants'
 
 import { Feather } from '@expo/vector-icons'
 
@@ -15,6 +15,7 @@ import { orpc, client } from '@/lib/orpc'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { getStatusMeta } from '@/components/CandidatureStatus'
 import { ListingStatusBadge } from '@/components/ListingStatus'
+import { ListingMap } from '@/components/ListingMap'
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -195,6 +196,11 @@ export default function ListingDetailScreen() {
                 {LISTING_TYPE_LABELS[listing.listingType as ListingType]}
               </Text>
             </View>
+            <View className="rounded-pill bg-secondary/15 px-3 py-1">
+              <Text className="text-xs font-semibold text-secondary">
+                {HOUSING_TYPE_LABELS[listing.housingType as HousingType]}
+              </Text>
+            </View>
             {listing.status !== 'published' && <ListingStatusBadge status={listing.status} />}
           </View>
           <Text className="mt-3 text-2xl font-bold text-foreground">{listing.title}</Text>
@@ -227,6 +233,18 @@ export default function ListingDetailScreen() {
             </Text>
           </View>
         </View>
+
+        {listing.latitude && listing.longitude && (
+          <View>
+            <Text className="text-sm font-semibold text-muted-foreground uppercase">Localisation</Text>
+            <Text className="mt-1 text-xs text-muted-foreground">
+              Position approximative · {listing.cityLabel ?? listing.city}, {listing.regionLabel ?? listing.region}
+            </Text>
+            <View className="mt-3">
+              <ListingMap latitude={Number(listing.latitude)} longitude={Number(listing.longitude)} />
+            </View>
+          </View>
+        )}
 
         {activeAmenities.length > 0 && (
           <View>

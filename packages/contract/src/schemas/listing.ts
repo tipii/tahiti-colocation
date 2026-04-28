@@ -9,6 +9,7 @@ import { z } from 'zod'
 // `location` (full apartment / professional listings) is reserved for post-launch.
 export const LISTING_TYPES = ['colocation', 'sous_location'] as const
 export const ROOM_TYPES = ['single', 'couple', 'both'] as const
+export const HOUSING_TYPES = ['maison', 'appartement'] as const
 export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
 
 export const OCCUPATIONS = ['student', 'employed', 'self_employed', 'retired', 'other'] as const
@@ -57,6 +58,7 @@ export const listingSchema = z.object({
   longitude: z.string().nullable(),
   roomType: z.enum(ROOM_TYPES),
   roommateCount: z.number().int().nonnegative(),
+  housingType: z.enum(HOUSING_TYPES),
   // Slugs from the curated amenity catalog (see `meta.amenities` RPC).
   amenities: z.array(z.string()),
   authorId: z.string(),
@@ -80,6 +82,7 @@ export const createListingSchema = z.object({
   longitude: z.string().nullable().optional(),
   roomType: z.enum(ROOM_TYPES),
   roommateCount: z.number().int().nonnegative(),
+  housingType: z.enum(HOUSING_TYPES),
   amenities: z.array(z.string()).optional().default([]),
   status: z.enum(LISTING_STATUSES).optional().default('draft'),
 })

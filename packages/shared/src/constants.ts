@@ -9,6 +9,16 @@ export const DEFAULT_COUNTRY = 'PF'
 export const ROOM_TYPES = ['single', 'couple', 'both'] as const
 export type RoomType = (typeof ROOM_TYPES)[number]
 
+// Housing types — start narrow (Maison / Appartement). Add Studio / Villa /
+// Fare / Bungalow when needed.
+export const HOUSING_TYPES = ['maison', 'appartement'] as const
+export type HousingType = (typeof HOUSING_TYPES)[number]
+
+export const HOUSING_TYPE_LABELS: Record<HousingType, string> = {
+  maison: 'Maison',
+  appartement: 'Appartement',
+}
+
 export const LISTING_STATUSES = ['draft', 'published', 'archived'] as const
 export type ListingStatus = (typeof LISTING_STATUSES)[number]
 
