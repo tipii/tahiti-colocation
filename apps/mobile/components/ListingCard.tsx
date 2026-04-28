@@ -12,11 +12,13 @@ import { orpc } from '@/lib/orpc'
 import { CandidatureBadge } from '@/components/CandidatureStatus'
 import { FavoriteButton } from '@/components/FavoriteButton'
 
-function colocLabel(roommateCount: number, roomType: RoomType): string {
-  const base = `Coloc à ${roommateCount}`
-  if (roomType === 'single') return `${base} + 1 (toi)`
-  if (roomType === 'couple') return `${base} + 2 (vous)`
-  return `${base} + 1 ou 2 (toi ou vous)`
+export function colocLabel(roommateCount: number, roomType: RoomType): string {
+  const base = roommateCount === 0
+    ? 'Logement libre'
+    : `${roommateCount} ${roommateCount > 1 ? 'colocs' : 'coloc'} déjà sur place`
+  if (roomType === 'single') return `${base} · place pour toi`
+  if (roomType === 'couple') return `${base} · place pour un couple`
+  return `${base} · place pour toi ou un couple`
 }
 
 export function ListingCard({ listing }: { listing: Listing }) {
@@ -31,7 +33,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
   }))
   const listingAmenityCodes = (listing.amenities ?? []) as string[]
   // Cap displayed amenities on the card; full list lives on the detail page.
-  const activeAmenities = amenityCatalog.filter((a) => listingAmenityCodes.includes(a.code)).slice(0, 5)
+  const matchedAmenities = amenityCatalog.filter((a) => listingAmenityCodes.includes(a.code))
+  const AMENITY_VISIBLE = 4
+  const activeAmenities = matchedAmenities.slice(0, AMENITY_VISIBLE)
+  const extraAmenities = matchedAmenities.length - activeAmenities.length
 
   // Pull from the same cache as listing/[id] and the candidatures tab — single fetch shared via TanStack Query
   const { data: myCandidatures = [] } = useQuery({
@@ -93,13 +98,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </View>
         <View className="mt-1 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
-            <Feather name="tag" size={13} color="#8B7E74" />
+            <Feather name="users" size={13} color="#8B7E74" />
             <Text className="text-xs text-muted-foreground">{roomLabel}</Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Feather name="calendar" size={13} color="#8B7E74" />
             <Text className="text-xs text-muted-foreground">
-              {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+              {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
             </Text>
           </View>
         </View>
@@ -111,6 +116,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
                 <Text className="text-xs text-accent-foreground">{a.label}</Text>
               </View>
             ))}
+            {extraAmenities > 0 && (
+              <View className="rounded-pill bg-accent px-2 py-0.5">
+                <Text className="text-xs font-semibold text-accent-foreground">+{extraAmenities}</Text>
+              </View>
+            )}
           </View>
         )}
       </View>

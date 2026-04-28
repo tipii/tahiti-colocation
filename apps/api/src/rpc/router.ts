@@ -45,6 +45,7 @@ export const router = pub.router({
     forListing: candidature.forListing,
     mine: candidature.mine,
     count: candidature.count,
+    receivedSummary: candidature.receivedSummary,
     contact: candidature.contact,
   },
   user: {

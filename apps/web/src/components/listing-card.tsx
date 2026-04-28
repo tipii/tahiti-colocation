@@ -33,9 +33,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
     staleTime: 60 * 60 * 1000,
   }))
   const listingAmenityCodes = (listing.amenities ?? []) as string[]
-  const activeAmenities = amenityCatalog
-    .filter((a) => listingAmenityCodes.includes(a.code))
-    .slice(0, 5)
+  const matchedAmenities = amenityCatalog.filter((a) => listingAmenityCodes.includes(a.code))
+  const AMENITY_VISIBLE = 4
+  const activeAmenities = matchedAmenities.slice(0, AMENITY_VISIBLE)
+  const extraAmenities = matchedAmenities.length - activeAmenities.length
 
   return (
     <Link href={`/listings/${listing.slug}`}>
@@ -79,7 +80,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+              {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
             </span>
           </div>
 
@@ -94,6 +95,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
                   </span>
                 )
               })}
+              {extraAmenities > 0 && (
+                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">
+                  +{extraAmenities}
+                </span>
+              )}
             </div>
           )}
         </CardContent>

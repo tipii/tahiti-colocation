@@ -83,6 +83,7 @@ export const listingFiltersSchema = z.object({
   country: countryCode.optional(),
   region: regionCode.optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
+  housingType: z.enum(HOUSING_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),
   maxPrice: z.coerce.number().int().optional(),

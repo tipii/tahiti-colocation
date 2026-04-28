@@ -6,8 +6,8 @@ import { ActivityIndicator } from 'react-native'
 import { Feather } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
-import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
-import type { ListingType, RoomType } from '@coloc/shared/constants'
+import { LISTING_TYPES, LISTING_TYPE_LABELS, ROOM_TYPES, ROOM_TYPE_LABELS, HOUSING_TYPES, HOUSING_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import type { ListingType, RoomType, HousingType } from '@coloc/shared/constants'
 
 import { orpc, client } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
@@ -56,6 +56,7 @@ export default function SearchScreen() {
   const [city, setCity] = useState<{ code: string; lat: number; lng: number } | null>(null)
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [listingType, setListingType] = useState<string | null>(null)
+  const [housingType, setHousingType] = useState<string | null>(null)
   const [roomType, setRoomType] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
@@ -86,7 +87,7 @@ export default function SearchScreen() {
   const snapPoints = useMemo(() => ['7%', '55%', '85%'], [])
   const [sheetIndex, setSheetIndex] = useState(0)
 
-  const activeFilterCount = [region, city, radiusKm, listingType, roomType, debouncedMin, debouncedMax].filter(Boolean).length + selectedAmenities.length
+  const activeFilterCount = [region, city, radiusKm, listingType, housingType, roomType, debouncedMin, debouncedMax].filter(Boolean).length + selectedAmenities.length
 
   const input = {
     ...(region ? { region } : {}),
@@ -95,6 +96,7 @@ export default function SearchScreen() {
     // city's centroid + km. Listings within the disc are returned.
     ...(city && radiusKm ? { centerLat: city.lat, centerLng: city.lng, radiusKm } : {}),
     ...(listingType ? { listingType: listingType as ListingType } : {}),
+    ...(housingType ? { housingType: housingType as HousingType } : {}),
     ...(roomType ? { roomType: roomType as RoomType } : {}),
     ...(debouncedMin ? { minPrice: Number(debouncedMin) } : {}),
     ...(debouncedMax ? { maxPrice: Number(debouncedMax) } : {}),
@@ -116,7 +118,7 @@ export default function SearchScreen() {
 
   const resetFilters = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    setRegion(null); setCity(null); setRadiusKm(null); setListingType(null); setRoomType(null)
+    setRegion(null); setCity(null); setRadiusKm(null); setListingType(null); setHousingType(null); setRoomType(null)
     setMinPrice(''); setMaxPrice('')
     setSelectedAmenities([])
   }
@@ -288,6 +290,15 @@ export default function SearchScreen() {
             <View className="flex-row gap-2">
               {LISTING_TYPES.map((dt) => (
                 <Chip key={dt} label={LISTING_TYPE_LABELS[dt]} active={listingType === dt} onPress={() => setListingType(listingType === dt ? null : dt)} />
+              ))}
+            </View>
+          </FilterSection>
+
+          {/* Housing type — single-select */}
+          <FilterSection title="Type de logement">
+            <View className="flex-row gap-2">
+              {HOUSING_TYPES.map((ht) => (
+                <Chip key={ht} label={HOUSING_TYPE_LABELS[ht]} active={housingType === ht} onPress={() => setHousingType(housingType === ht ? null : ht)} />
               ))}
             </View>
           </FilterSection>

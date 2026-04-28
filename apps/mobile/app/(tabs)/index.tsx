@@ -1,134 +1,217 @@
-import { useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native'
+import { FlatList, Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import * as Haptics from 'expo-haptics'
-import { LISTING_TYPES, LISTING_TYPE_LABELS, DEFAULT_COUNTRY } from '@coloc/shared/constants'
+import { useQuery } from '@tanstack/react-query'
+import { Feather } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
 
 import { authClient } from '@/lib/auth'
 import { client, orpc } from '@/lib/orpc'
 import { ListingCard } from '@/components/ListingCard'
 import { ListingSkeletonList } from '@/components/ListingCardSkeleton'
+import { ProfileCompletionCard, useProfileCompletion } from '@/components/ProfileCompletion'
+
+const HORIZONTAL_CARD_WIDTH = 280
+
+function SectionHeader({ title, onPress }: { title: string; onPress?: () => void }) {
+  return (
+    <View className="mb-3 flex-row items-center justify-between px-6">
+      <Text className="text-lg font-bold text-foreground">{title}</Text>
+      {onPress && (
+        <Pressable onPress={onPress} accessibilityRole="button">
+          <Text className="text-sm font-medium text-primary">Voir tout ›</Text>
+        </Pressable>
+      )}
+    </View>
+  )
+}
+
+function HorizontalListings({ data, isLoading }: { data: any[]; isLoading: boolean }) {
+  if (isLoading) return <ListingSkeletonList />
+  return (
+    <FlatList
+      data={data}
+      keyExtractor={(item) => item.id}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}
+      renderItem={({ item }) => (
+        <View style={{ width: HORIZONTAL_CARD_WIDTH }}>
+          <ListingCard listing={item} />
+        </View>
+      )}
+    />
+  )
+}
+
+function ActivitySummary({ mode, onPress }: { mode: 'seeker' | 'provider'; onPress: () => void }) {
+  const { data: mineCandidatures = [] } = useQuery({
+    ...orpc.candidature.mine.queryOptions(),
+    enabled: mode === 'seeker',
+  })
+  const { data: received } = useQuery({
+    ...orpc.candidature.receivedSummary.queryOptions(),
+    enabled: mode === 'provider',
+  })
+
+  if (mode === 'seeker') {
+    const active = mineCandidatures.filter((c: any) => c.status === 'pending' || c.status === 'accepted')
+    const accepted = mineCandidatures.filter((c: any) => c.status === 'accepted')
+    return (
+      <Pressable
+        className="flex-row items-center justify-between rounded-card bg-card p-4 shadow-sm"
+        onPress={onPress}
+        accessibilityRole="button"
+      >
+        <View className="flex-row items-center gap-3">
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-accent">
+            <Feather name="send" size={18} color="#FF6B35" />
+          </View>
+          <View>
+            <Text className="text-base font-semibold text-foreground">
+              {active.length === 0
+                ? 'Aucune candidature en cours'
+                : `${active.length} candidature${active.length > 1 ? 's' : ''} en cours`}
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              {accepted.length > 0 ? `${accepted.length} acceptée${accepted.length > 1 ? 's' : ''} 🎉` : 'Suis tes demandes'}
+            </Text>
+          </View>
+        </View>
+        <Feather name="chevron-right" size={20} color="#8B7E74" />
+      </Pressable>
+    )
+  }
+
+  // Provider
+  const total = received?.total ?? 0
+  const pending = received?.pending ?? 0
+  return (
+    <Pressable
+      className="flex-row items-center justify-between rounded-card bg-card p-4 shadow-sm"
+      onPress={onPress}
+      accessibilityRole="button"
+    >
+      <View className="flex-row items-center gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-accent">
+          <Feather name="inbox" size={18} color="#FF6B35" />
+        </View>
+        <View>
+          <Text className="text-base font-semibold text-foreground">
+            {total === 0 ? 'Aucune candidature reçue' : `${total} candidature${total > 1 ? 's' : ''} reçue${total > 1 ? 's' : ''}`}
+          </Text>
+          <Text className="text-xs text-muted-foreground">
+            {pending > 0 ? `${pending} en attente de réponse` : 'Tu es à jour'}
+          </Text>
+        </View>
+      </View>
+      <Feather name="chevron-right" size={20} color="#8B7E74" />
+    </Pressable>
+  )
+}
 
 export default function HomeScreen() {
   const { data: session } = authClient.useSession()
   const insets = useSafeAreaInsets()
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
-  const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
+  const router = useRouter()
+  const { completion, missing } = useProfileCompletion()
 
-  const input = {
-    ...(selectedRegion ? { region: selectedRegion as any } : {}),
-    ...(selectedDuration ? { listingType: selectedDuration as any } : {}),
-  }
+  const { data: profile } = useQuery({
+    ...orpc.user.me.queryOptions(),
+    enabled: !!session,
+  })
+  const mode: 'seeker' | 'provider' = (profile?.mode as 'provider' | 'seeker' | undefined) ?? 'seeker'
 
-  const { data: regionOptions = [] } = useQuery(orpc.geo.regions.queryOptions({
-    input: { country: DEFAULT_COUNTRY },
-    staleTime: 60 * 60 * 1000,
-  }))
+  const { data: newestData, isLoading: newestLoading } = useQuery({
+    queryKey: ['listings', 'home-newest'],
+    queryFn: () => client.listing.list({ page: 1, limit: 10 }),
+    staleTime: 60_000,
+  })
+  const newest = newestData?.data ?? []
 
-  const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['listings', 'home', input],
-    queryFn: ({ pageParam = 1 }) => client.listing.list({ ...input, page: pageParam, limit: 10 }),
-    getNextPageParam: (lastPage) => {
-      const { page, totalPages } = lastPage.meta
-      return page < totalPages ? page + 1 : undefined
-    },
-    initialPageParam: 1,
+  const { data: favorites = [], isLoading: favoritesLoading } = useQuery({
+    ...orpc.favorite.list.queryOptions(),
+    enabled: !!session,
   })
 
-  const listings = data?.pages.flatMap((p) => p.data) ?? []
-
   return (
-    <View className="flex-1 bg-background">
-      <View className="px-6 pb-2" style={{ paddingTop: insets.top + 8 }}>
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 60 }}
+    >
+      {/* Header */}
+      <View className="px-6 pb-4">
         <Text className="text-3xl font-bold text-foreground">Coolive</Text>
         {session && (
           <Text className="mt-1 text-base text-muted-foreground">
             Ia ora na, {session.user.name} 🌺
           </Text>
         )}
-        <Text className="mt-3 text-lg text-secondary font-medium italic">
+        <Text className="mt-3 text-lg italic font-medium text-secondary">
           Trouve ta coloc au paradis
         </Text>
       </View>
 
-      <View className="gap-2 px-6 py-3">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-2">
-            <Pressable
-              className={`rounded-pill px-4 py-2 ${!selectedRegion ? 'bg-primary' : 'bg-muted'}`}
-              onPress={() => { Haptics.selectionAsync(); setSelectedRegion(null) }}
-              accessibilityLabel="Toutes les îles"
-              accessibilityRole="button"
-              accessibilityState={{ selected: !selectedRegion }}
-            >
-              <Text className={`text-sm font-medium ${!selectedRegion ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
-                Toutes les iles
-              </Text>
-            </Pressable>
-            {regionOptions.filter((r) => r.code !== 'other').map((r) => (
-              <Pressable
-                key={r.code}
-                className={`rounded-pill px-4 py-2 ${selectedRegion === r.code ? 'bg-primary' : 'bg-muted'}`}
-                onPress={() => { Haptics.selectionAsync(); setSelectedRegion(selectedRegion === r.code ? null : r.code) }}
-              >
-                <Text className={`text-sm font-medium ${selectedRegion === r.code ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
-                  {r.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-2">
-            {LISTING_TYPES.map((dt) => (
-              <Pressable
-                key={dt}
-                className={`rounded-pill px-4 py-2 ${selectedDuration === dt ? 'bg-secondary' : 'bg-muted'}`}
-                onPress={() => { Haptics.selectionAsync(); setSelectedDuration(selectedDuration === dt ? null : dt) }}
-              >
-                <Text className={`text-sm font-medium ${selectedDuration === dt ? 'text-secondary-foreground' : 'text-muted-foreground'}`}>
-                  {LISTING_TYPE_LABELS[dt]}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
+      {/* Profile completion banner */}
+      {session && completion < 100 && (
+        <View className="px-6 pb-3">
+          <ProfileCompletionCard
+            completion={completion}
+            missing={missing}
+            variant="banner"
+            onPress={() => router.push('/profile/edit' as any)}
+          />
+        </View>
+      )}
+
+      {/* Activity summary — mode-dependent */}
+      {session && (
+        <View className="px-6 pb-5">
+          <ActivitySummary
+            mode={mode}
+            onPress={() => router.push((mode === 'seeker' ? '/(tabs)/candidatures' : '/(tabs)/listings') as any)}
+          />
+        </View>
+      )}
+
+      {/* New listings — horizontal scroll */}
+      <View className="pb-6">
+        <SectionHeader title="Nouveautés" onPress={() => router.push('/(tabs)/search' as any)} />
+        <HorizontalListings data={newest} isLoading={newestLoading} />
       </View>
 
-      <FlatList
-        data={isLoading ? [] : listings}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View className="px-6 pb-4">
-            <ListingCard listing={item as any} />
-          </View>
-        )}
-        onRefresh={() => refetch()}
-        refreshing={isRefetching}
-        onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
-        onEndReachedThreshold={0.5}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
-        ListHeaderComponent={isLoading ? <ListingSkeletonList /> : null}
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View className="items-center py-4"><ActivityIndicator color="#FF6B35" /></View>
-          ) : !isLoading && listings.length > 0 && !hasNextPage ? (
-            <View className="items-center py-6">
-              <Text className="text-sm text-muted-foreground">Vous avez tout vu 🌺</Text>
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          !isLoading ? (
-            <View className="items-center px-6 pt-20">
-              <Text className="text-center text-lg text-muted-foreground">
-                Aucune annonce pour le moment 🏝️
+      {/* Favorites — horizontal scroll, or CTA if empty */}
+      {session && (
+        <View className="pb-8">
+          <SectionHeader
+            title="Coups de cœur"
+            onPress={favorites.length > 0 ? () => router.push('/profile/favorites' as any) : undefined}
+          />
+          {favoritesLoading ? (
+            <ListingSkeletonList />
+          ) : favorites.length > 0 ? (
+            <HorizontalListings data={favorites} isLoading={false} />
+          ) : (
+            <View className="mx-6 items-center rounded-card bg-card p-6">
+              <Feather name="heart" size={28} color="#FF6B35" />
+              <Text className="mt-3 text-center text-base font-semibold text-foreground">
+                Pas encore de coup de cœur
               </Text>
+              <Text className="mt-1 text-center text-sm text-muted-foreground">
+                Explore les annonces et touche le ❤️ pour les retrouver ici.
+              </Text>
+              <Pressable
+                className="mt-4 flex-row items-center gap-2 rounded-pill bg-primary px-5 py-2.5"
+                onPress={() => router.push('/(tabs)/search' as any)}
+                accessibilityRole="button"
+                accessibilityLabel="Rechercher des annonces"
+              >
+                <Feather name="search" size={14} color="#fff" />
+                <Text className="text-sm font-semibold text-primary-foreground">Découvrir des annonces</Text>
+              </Pressable>
             </View>
-          ) : null
-        }
-      />
-    </View>
+          )}
+        </View>
+      )}
+    </ScrollView>
   )
 }

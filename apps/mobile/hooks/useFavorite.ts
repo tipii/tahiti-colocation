@@ -40,6 +40,9 @@ export function useFavorite(listingId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: FAV_IDS_KEY })
+      // Also refresh the enriched favorites list so the home "Coups de cœur"
+      // section and the favorites screen pick up the change immediately.
+      queryClient.invalidateQueries({ queryKey: orpc.favorite.key() })
     },
   })
 

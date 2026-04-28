@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
 import { ImageGallery } from '@/components/ImageGallery'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -16,6 +16,7 @@ import { FavoriteButton } from '@/components/FavoriteButton'
 import { getStatusMeta } from '@/components/CandidatureStatus'
 import { ListingStatusBadge } from '@/components/ListingStatus'
 import { ListingMap } from '@/components/ListingMap'
+import { colocLabel } from '@/components/ListingCard'
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -26,6 +27,7 @@ export default function ListingDetailScreen() {
   const insets = useSafeAreaInsets()
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
+  const [carouselIndex, setCarouselIndex] = useState(0)
 
   const { data: listing, isLoading, error, refetch } = useQuery(
     orpc.listing.get.queryOptions({ input: { idOrSlug: id! } }),
@@ -102,7 +104,14 @@ export default function ListingDetailScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top }}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingTop: insets.top,
+          // Reserve space so the sticky footer (when present) doesn't cover content.
+          paddingBottom: !isOwner && session ? 100 + insets.bottom : 0,
+        }}
+      >
       {/* Fullscreen Gallery Modal */}
       <ImageGallery
         visible={galleryOpen}
@@ -111,44 +120,53 @@ export default function ListingDetailScreen() {
         onClose={() => setGalleryOpen(false)}
       />
 
-      <View className="px-4 pt-2">
+      <View>
         {images.length > 0 ? (
-          <Pressable className="overflow-hidden rounded-2xl" accessibilityLabel="Voir les photos en plein écran" onPress={() => { setGalleryIndex(0); setGalleryOpen(true) }}>
-            {images.length === 1 ? (
-              <Image source={{ uri: images[0].mediumUrl ?? '' }} style={{ width: '100%', height: 320 }} contentFit="cover" transition={200} accessibilityLabel={`Photo de ${listing.title}`} />
-            ) : images.length === 2 ? (
-              <View className="flex-row" style={{ height: 280 }}>
-                <Image source={{ uri: images[0].mediumUrl ?? '' }} style={{ flex: 1, height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 1 de ${listing.title}`} />
-                <View style={{ width: 2 }} />
-                <Image source={{ uri: images[1].mediumUrl ?? '' }} style={{ flex: 1, height: 280 }} contentFit="cover" transition={200} accessibilityLabel={`Photo 2 de ${listing.title}`} />
-              </View>
-            ) : (
-              <View style={{ height: 280 }}>
-                <Image source={{ uri: images[0].mediumUrl ?? '' }} style={{ width: '100%', height: 185 }} contentFit="cover" transition={200} accessibilityLabel={`Photo principale de ${listing.title}`} />
-                <View className="flex-row" style={{ height: 93, marginTop: 2 }}>
-                  {images.slice(1, 4).map((img, i) => (
-                    <View key={img.id} style={{ flex: 1, marginLeft: i > 0 ? 2 : 0 }}>
-                      <Image source={{ uri: img.mediumUrl ?? '' }} style={{ flex: 1 }} contentFit="cover" transition={200} />
-                      {i === 2 && images.length > 4 && (
-                        <View className="absolute inset-0 items-center justify-center bg-black/40">
-                          <Text className="text-lg font-bold text-white">+{images.length - 4}</Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
+          <View>
+            <FlatList
+              data={images}
+              keyExtractor={(img) => img.id}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                setCarouselIndex(Math.round(e.nativeEvent.contentOffset.x / width))
+              }}
+              renderItem={({ item, index }) => (
+                <Pressable
+                  style={{ width, height: 320 }}
+                  accessibilityLabel={`Photo ${index + 1} sur ${images.length}`}
+                  onPress={() => { setGalleryIndex(index); setGalleryOpen(true) }}
+                >
+                  <Image
+                    source={{ uri: item.mediumUrl ?? '' }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                </Pressable>
+              )}
+            />
 
             {images.length > 1 && (
-              <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1" accessibilityElementsHidden>
-                <Feather name="image" size={12} color="#fff" />
-                <Text className="text-xs font-medium text-white">{images.length}</Text>
-              </View>
+              <>
+                <View className="absolute bottom-3 left-0 right-0 flex-row justify-center gap-1.5" accessibilityElementsHidden>
+                  {images.map((_, i) => (
+                    <View
+                      key={i}
+                      className={`h-1.5 rounded-full ${carouselIndex === i ? 'w-4 bg-white' : 'w-1.5 bg-white/60'}`}
+                    />
+                  ))}
+                </View>
+                <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-pill bg-black/50 px-2.5 py-1">
+                  <Feather name="image" size={12} color="#fff" />
+                  <Text className="text-xs font-medium text-white">{carouselIndex + 1}/{images.length}</Text>
+                </View>
+              </>
             )}
-          </Pressable>
+          </View>
         ) : (
-          <View className="h-48 items-center justify-center rounded-2xl bg-muted">
+          <View className="h-48 items-center justify-center bg-muted">
             <Feather name="image" size={48} color="#E8DDD3" />
             <Text className="mt-2 text-sm text-muted-foreground">Pas de photos</Text>
           </View>
@@ -190,7 +208,7 @@ export default function ListingDetailScreen() {
         })()}
 
         <View>
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-1.5">
             <View className="rounded-pill bg-accent px-3 py-1">
               <Text className="text-xs font-semibold text-accent-foreground">
                 {LISTING_TYPE_LABELS[listing.listingType as ListingType]}
@@ -208,31 +226,84 @@ export default function ListingDetailScreen() {
             <Feather name="map-pin" size={16} color="#0D9488" />
             <Text className="text-base text-muted-foreground">{listing.cityLabel ?? listing.city}, {listing.regionLabel ?? listing.region}</Text>
           </View>
-          <Text className="mt-2 text-xl font-bold text-primary">
+          <Text className="mt-2 text-2xl font-bold text-primary">
             {listing.price.toLocaleString('fr-FR')} XPF / mois
           </Text>
+
+          {/* Property facts — accent pills, same palette as the amenity tiles */}
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            <View className="flex-row items-center gap-1.5 rounded-pill bg-accent px-3 py-1.5">
+              <Feather name="home" size={14} color="#FF6B35" />
+              <Text className="text-sm text-accent-foreground">
+                {colocLabel(listing.roommateCount, listing.roomType as RoomType)}
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-1.5 rounded-pill bg-accent px-3 py-1.5">
+              <Feather name="users" size={14} color="#FF6B35" />
+              <Text className="text-sm text-accent-foreground">{ROOM_TYPE_LABELS[listing.roomType as RoomType]}</Text>
+            </View>
+            <View className="flex-row items-center gap-1.5 rounded-pill bg-accent px-3 py-1.5">
+              <Feather name="calendar" size={14} color="#FF6B35" />
+              <Text className="text-sm text-accent-foreground">
+                Dès le {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <View className="flex-row flex-wrap" style={{ gap: 10 }} accessibilityLabel={`${ROOM_TYPE_LABELS[listing.roomType as RoomType]}, coloc à ${listing.roommateCount} personne(s), disponible ${new Date(listing.availableFrom).toLocaleDateString('fr-FR')}`}>
-          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
-            <Feather name="home" size={22} color="#0D9488" />
-            <Text className="mt-1.5 text-xs text-muted-foreground text-center">
-              {ROOM_TYPE_LABELS[listing.roomType as RoomType]}
-            </Text>
-          </View>
-          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
-            <Feather name="users" size={22} color="#0D9488" />
-            <Text className="mt-1.5 text-xs text-muted-foreground text-center">
-              Avec {listing.roommateCount} {listing.roommateCount > 1 ? 'colocs' : 'coloc'}
-            </Text>
-          </View>
-          <View className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
-            <Feather name="calendar" size={22} color="#0D9488" />
-            <Text className="mt-1.5 text-xs text-muted-foreground text-center">
-              {new Date(listing.availableFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-            </Text>
-          </View>
+        <View>
+          <Text className="text-sm font-semibold text-muted-foreground uppercase">À propos</Text>
+          <Text className="mt-2 text-base leading-6 text-foreground">{listing.description}</Text>
         </View>
+
+        {/* Annonceur — moved up; trust signals (member since, posted date) */}
+        {listing.author && (
+          <View className="rounded-card bg-card p-4 shadow-sm">
+            <Text className="text-sm font-semibold text-muted-foreground uppercase">Annonceur</Text>
+            <View className="mt-3 flex-row items-center gap-3">
+              {listing.author.avatar ? (
+                <Image source={{ uri: listing.author.avatar }} style={{ width: 48, height: 48, borderRadius: 24 }} contentFit="cover" />
+              ) : (
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-accent">
+                  <Text className="text-lg font-bold text-primary">{listing.author.name?.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+              <View className="flex-1">
+                <Text className="text-base font-semibold text-foreground">{listing.author.name}</Text>
+                {listing.author.createdAt && (
+                  <Text className="mt-0.5 text-xs text-muted-foreground">
+                    Membre depuis {new Date(listing.author.createdAt).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Text className="mt-3 text-xs text-muted-foreground">
+              Annonce publiée {(() => {
+                const days = Math.max(0, Math.floor((Date.now() - new Date(listing.createdAt).getTime()) / (1000 * 60 * 60 * 24)))
+                if (days === 0) return "aujourd'hui"
+                if (days === 1) return 'hier'
+                if (days < 30) return `il y a ${days} jours`
+                const months = Math.floor(days / 30)
+                if (months < 12) return `il y a ${months} mois`
+                return `il y a ${Math.floor(months / 12)} an${Math.floor(months / 12) > 1 ? 's' : ''}`
+              })()}
+            </Text>
+          </View>
+        )}
+
+        {activeAmenities.length > 0 && (
+          <View>
+            <Text className="text-sm font-semibold text-muted-foreground uppercase">Équipements</Text>
+            <View className="mt-3 flex-row flex-wrap" style={{ gap: 10 }}>
+              {activeAmenities.map((a) => (
+                <View key={a.code} className="items-center rounded-card bg-accent p-3" style={{ width: '31%' }}>
+                  <Feather name={a.icon as any} size={26} color="#FF6B35" />
+                  <Text className="mt-1.5 text-xs text-center text-accent-foreground">{a.label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {listing.latitude && listing.longitude && (
           <View>
@@ -246,82 +317,7 @@ export default function ListingDetailScreen() {
           </View>
         )}
 
-        {activeAmenities.length > 0 && (
-          <View>
-            <Text className="text-sm font-semibold text-muted-foreground uppercase">Équipements</Text>
-            <View className="mt-3 flex-row flex-wrap" style={{ gap: 10 }}>
-              {activeAmenities.map((a) => (
-                <View key={a.code} className="items-center rounded-card bg-card p-3 shadow-sm" style={{ width: '31%' }}>
-                  <Feather name={a.icon as any} size={24} color="#FF6B35" />
-                  <Text className="mt-1.5 text-xs text-center text-muted-foreground">{a.label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        <View>
-          <Text className="text-sm font-semibold text-muted-foreground uppercase">À propos</Text>
-          <Text className="mt-2 text-base leading-6 text-foreground">{listing.description}</Text>
-        </View>
-
-        <View className="rounded-card bg-card p-4 shadow-sm">
-          <Text className="text-sm font-semibold text-muted-foreground uppercase">Annonceur</Text>
-          <View className="mt-3 flex-row items-center gap-3">
-            {listing.author && (
-              <>
-                <View className="h-12 w-12 items-center justify-center rounded-full bg-accent">
-                  <Text className="text-lg font-bold text-primary">
-                    {listing.author.name?.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <Text className="text-base font-semibold text-foreground">{listing.author.name}</Text>
-              </>
-            )}
-          </View>
-        </View>
-
-        {session && !isOwner && (() => {
-          if (!myCandidature) {
-            return (
-              <Pressable
-                className="flex-row items-center justify-center gap-2 rounded-button bg-primary py-3.5"
-                accessibilityLabel="Postuler à cette annonce"
-                onPress={() => router.push(`/listing/apply/${listing.id}` as any)}
-              >
-                <Feather name="send" size={18} color="#fff" />
-                <Text className="text-base font-semibold text-primary-foreground">Postuler</Text>
-              </Pressable>
-            )
-          }
-          if (myCandidature.status === 'pending') {
-            return (
-              <View className="items-center rounded-button bg-accent py-3.5">
-                <Text className="text-base font-semibold text-accent-foreground">Candidature envoyée ⏳</Text>
-              </View>
-            )
-          }
-          if (myCandidature.status === 'accepted' || myCandidature.status === 'finalized') {
-            return (
-              <Pressable
-                className="flex-row items-center justify-center gap-2 rounded-button bg-secondary py-3.5"
-                accessibilityLabel="Voir le contact"
-                onPress={() => router.push(`/candidature/${myCandidature.id}` as any)}
-              >
-                <Feather name="phone" size={18} color="#fff" />
-                <Text className="text-base font-semibold text-secondary-foreground">Voir le contact</Text>
-              </Pressable>
-            )
-          }
-          if (myCandidature.status === 'rejected') {
-            return (
-              <View className="items-center rounded-button bg-muted py-3.5">
-                <Text className="text-base font-medium text-muted-foreground">Candidature non retenue</Text>
-              </View>
-            )
-          }
-          return null
-        })()}
+        {/* Non-owner CTA lives in the sticky bottom bar (rendered outside the ScrollView). */}
 
         {isOwner && (
           <View className="gap-3 pb-8">
@@ -343,6 +339,78 @@ export default function ListingDetailScreen() {
         )}
       </View>
     </ScrollView>
+
+    {/* Sticky bottom CTA — non-owner seekers only. Mirrors the inline body
+        button's status-aware behaviour (Postuler / envoyée / Voir le contact / non retenue). */}
+    {session && !isOwner && (
+      <View
+        style={{ paddingBottom: insets.bottom + 12, backgroundColor: '#FFFFFF', borderTopColor: '#E8DDD3' }}
+        className="absolute bottom-0 left-0 right-0 flex-row items-center gap-3 border-t px-6 pt-3"
+      >
+        {(() => {
+          // Status meta drives both the left "reassurance" cell and the right
+          // action. Bar layout: [icon · text/sub] [CTA pill].
+          type Meta = {
+            iconName: keyof typeof Feather.glyphMap
+            iconColor: string
+            iconBg: string
+            text: string
+            sub?: string
+            cta: { label: string; bg: string; iconName: keyof typeof Feather.glyphMap; onPress?: () => void } | null
+          }
+          let m: Meta
+          if (!myCandidature) {
+            m = {
+              iconName: 'send', iconColor: '#FF6B35', iconBg: 'bg-accent',
+              text: 'Tu aimes cette annonce ?', sub: "Présente-toi à l'annonceur",
+              cta: { label: 'Postuler', bg: 'bg-primary', iconName: 'send', onPress: () => router.push(`/listing/apply/${listing.id}` as any) },
+            }
+          } else if (myCandidature.status === 'pending') {
+            m = {
+              iconName: 'clock', iconColor: '#FF6B35', iconBg: 'bg-accent',
+              text: 'Candidature envoyée', sub: "L'annonceur va te répondre",
+              cta: null,
+            }
+          } else if (myCandidature.status === 'accepted' || myCandidature.status === 'finalized') {
+            m = {
+              iconName: 'check-circle', iconColor: '#0D9488', iconBg: 'bg-secondary/15',
+              text: "Tu as été accepté·e 🌺", sub: 'Récupère le contact',
+              cta: { label: 'Voir le contact', bg: 'bg-secondary', iconName: 'phone', onPress: () => router.push(`/candidature/${myCandidature.id}` as any) },
+            }
+          } else {
+            // rejected / withdrawn
+            m = {
+              iconName: 'x-circle', iconColor: '#8B7E74', iconBg: 'bg-muted',
+              text: 'Candidature non retenue', sub: "D'autres annonces t'attendent",
+              cta: null,
+            }
+          }
+          return (
+            <>
+              <View className="flex-1 flex-row items-center gap-3">
+                <View className={`h-10 w-10 items-center justify-center rounded-full ${m.iconBg}`}>
+                  <Feather name={m.iconName} size={18} color={m.iconColor} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{m.text}</Text>
+                  {m.sub && <Text className="mt-0.5 text-xs text-muted-foreground" numberOfLines={1}>{m.sub}</Text>}
+                </View>
+              </View>
+              {m.cta && (
+                <Pressable
+                  className={`flex-row items-center gap-2 rounded-pill px-5 py-3 ${m.cta.bg}`}
+                  accessibilityLabel={m.cta.label}
+                  onPress={m.cta.onPress}
+                >
+                  <Feather name={m.cta.iconName} size={16} color="#fff" />
+                  <Text className="text-sm font-semibold text-primary-foreground">{m.cta.label}</Text>
+                </Pressable>
+              )}
+            </>
+          )
+        })()}
+      </View>
+    )}
     </View>
   )
 }

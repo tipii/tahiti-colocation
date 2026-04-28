@@ -10,6 +10,7 @@ import { OCCUPATIONS, SMOKER_CHOICES, PET_CHOICES, SCHEDULE_CHOICES, LANGUAGE_CH
 import { orpc, client } from '@/lib/orpc'
 import { pickImage, uploadImage } from '@/lib/upload'
 import { DateField } from '@/components/DateField'
+import { ProfileCompletionCard } from '@/components/ProfileCompletion'
 
 const OCCUPATION_LABELS: Record<string, string> = {
   student: 'Étudiant·e',
@@ -170,15 +171,8 @@ export default function EditProfileScreen() {
       </View>
 
       {/* Completion */}
-      <View className="mt-6 rounded-card bg-card p-3">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-sm font-medium text-foreground">Profil complété</Text>
-          <Text className="text-sm font-bold text-primary">{completion}%</Text>
-        </View>
-        <View className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-          <View className="h-full bg-primary" style={{ width: `${completion}%` }} />
-        </View>
-        <Text className="mt-2 text-xs text-muted-foreground">Requis pour postuler: avatar, nom, date de naissance, métier, tabac, animaux, téléphone</Text>
+      <View className="mt-6">
+        <ProfileCompletionCard completion={completion} missing={[]} variant="full" />
       </View>
 
       {/* Form */}

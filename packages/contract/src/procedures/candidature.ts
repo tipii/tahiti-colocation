@@ -31,6 +31,13 @@ export const candidatureContract = {
   count: oc
     .input(z.object({ listingId: z.string() }))
     .output(z.object({ total: z.number().int(), pending: z.number().int() })),
+  // Provider-side aggregate across all listings owned by the current user.
+  receivedSummary: oc
+    .output(z.object({
+      total: z.number().int(),
+      pending: z.number().int(),
+      accepted: z.number().int(),
+    })),
   contact: oc
     .input(z.object({ id: z.string() }))
     .output(contactPayloadSchema),

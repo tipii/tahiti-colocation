@@ -77,7 +77,7 @@ async function enrichWithImages(listingId: string) {
 
 async function enrichWithAuthor(authorId: string) {
   const [author] = await db
-    .select({ id: user.id, name: user.name, avatar: user.avatar })
+    .select({ id: user.id, name: user.name, avatar: user.avatar, createdAt: user.createdAt })
     .from(user)
     .where(eq(user.id, authorId))
     .limit(1)
@@ -147,6 +147,7 @@ export const list = pub.listing.list.handler(async ({ input }) => {
   }
 
   if (input.listingType) conditions.push(eq(listings.listingType, input.listingType))
+  if (input.housingType) conditions.push(eq(listings.housingType, input.housingType))
   if (input.roomType) {
     // "both" matches any room type, so only filter for "single" or "couple"
     if (input.roomType === 'single') {

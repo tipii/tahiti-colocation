@@ -33,6 +33,7 @@ export const authorSchema = z.object({
   id: z.string(),
   name: z.string(),
   avatar: z.string().nullable(),
+  createdAt: z.coerce.date().optional(),
 })
 
 export const listingSchema = z.object({
@@ -99,6 +100,7 @@ export const listingFiltersSchema = z.object({
   centerLng: z.coerce.number().optional(),
   radiusKm: z.coerce.number().positive().max(500).optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
+  housingType: z.enum(HOUSING_TYPES).optional(),
   roomType: z.enum(ROOM_TYPES).optional(),
   minPrice: z.coerce.number().int().optional(),
   maxPrice: z.coerce.number().int().optional(),

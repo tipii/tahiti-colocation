@@ -34,7 +34,7 @@ export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
 }
 
 export const ROOM_TYPE_LABELS: Record<RoomType, string> = {
-  single: 'Personne seule',
+  single: 'Solo',
   couple: 'Couple',
-  both: 'Les deux',
+  both: 'Solo / Couple',
 }

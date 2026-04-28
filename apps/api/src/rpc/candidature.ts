@@ -296,6 +296,25 @@ export const forListing = authed.candidature.forListing.handler(async ({ input, 
   return Promise.all(results.map((c) => enrichCandidature(c, true, false)))
 })
 
+// Provider-side aggregate: counts of incoming candidatures across every
+// listing owned by the current user. Used to power the home screen summary.
+export const receivedSummary = authed.candidature.receivedSummary.handler(async ({ context }) => {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      pending: sql<number>`count(*) filter (where ${candidatures.status} = 'pending')::int`,
+      accepted: sql<number>`count(*) filter (where ${candidatures.status} = 'accepted')::int`,
+    })
+    .from(candidatures)
+    .innerJoin(listings, eq(candidatures.listingId, listings.id))
+    .where(eq(listings.authorId, context.user.id))
+  return {
+    total: row?.total ?? 0,
+    pending: row?.pending ?? 0,
+    accepted: row?.accepted ?? 0,
+  }
+})
+
 export const count = authed.candidature.count.handler(async ({ input, context }) => {
   const [totalResult] = await db
     .select({ count: sql<number>`count(*)::int` })
